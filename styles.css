@@ -1,0 +1,364 @@
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #e0e0e0;
+  color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  min-width: 100vw;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#fileInput {
+  display: block;
+  margin: 20px auto 30px auto;
+}
+
+.vpod-container {
+  background: linear-gradient(145deg, #fcfcfc 60%, #f0f0f0 100%);
+  border-radius: 40px;
+  width: 440px;
+  height: 520px;
+  margin: 30px auto;
+  box-shadow:
+    0 16px 36px 0 rgba(0,0,0,0.22),   
+    0 2px 8px 0 rgba(0,0,0,0.12),    
+    0 0 0 4px #f5f5f5 inset,          
+    0 1.5px 0 0 #e0e0e0 inset;        
+  padding: 24px 0 32px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2px solid #d0d0d0;
+  position: relative;
+  overflow: visible;
+}
+
+.vpod-container::before {
+  content: "";
+  position: absolute;
+  top: 8px; left: 24px; right: 24px;
+  height: 32px;
+  border-radius: 32px 32px 24px 24px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.vpod-screen {
+  background: linear-gradient(180deg, #f9f9f9 0%, #eaeaea 100%);
+  color: #222;
+  border-radius: 18px;
+  width: 380px;
+  height: 320px;
+  margin-bottom: 30px;
+  overflow: hidden;
+  position: relative;
+  border: 3px solid #c0c0c0;
+  box-shadow:
+    0 1px 1px rgba(0,0,0,0.13),
+    0 0 0 2px #e0e0e0,       
+    0 2px 8px 2px #b0b0b0 inset; 
+  font-family: 'Segoe UI', Arial, sans-serif;
+  transition: background 0.3s;
+}
+
+.screen-content {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0; top: 0;
+  transition: transform 0.35s cubic-bezier(.4,1.3,.6,1);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.screen-slide-in {
+  transform: translateX(100%);
+}
+.screen-slide-out {
+  transform: translateX(-100%);
+}
+.screen-active {
+  transform: translateX(0);
+}
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.menu-list li {
+  padding: 16px 18px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background 0.2s;
+}
+.menu-list li:hover, .menu-list li.active {
+  background: #e0eaff;
+}
+.menu-back {
+  margin-top: auto;
+  padding: 12px 0;
+  text-align: center;
+  color: #0074d9;
+  font-weight: bold;
+  cursor: pointer;
+  border-top: 1px solid #eee;
+  background: #f8f8f8;
+  border-radius: 0 0 18px 18px;
+}
+.album-list {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+}
+.album-list-left {
+  width: 50%;
+  overflow-y: auto;
+  border-right: 1px solid #eee;
+}
+.album-list-right {
+  width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f4f4f4;
+}
+.album-cover {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-list-song {
+  padding: 14px 18px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  font-size: 1em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.menu-list-song:hover,
+.menu-list-song.active {
+  background: #e0eaff;
+  color: #222;
+}
+
+.menu-list-song span {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.vpod-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 380px;
+  height: 180px;
+  margin: 0 auto;
+  background: none;
+  box-shadow: none;
+}
+
+.vpod-disk {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle at 60% 40%, #f5f5f5 60%, #d8d8d8 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.10), 0 1px 4px rgba(0,0,0,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid #d0d0d0;
+  overflow: visible;
+}
+
+.vpod-disk:before {
+  content: "";
+  position: absolute;
+  left: 20px; top: 20px;
+  width: 160px; height: 60px;
+  background: linear-gradient(120deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.05) 100%);
+  border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.vpod-disk-btn {
+  position: absolute;
+  background: none;
+  border: none;
+  color: #444;
+  font-weight: bold;
+  font-size: 1em;
+  cursor: pointer;
+  z-index: 2;
+  user-select: none;
+  transition: background 0.2s, color 0.2s;
+  padding: 0;
+  text-shadow: 0 1px 2px #fff, 0 -1px 2px #bbb;
+}
+
+.vpod-disk-menu   { top: 18px; left: 50%; transform: translateX(-50%); }
+.vpod-disk-play   { bottom: 18px; left: 50%; transform: translateX(-50%); }
+.vpod-disk-prev   { left: 18px; top: 50%; transform: translateY(-50%); }
+.vpod-disk-next   { right: 18px; top: 50%; transform: translateY(-50%); }
+
+.vpod-disk-center {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px; height: 64px;
+  background: linear-gradient(145deg, #f9f9f9 60%, #e0e0e0 100%);
+  border: 2.5px solid #bbb;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10), 0 1px 4px #fff inset;
+  cursor: pointer;
+  z-index: 3;
+  transition: box-shadow 0.2s;
+}
+
+.vpod-disk-center:active {
+  box-shadow: 0 0 0 1px #bbb inset, 0 2px 2px rgba(0,0,0,0.10);
+}
+
+.vpod-disk-btn, .vpod-disk-center {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+
+.vpod-disk-touch {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.vpod-disk:active {
+  box-shadow: 0 0 12px 2px #c0c0c08e, 0 0 6px rgba(0, 0, 0, 0.041);
+}
+
+.custom-file-btn {
+  background: linear-gradient(145deg, #fcfcfc 60%, #f0f0f0 100%);
+  color: #222;
+  border: 2px solid #bbb;
+  border-radius: 14px;
+  padding: 14px 32px;
+  font-size: 1.1em;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  margin-bottom: 18px;
+  outline: none;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+
+/* --- Responsive vpod for Mobile --- */
+@media (max-width: 600px) {
+  .vpod-container {
+    width: 90vw;
+    height: 90vh;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 7vw;
+    margin: 1vw auto;
+    padding: 8vw 0 6vw 0;
+    box-shadow:
+      0 8vw 16vw 0 rgba(0,0,0,0.18),
+      0 1vw 4vw 0 rgba(0,0,0,0.10),
+      0 0 0 2vw #f5f5f5 inset,
+      0 0.5vw 0 0 #e0e0e0 inset;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .vpod-screen {
+    width: 75vw;
+    height: 120vw;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 4vw;
+    margin-bottom: 20vw;
+    font-size: 1.1em;
+    border-width: 0.7vw;
+    box-shadow:
+      0 0.5vw 0.5vw rgba(0,0,0,0.13),
+      0 0 0 1vw #e0e0e0,
+      0 1vw 4vw 1vw #b0b0b0 inset;
+  }
+
+  .vpod-controls {
+    width: 88vw;
+    height: 38vw;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .vpod-disk {
+    width: 60vw;
+    height: 60vw;
+    border-radius: 50%;
+    border-width: 0.7vw;
+  }
+  .vpod-disk-center {
+    width: 20vw;
+    height: 20vw;
+    border-width: 0.7vw;
+  }
+  .vpod-disk-btn {
+    font-size: 1.3em;
+  }
+  .vpod-disk-menu   { top: 3vw; left: 50%; transform: translateX(-50%); }
+  .vpod-disk-play   { bottom: 3vw; left: 50%; transform: translateX(-50%); }
+  .vpod-disk-prev   { left: 3vw; top: 50%; transform: translateY(-50%); }
+  .vpod-disk-next   { right: 3vw; top: 50%; transform: translateY(-50%); }
+  .vpod-disk-touch {
+    width: 60vw;
+    height: 60vw;
+  }
+
+  .album-cover {
+    width: 28vw;
+    height: 28vw;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .album-list-left, .album-list-right {
+    width: 50%;
+  }
+
+  .menu-list-song, .menu-list li {
+    font-size: 1.15em;
+    padding: 3vw 4vw;
+  }
+
+  .custom-file-btn {
+    font-size: 1.1em;
+    padding: 4vw 8vw;
+    border-radius: 4vw;
+    margin-bottom: 4vw;
+  }
+}
