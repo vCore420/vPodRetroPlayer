@@ -274,6 +274,13 @@ body {
   100% { transform: rotate(360deg);}
 }
 
+@media (orientation: portrait) {
+ .vpod-container {
+    width: 90vw;
+    height: 90vh;
+  }
+}
+
 /* --- Responsive vpod for Mobile --- */
 @media (max-width: 600px) {
   .vpod-container {
