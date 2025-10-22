@@ -435,7 +435,7 @@ body {
 }
 
 /* --- Tablet Landscape Styling --- */
-@media (min-width: 900px) and (orientation: landscape) {
+@media (min-width: 900px) and (max-width: 1200px) and (orientation: landscape) {
   body {
     min-width: 0;
     min-height: 0;
