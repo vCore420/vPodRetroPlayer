@@ -41,47 +41,38 @@ function renderScreen(content, direction = 'forward') {
   resetMenuIndex();
 }
 
-function goTo(screenFn) {
-  console.log("Navigating to new screen:", screenFn.name);
-  navStack.push(screenFn);
-  screenFn('forward');
+function goTo(screenFn, ...args) {
+  console.log("Navigating to new screen:", screenFn.name, args);
+  navStack.push({ fn: screenFn, args });
+  screenFn('forward', ...args);
 }
+
 function goBack() {
   console.log("Going back in navStack, current length:", navStack.length);
   if (navStack.length > 1) {
     navStack.pop();
-    navStack[navStack.length - 1]('back');
+    const { fn, args } = navStack[navStack.length - 1];
+    fn('back', ...args);
   }
 }
 
 // Main Menu 
 function renderMainMenu(direction = 'forward') {
-  console.log("Rendering main menu");
   renderScreen(`
     <ul class="menu-list">
       <li id="menu-load">Load Music</li>
       <li id="menu-albums">Albums</li>
+      <li id="menu-artists">Artists</li>
       <li id="menu-playlists">Playlists</li>
       <li id="menu-nowplaying">Now Playing</li>
     </ul>
   `, direction);
 
-  document.getElementById('menu-load').onclick = () => {
-    currentMenuIndex = 0;
-    goTo(renderLoadMusic);
-  };
-  document.getElementById('menu-albums').onclick = () => {
-    currentMenuIndex = 1;
-    goTo(renderAlbumsMenu);
-  };
-  document.getElementById('menu-playlists').onclick = () => {
-    currentMenuIndex = 2;
-    goTo(renderPlaylistsMenu);
-  };
-  document.getElementById('menu-nowplaying').onclick = () => {
-    currentMenuIndex = 3;
-    goTo(renderNowPlayingScreen);
-  };
+  document.getElementById('menu-load').onclick = () => { currentMenuIndex = 0; goTo(renderLoadMusic); };
+  document.getElementById('menu-albums').onclick = () => { currentMenuIndex = 1; goTo(renderAlbumsMenu); };
+  document.getElementById('menu-artists').onclick = () => { currentMenuIndex = 2; goTo(renderArtistsMenu); };
+  document.getElementById('menu-playlists').onclick = () => { currentMenuIndex = 3; goTo(renderPlaylistsMenu); };
+  document.getElementById('menu-nowplaying').onclick = () => { currentMenuIndex = 4; goTo(renderNowPlayingScreen); };
 }
 
 // Load Music Screen 
@@ -390,7 +381,7 @@ function clearScrollingAlbum(idx) {
 }
 
 // Album Songs Menu 
-function renderAlbumSongsMenu(album, direction = 'forward') {
+function renderAlbumSongsMenu(direction = 'forward', album) {
   console.log("Rendering album songs menu for:", album);
   const albumObj = albums[album];
   renderScreen(`
@@ -500,6 +491,64 @@ function updateNowPlayingProgress() {
   }
 }
 
+// Artist Menu 
+function renderArtistsMenu(direction = 'forward') {
+  // Get unique sorted artist names
+  const artistSet = new Set(tracks.map(t => t.artist || 'Unknown Artist'));
+  const artistNames = Array.from(artistSet).sort((a, b) => a.localeCompare(b));
+
+  renderScreen(`
+    <ul class="menu-list" id="artistsList">
+      ${artistNames.map((artist, idx) => `<li data-idx="${idx}">${artist}</li>`).join('')}
+    </ul>
+  `, direction);
+
+  artistNames.forEach((artist, idx) => {
+    document.querySelector(`#artistsList li[data-idx="${idx}"]`).onclick = () => {
+      currentMenuIndex = idx;
+      goTo(renderArtistAlbumsMenu, artist);
+    };
+  });
+} 
+
+function renderArtistAlbumsMenu(direction = 'forward', artist) {
+  // Filter albums by artist
+  const artistAlbums = Object.keys(albums)
+    .filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+
+  renderScreen(`
+    <div class="album-carousel-container">
+      <div class="album-carousel" id="albumCarousel"></div>
+      <div class="album-title" id="albumTitle"></div>
+    </div>
+  `, direction);
+
+  // Render only the artist's albums in the carousel
+  const carousel = document.getElementById('albumCarousel');
+  const title = document.getElementById('albumTitle');
+  carousel.innerHTML = '';
+
+  if (artistAlbums.length === 0) {
+    carousel.innerHTML = '<div style="padding:24px;">No albums for this artist.</div>';
+    title.textContent = '';
+    return;
+  }
+
+  artistAlbums.forEach((album, idx) => {
+    const albumObj = albums[album];
+    const div = document.createElement('div');
+    div.className = 'carousel-album';
+    div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
+    div.onclick = () => {
+      currentMenuIndex = idx;
+      goTo(renderAlbumSongsMenu, album);
+    };
+    carousel.appendChild(div);
+  });
+
+  setCarouselAlbum(currentMenuIndex, artistAlbums);
+}
+
 function formatTime(sec) {
   sec = Math.floor(sec);
   const min = Math.floor(sec / 60);
@@ -569,7 +618,7 @@ document.getElementById('prevBtn').onclick = () => {
 };
 document.getElementById('confirmBtn').onclick = () => {
   console.log("Confirm button clicked");
-  // If we're in the album carousel, trigger click on the center album
+  // Album carousel logic
   const albumCarousel = document.getElementById('albumCarousel');
   if (albumCarousel && albumCarousel.children.length) {
     const centerAlbum = albumCarousel.children[currentMenuIndex];
@@ -578,7 +627,18 @@ document.getElementById('confirmBtn').onclick = () => {
       return;
     }
   }
-  
+
+  // Artists menu logic
+  const artistsList = document.getElementById('artistsList');
+  if (artistsList && artistsList.children.length) {
+    const selectedArtist = artistsList.children[currentMenuIndex];
+    if (selectedArtist) {
+      selectedArtist.click();
+      return;
+    }
+  }
+
+  // Fallback: normal menu logic
   let menu =
     document.getElementById('songsList') ||
     document.querySelector('.album-list-left') ||
@@ -676,10 +736,11 @@ function scrollMenu(direction) {
   let menu =
     document.getElementById('songsList') ||
     document.getElementById('albumCarousel') ||
+    document.getElementById('artistsList') || // <-- add this line
     document.querySelector('.menu-list');
   if (!menu) return;
 
-  let items = Array.from(menu.querySelectorAll('.menu-list-song, .carousel-album'));
+  let items = Array.from(menu.querySelectorAll('.menu-list-song, .carousel-album, li'));
   if (!items.length && menu.classList.contains('menu-list')) {
     items = Array.from(menu.querySelectorAll('li'));
   }
@@ -693,6 +754,16 @@ function scrollMenu(direction) {
     if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
     if (currentMenuIndex >= items.length) currentMenuIndex = 0;
     setCarouselAlbum(currentMenuIndex, Object.keys(albums).sort((a, b) => a.localeCompare(b)));
+    return;
+  }
+
+  // Artists menu logic
+  if (menu.id === 'artistsList') {
+    currentMenuIndex += direction;
+    if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
+    if (currentMenuIndex >= items.length) currentMenuIndex = 0;
+    items[currentMenuIndex].classList.add('active');
+    items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
     return;
   }
 
@@ -747,7 +818,7 @@ function savePlaylists() {
 
 console.log("App starting, rendering main menu");
 renderMainMenu();
-navStack = [renderMainMenu];
+navStack = [{ fn: renderMainMenu, args: [] }];
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');
