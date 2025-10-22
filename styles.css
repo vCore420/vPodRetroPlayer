@@ -248,6 +248,80 @@ body {
   letter-spacing: 0.02em;
 }
 
+.nowplaying-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding: 32px 0 0 0;
+}
+
+.nowplaying-info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center; /* Center horizontally */
+  margin-bottom: 32px;
+  gap: 32px; /* More space between cover and text */
+}
+
+.nowplaying-cover img {
+  width: 120px;
+  height: 120px;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+  transform: rotateY(18deg) scale(1.05);
+  background: #eee;
+  object-fit: cover;
+  margin-left: 12px; /* Add a little left margin */
+}
+
+.nowplaying-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.nowplaying-title {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: #222;
+  margin-bottom: 2px;
+}
+
+.nowplaying-artist, .nowplaying-album {
+  font-size: 1em;
+  color: #444;
+}
+
+.nowplaying-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding: 0 18px 18px 18px;
+}
+
+.nowplaying-bar-bg {
+  flex: 1;
+  height: 12px;
+  background: #e0eaff;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.nowplaying-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #0074d9 60%, #4fc3f7 100%);
+  border-radius: 6px;
+  width: 0%;
+  transition: width 0.2s linear;
+}
+
 .vpod-controls {
   display: flex;
   justify-content: center;
@@ -360,31 +434,157 @@ body {
   100% { transform: rotate(360deg);}
 }
 
-@media (orientation: portrait) {
- .vpod-container {
-    width: 90vw;
-    height: 90vh;
+/* --- Tablet Landscape Styling --- */
+@media (min-width: 900px) and (orientation: landscape) {
+  body {
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    margin: 0;
+    font-size: 1.1em;
+    background: #f8f8f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .vpod-container {
+    width: 700px;
+    height: 830px;
+    border-radius: 56px;
+    margin: 0 auto;
+    padding: 48px 0 64px 0;
+    box-shadow:
+      0 16px 48px 0 rgba(0,0,0,0.13),
+      0 2px 8px 0 rgba(0,0,0,0.06),
+      0 0 0 8px #e0e0e0 inset,
+      0 2px 0 0 #c0c0c0 inset;
+    border-width: 4px;
+  }
+
+  .vpod-screen {
+    width: 600px;
+    height: 480px;
+    border-radius: 28px;
+    margin-bottom: 48px;
+    font-size: 1.15em;
+    border-width: 2.5px;
+    box-shadow:
+      0 2px 4px rgba(0,0,0,0.13),
+      0 0 0 4px #e0e0e0,
+      0 4px 16px 4px #b0b0b0 inset;
+  }
+
+  .vpod-controls {
+    width: 600px;
+    height: 320px;
+  }
+
+  .vpod-disk {
+    width: 320px;
+    height: 320px;
+    border-width: 2.5px;
+  }
+  .vpod-disk-center {
+    width: 104px;
+    height: 104px;
+    border-width: 2.5px;
+  }
+  .vpod-disk-btn {
+    font-size: 2em;
+  }
+  .vpod-disk-menu   { top: 28px; left: 50%; transform: translateX(-50%); }
+  .vpod-disk-play   { bottom: 28px; left: 50%; transform: translateX(-50%); }
+  .vpod-disk-prev   { left: 28px; top: 50%; transform: translateY(-50%); }
+  .vpod-disk-next   { right: 28px; top: 50%; transform: translateY(-50%); }
+  .vpod-disk-touch {
+    width: 320px;
+    height: 320px;
+  }
+
+  .album-cover {
+    width: 180px;
+    height: 180px;
+    border-radius: 12px;
+  }
+
+  .album-carousel {
+    height: 320px;
+    margin-bottom: 32px;
+  }
+
+  .carousel-album {
+    width: 240px;
+    height: 240px;
+  }
+
+  .carousel-cover {
+    width: 240px;
+    height: 240px;
+    border-radius: 8px;
+  }
+
+  .carousel-album-center {
+    transform: translate(-50%, -50%) scale(1.35) rotateY(0deg);
+  }
+
+  .album-title {
+    font-size: 1.5em;
+    margin-top: 18px;
+  }
+
+  .nowplaying-container {
+    padding: 55px 0 0 0;
+  }
+
+  .nowplaying-info {
+    gap: 48px;
+    margin-bottom: 48px;
+  }
+
+  .nowplaying-cover img {
+    width: 220px;
+    height: 220px;
+    border-radius: 12px;
+    margin-left: 0;
+    margin-bottom: 0;
+    transform: rotateY(18deg) scale(1.08);
+  }
+
+  .nowplaying-meta {
+    min-width: 240px;
+    font-size: 1.2em;
+  }
+
+  .nowplaying-title {
+    font-size: 1.5em;
+  }
+
+  .nowplaying-artist, .nowplaying-album {
+    font-size: 1.1em;
+  }
+
+  .nowplaying-progress {
+    gap: 24px;
+    padding: 0 32px 32px 32px;
+  }
+
+  .nowplaying-bar-bg {
+    height: 18px;
+    border-radius: 9px;
   }
 }
 
 /* --- Responsive vpod for Mobile --- */
 @media (max-width: 600px) {
   .vpod-container {
-    width: 90vw;
-    height: 90vh;
+    width: 85vw;
+    height: 85vh;
     min-width: 0;
     min-height: 0;
     border-radius: 7vw;
     margin: 1vw auto;
     padding: 8vw 0 6vw 0;
-    box-shadow:
-      0 8vw 16vw 0 rgba(0,0,0,0.18),
-      0 1vw 4vw 0 rgba(0,0,0,0.10),
-      0 0 0 2vw #f5f5f5 inset,
-      0 0.5vw 0 0 #e0e0e0 inset;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
   }
 
   .vpod-screen {
@@ -404,7 +604,7 @@ body {
 
   .vpod-controls {
     width: 88vw;
-    height: 38vw;
+    height: 88vw;
     min-width: 0;
     min-height: 0;
   }
@@ -453,5 +653,83 @@ body {
     padding: 4vw 8vw;
     border-radius: 4vw;
     margin-bottom: 4vw;
+  }
+
+  .album-carousel-container {
+    height: auto;
+    min-height: 0;
+    padding-top: 2vw;
+  }
+
+  .album-carousel {
+    height: 38vw;
+    margin-bottom: 4vw;
+  }
+
+  .carousel-album {
+    width: 18vw;
+    height: 18vw;
+  }
+
+  .carousel-cover {
+    width: 18vw;
+    height: 18vw;
+    border-radius: 3vw;
+  }
+
+  .carousel-album-center {
+    transform: translate(-50%, -50%) scale(1.18) rotateY(0deg);
+  }
+
+  .album-title {
+    font-size: 1.2em;
+    margin-top: 2vw;
+  }
+
+  /* --- Mobile Now Playing --- */
+  .nowplaying-container {
+    padding: 8vw 0 0 0;
+    min-height: 0;
+  }
+
+  .nowplaying-info {
+    flex-direction: column;
+    gap: 4vw;
+    margin-bottom: 6vw;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nowplaying-cover img {
+    width: 28vw;
+    height: 28vw;
+    border-radius: 3vw;
+    margin-left: 0;
+    margin-bottom: 2vw;
+    transform: rotateY(14deg) scale(1.04);
+  }
+
+  .nowplaying-meta {
+    min-width: 0;
+    align-items: center;
+    text-align: center;
+  }
+
+  .nowplaying-title {
+    font-size: 1.15em;
+  }
+
+  .nowplaying-artist, .nowplaying-album {
+    font-size: 1em;
+  }
+
+  .nowplaying-progress {
+    gap: 3vw;
+    padding: 0 4vw 4vw 4vw;
+  }
+
+  .nowplaying-bar-bg {
+    height: 3vw;
+    border-radius: 2vw;
   }
 }

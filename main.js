@@ -62,23 +62,25 @@ function renderMainMenu(direction = 'forward') {
       <li id="menu-load">Load Music</li>
       <li id="menu-albums">Albums</li>
       <li id="menu-playlists">Playlists</li>
+      <li id="menu-nowplaying">Now Playing</li>
     </ul>
   `, direction);
 
   document.getElementById('menu-load').onclick = () => {
-    console.log("Clicked: Load Music");
     currentMenuIndex = 0;
     goTo(renderLoadMusic);
   };
   document.getElementById('menu-albums').onclick = () => {
-    console.log("Clicked: Albums");
     currentMenuIndex = 1;
     goTo(renderAlbumsMenu);
   };
   document.getElementById('menu-playlists').onclick = () => {
-    console.log("Clicked: Playlists");
     currentMenuIndex = 2;
     goTo(renderPlaylistsMenu);
+  };
+  document.getElementById('menu-nowplaying').onclick = () => {
+    currentMenuIndex = 3;
+    goTo(renderNowPlayingScreen);
   };
 }
 
@@ -427,6 +429,7 @@ function renderSongsList(songs) {
 function setScrollingSong(idx) {
   console.log("Setting scrolling song index:", idx);
   const songsList = document.getElementById('songsList');
+  if (!songsList) return; 
   Array.from(songsList.children).forEach((el, i) => {
     el.classList.toggle('scrolling', i === idx);
   });
@@ -449,6 +452,66 @@ function renderPlaylistsMenu(direction = 'forward') {
 
 }
 
+// Now Playing Screen
+function renderNowPlayingScreen(direction = 'forward') {
+  renderScreen(`
+    <div class="nowplaying-container">
+      <div class="nowplaying-info">
+        <div class="nowplaying-cover">
+          <img id="nowplayingCover" src="${getCurrentCover()}" alt="Album Cover">
+        </div>
+        <div class="nowplaying-meta">
+          <div class="nowplaying-title">${currentTrack ? currentTrack.title : 'No song playing'}</div>
+          <div class="nowplaying-artist">${currentTrack ? currentTrack.artist : ''}</div>
+          <div class="nowplaying-album">${currentTrack ? currentTrack.album : ''}</div>
+        </div>
+      </div>
+      <div class="nowplaying-progress">
+        <span id="nowplayingElapsed">0:00</span>
+        <div class="nowplaying-bar-bg">
+          <div id="nowplayingBar" class="nowplaying-bar"></div>
+        </div>
+        <span id="nowplayingRemaining">0:00</span>
+      </div>
+    </div>
+  `, direction);
+
+  updateNowPlayingProgress();
+}
+
+function getCurrentCover() {
+  if (!currentTrack) return "default-cover.png";
+  const albumObj = albums[currentTrack.album] || {};
+  return albumObj.cover || "default-cover.png";
+}
+
+function updateNowPlayingProgress() {
+  const elapsedSpan = document.getElementById('nowplayingElapsed');
+  const remainingSpan = document.getElementById('nowplayingRemaining');
+  const bar = document.getElementById('nowplayingBar');
+  if (!audioPlayer || !currentTrack) return;
+
+  const duration = audioPlayer.duration || 0;
+  const current = audioPlayer.currentTime || 0;
+  if (elapsedSpan) elapsedSpan.textContent = formatTime(current);
+  if (remainingSpan) remainingSpan.textContent = formatTime(Math.max(0, duration - current));
+  if (bar) {
+    bar.style.width = duration ? `${(current / duration) * 100}%` : '0%';
+  }
+}
+
+function formatTime(sec) {
+  sec = Math.floor(sec);
+  const min = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${min}:${s.toString().padStart(2, '0')}`;
+}
+
+audioPlayer.addEventListener('timeupdate', updateNowPlayingProgress);
+audioPlayer.addEventListener('loadedmetadata', updateNowPlayingProgress);
+audioPlayer.addEventListener('play', updateNowPlayingProgress);
+audioPlayer.addEventListener('pause', updateNowPlayingProgress);
+
 // Audio Playback
 function playTrackFromAlbum(track, albumSongs) {
   console.log("Playing:", track.title, "from albumSongs:", albumSongs);
@@ -462,6 +525,11 @@ function playTrackFromAlbum(track, albumSongs) {
   audioPlayer.play();
   playPauseBtn.textContent = "⏸";
   setScrollingSong(currentMenuIndex); // Highlight the playing song
+
+  const activeScreen = document.querySelector('.screen-content.screen-active');
+  if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
+    renderNowPlayingScreen('forward');
+  }
 }
 
 // Disk Pad Controls 
@@ -510,7 +578,7 @@ document.getElementById('confirmBtn').onclick = () => {
       return;
     }
   }
-
+  
   let menu =
     document.getElementById('songsList') ||
     document.querySelector('.album-list-left') ||
