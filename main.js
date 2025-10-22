@@ -10,8 +10,11 @@ let playlists = JSON.parse(localStorage.getItem('playlists')) || [];
 let navStack = [];
 let currentTrack = null; 
 let currentMenuIndex = 0;
+let currentAlbumSongs = [];
+let currentSongIndex = -1;
 
 function renderLoadingScreen(message = "Loading your music...") {
+  console.log("Rendering loading screen:", message);
   renderScreen(`
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div class="loader" style="margin-bottom:18px;">
@@ -24,6 +27,7 @@ function renderLoadingScreen(message = "Loading your music...") {
 
 // Navigation & Screen Rendering 
 function renderScreen(content, direction = 'forward') {
+  console.log("Rendering screen, direction:", direction);
   const oldContent = vpodScreen.querySelector('.screen-content');
   if (oldContent) {
     oldContent.classList.remove('screen-active');
@@ -38,10 +42,12 @@ function renderScreen(content, direction = 'forward') {
 }
 
 function goTo(screenFn) {
+  console.log("Navigating to new screen:", screenFn.name);
   navStack.push(screenFn);
   screenFn('forward');
 }
 function goBack() {
+  console.log("Going back in navStack, current length:", navStack.length);
   if (navStack.length > 1) {
     navStack.pop();
     navStack[navStack.length - 1]('back');
@@ -50,6 +56,7 @@ function goBack() {
 
 // Main Menu 
 function renderMainMenu(direction = 'forward') {
+  console.log("Rendering main menu");
   renderScreen(`
     <ul class="menu-list">
       <li id="menu-load">Load Music</li>
@@ -59,14 +66,17 @@ function renderMainMenu(direction = 'forward') {
   `, direction);
 
   document.getElementById('menu-load').onclick = () => {
+    console.log("Clicked: Load Music");
     currentMenuIndex = 0;
     goTo(renderLoadMusic);
   };
   document.getElementById('menu-albums').onclick = () => {
+    console.log("Clicked: Albums");
     currentMenuIndex = 1;
     goTo(renderAlbumsMenu);
   };
   document.getElementById('menu-playlists').onclick = () => {
+    console.log("Clicked: Playlists");
     currentMenuIndex = 2;
     goTo(renderPlaylistsMenu);
   };
@@ -74,6 +84,7 @@ function renderMainMenu(direction = 'forward') {
 
 // Load Music Screen 
 function renderLoadMusic(direction = 'forward') {
+  console.log("Rendering load music screen");
   renderScreen(`
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <input type="file" id="fileInput" accept=".mp3,.flac,.cue,.m3u" multiple webkitdirectory directory style="display:none;">
@@ -82,11 +93,15 @@ function renderLoadMusic(direction = 'forward') {
   `, direction);
 
   const fileInput = document.getElementById('fileInput');
-  document.getElementById('customFileBtn').onclick = () => fileInput.click();
+  document.getElementById('customFileBtn').onclick = () => {
+    console.log("Clicked: Choose Music Folder");
+    fileInput.click();
+  };
   fileInput.onchange = handleFiles;
 }
 
 function handleFiles(e) {
+  console.log("Handling files:", e.target.files);
   renderLoadingScreen("Loading your music...");
 
   const files = Array.from(e.target.files);
@@ -95,9 +110,14 @@ function handleFiles(e) {
   const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
   window.imageFiles = window.imageFiles ? window.imageFiles.concat(imageFiles) : imageFiles;
 
+  console.log("Audio files:", audioFiles);
+  console.log("Cue files:", cueFiles);
+  console.log("Image files:", imageFiles);
+
   let processed = 0;
 
   function parseCue(text, flacFile) {
+    console.log("Parsing CUE file:", flacFile ? flacFile.name : "No FLAC");
     const albumMatch = text.match(/^\s*TITLE\s+"([^"]+)"/m);
     const album = albumMatch ? albumMatch[1] : 'Unidentified Album';
     const artistMatch = text.match(/^\s*PERFORMER\s+"([^"]+)"/m);
@@ -116,6 +136,7 @@ function handleFiles(e) {
         album
       });
     }
+    console.log("Parsed cue tracks:", cueTracks);
     return cueTracks;
   }
 
@@ -144,9 +165,11 @@ function handleFiles(e) {
   }
 
   function processAudioFiles() {
+    console.log("Processing audio files...");
     let total = audioFiles.length;
     let done = 0;
     if (total === 0) {
+      console.log("No audio files, only cue tracks:", cueTracks);
       cueTracks.forEach(ct => {
         if (!tracks.some(t =>
           t.file.name === ct.file.name &&
@@ -163,6 +186,7 @@ function handleFiles(e) {
       window.jsmediatags.read(file, {
         onSuccess: tag => {
           const { title, artist, album } = tag.tags;
+          console.log("Read tags for:", file.name, tag.tags);
           if (!tracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
             tracks.push({
               file,
@@ -185,6 +209,7 @@ function handleFiles(e) {
           }
         },
         onError: () => {
+          console.log("Error reading tags for:", file.name);
           if (!tracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
             tracks.push({
               file,
@@ -215,10 +240,13 @@ function getFolderPath(file) {
   if (!file.webkitRelativePath) return '';
   const parts = file.webkitRelativePath.split('/');
   parts.pop(); 
-  return parts.join('/');
+  const folder = parts.join('/');
+  console.log("Got folder path for file:", file.name, folder);
+  return folder;
 }
 
 function groupTracksByAlbum() {
+  console.log("Grouping tracks by album...");
   albums = {};
 
   const folderImages = {};
@@ -227,6 +255,7 @@ function groupTracksByAlbum() {
       const folder = getFolderPath(img);
       if (!folderImages[folder]) folderImages[folder] = img;
     });
+    console.log("Folder images map:", folderImages);
   }
 
   tracks.forEach(track => {
@@ -237,69 +266,106 @@ function groupTracksByAlbum() {
     albums[album].songs.push(track);
   });
 
-  // Assign cover images to albums
   Object.keys(albums).forEach(albumName => {
     const albumObj = albums[albumName];
     const folder = albumObj.folder;
     let coverFile = null;
 
-    // Only use an image from the same folder as the album
     if (folderImages[folder]) {
       coverFile = folderImages[folder];
     }
 
-    // Revoke previous blob URL if present
     if (albumObj.cover && albumObj.cover.startsWith("blob:")) {
       URL.revokeObjectURL(albumObj.cover);
     }
 
-    // If not found, use the default image 
     albumObj.cover = coverFile
       ? URL.createObjectURL(coverFile)
       : "default-cover.png";
+    console.log(`Album "${albumName}" assigned cover:`, albumObj.cover);
   });
+  console.log("Albums grouped:", albums);
 }
 
 // Albums Menu
 function renderAlbumsMenu(direction = 'forward') {
+  console.log("Rendering albums menu (carousel)");
   renderScreen(`
-    <div class="album-list">
-      <div class="album-list-left" id="albumsList"></div>
-      <div class="album-list-right" id="albumArt"></div>
+    <div class="album-carousel-container">
+      <div class="album-carousel" id="albumCarousel"></div>
+      <div class="album-title" id="albumTitle"></div>
     </div>
   `, direction);
 
-  renderAlbumsList();
+  renderAlbumsCarousel();
 }
 
-function renderAlbumsList() {
-  const albumsList = document.getElementById('albumsList');
-  const albumArt = document.getElementById('albumArt');
-  albumsList.innerHTML = '';
-  albumArt.innerHTML = '';
-
+function renderAlbumsCarousel() {
   const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+  const carousel = document.getElementById('albumCarousel');
+  const title = document.getElementById('albumTitle');
+  carousel.innerHTML = '';
+
   if (albumNames.length === 0) {
-    albumsList.innerHTML = '<div style="padding:24px;">No albums loaded.</div>';
+    carousel.innerHTML = '<div style="padding:24px;">No albums loaded.</div>';
+    title.textContent = '';
     return;
   }
 
   albumNames.forEach((album, idx) => {
+    const albumObj = albums[album];
     const div = document.createElement('div');
-    div.className = 'menu-list-song';
-    div.innerHTML = `<span>${album}</span>`;
+    div.className = 'carousel-album';
+    div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
     div.onclick = () => {
       currentMenuIndex = idx;
       goTo(dir => renderAlbumSongsMenu(album, dir));
     };
-    albumsList.appendChild(div);
+    carousel.appendChild(div);
   });
 
-  setScrollingAlbum(currentMenuIndex);
-  if (albumsList.children[currentMenuIndex]);
+  setCarouselAlbum(currentMenuIndex, albumNames);
+}
+
+function setCarouselAlbum(idx, albumNames) {
+  const carousel = document.getElementById('albumCarousel');
+  const title = document.getElementById('albumTitle');
+  const spacing = 80; // px between covers (was 140)
+
+  Array.from(carousel.children).forEach((el, i) => {
+    el.className = 'carousel-album';
+    el.style.zIndex = '';
+    el.style.opacity = '';
+    el.style.filter = '';
+    el.style.transform = '';
+
+    if (i === idx) {
+      el.classList.add('carousel-album-center');
+      el.style.transform = `translate(-50%, -50%) scale(1.25) rotateY(0deg)`;
+      el.style.zIndex = 10;
+      el.style.opacity = 1;
+      el.style.filter = 'brightness(1) blur(0px)';
+    } else if (i < idx) {
+      el.classList.add('carousel-album-left');
+      const offset = spacing * (idx - i);
+      el.style.transform = `translate(calc(-50% - ${offset}px), -50%) scale(0.95) rotateY(55deg)`; // was 35deg
+      el.style.zIndex = 5 - (idx - i);
+      el.style.opacity = 0.7;
+      el.style.filter = 'brightness(0.85) blur(0.5px)';
+    } else if (i > idx) {
+      el.classList.add('carousel-album-right');
+      const offset = spacing * (i - idx);
+      el.style.transform = `translate(calc(-50% + ${offset}px), -50%) scale(0.95) rotateY(-55deg)`; // was -35deg
+      el.style.zIndex = 5 - (i - idx);
+      el.style.opacity = 0.7;
+      el.style.filter = 'brightness(0.85) blur(0.5px)';
+    }
+  });
+  title.textContent = albumNames[idx] || '';
 }
 
 function setScrollingAlbum(idx) {
+  console.log("Setting scrolling album index:", idx);
   const albumsList = document.getElementById('albumsList');
   Array.from(albumsList.children).forEach((el, i) => {
     el.classList.toggle('scrolling', i === idx);
@@ -309,11 +375,12 @@ function setScrollingAlbum(idx) {
     const albumArt = document.getElementById('albumArt');
     const cover = albums[albumNames[idx]].cover;
     albumArt.innerHTML = `<img src="${cover}" class="album-cover" alt="Album Cover">`;
-    
+    console.log("Displayed album art for:", albumNames[idx], cover);
   }
 }
 
 function clearScrollingAlbum(idx) {
+  console.log("Clearing scrolling album index:", idx);
   const albumsList = document.getElementById('albumsList');
   if (albumsList.children[idx]) {
     albumsList.children[idx].classList.remove('scrolling');
@@ -322,6 +389,7 @@ function clearScrollingAlbum(idx) {
 
 // Album Songs Menu 
 function renderAlbumSongsMenu(album, direction = 'forward') {
+  console.log("Rendering album songs menu for:", album);
   const albumObj = albums[album];
   renderScreen(`
     <div class="album-list">
@@ -338,6 +406,7 @@ function renderAlbumSongsMenu(album, direction = 'forward') {
 }
 
 function renderSongsList(songs) {
+  console.log("Rendering songs list:", songs);
   const songsList = document.getElementById('songsList');
   songsList.innerHTML = '';
   songs.forEach((track, idx) => {
@@ -345,8 +414,9 @@ function renderSongsList(songs) {
     div.className = 'menu-list-song';
     div.innerHTML = `<span>${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
     div.onclick = () => {
+      console.log("Clicked song:", track.title, "at index:", idx);
       currentMenuIndex = idx;
-      playTrackFromAlbum(track);
+      playTrackFromAlbum(track, songs);
     };
     songsList.appendChild(div);
   });
@@ -355,6 +425,7 @@ function renderSongsList(songs) {
 }
 
 function setScrollingSong(idx) {
+  console.log("Setting scrolling song index:", idx);
   const songsList = document.getElementById('songsList');
   Array.from(songsList.children).forEach((el, i) => {
     el.classList.toggle('scrolling', i === idx);
@@ -362,6 +433,7 @@ function setScrollingSong(idx) {
 }
 
 function clearScrollingSong(idx) {
+  console.log("Clearing scrolling song index:", idx);
   const songsList = document.getElementById('songsList');
   if (songsList.children[idx]) {
     songsList.children[idx].classList.remove('scrolling');
@@ -370,6 +442,7 @@ function clearScrollingSong(idx) {
 
 // Playlists Menu (Placeholder)
 function renderPlaylistsMenu(direction = 'forward') {
+  console.log("Rendering playlists menu");
   renderScreen(`
     <div style="padding:24px;text-align:center;">Playlists coming soon...</div>
   `, direction);
@@ -377,17 +450,27 @@ function renderPlaylistsMenu(direction = 'forward') {
 }
 
 // Audio Playback
-function playTrackFromAlbum(track) {
+function playTrackFromAlbum(track, albumSongs) {
+  console.log("Playing:", track.title, "from albumSongs:", albumSongs);
+  currentAlbumSongs = albumSongs || [track];
+  currentSongIndex = currentAlbumSongs.findIndex(t => t.file === track.file);
+  currentTrack = track;
+  currentMenuIndex = currentSongIndex; // Sync menu selection to playback
+
   const url = URL.createObjectURL(track.file);
   audioPlayer.src = url;
   audioPlayer.play();
   playPauseBtn.textContent = "⏸";
-  currentTrack = track;
+  setScrollingSong(currentMenuIndex); // Highlight the playing song
 }
 
 // Disk Pad Controls 
-document.getElementById('menuBtn').onclick = () => goBack();
+document.getElementById('menuBtn').onclick = () => {
+  console.log("Menu button clicked");
+  goBack();
+};
 document.getElementById('playPauseBtn').onclick = () => {
+  console.log("Play/Pause button clicked");
   if (!audioPlayer.src) return;
   if (audioPlayer.paused) {
     audioPlayer.play();
@@ -398,12 +481,36 @@ document.getElementById('playPauseBtn').onclick = () => {
   }
 };
 document.getElementById('nextBtn').onclick = () => {
-  scrollMenu(1);
+  console.log("Next button clicked");
+  if (
+    currentAlbumSongs.length &&
+    currentSongIndex >= 0 &&
+    currentSongIndex < currentAlbumSongs.length - 1
+  ) {
+    playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
+  }
 };
 document.getElementById('prevBtn').onclick = () => {
-  scrollMenu(-1);
+  console.log("Prev button clicked");
+  if (
+    currentAlbumSongs.length &&
+    currentSongIndex > 0
+  ) {
+    playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
+  }
 };
 document.getElementById('confirmBtn').onclick = () => {
+  console.log("Confirm button clicked");
+  // If we're in the album carousel, trigger click on the center album
+  const albumCarousel = document.getElementById('albumCarousel');
+  if (albumCarousel && albumCarousel.children.length) {
+    const centerAlbum = albumCarousel.children[currentMenuIndex];
+    if (centerAlbum) {
+      centerAlbum.click();
+      return;
+    }
+  }
+
   let menu =
     document.getElementById('songsList') ||
     document.querySelector('.album-list-left') ||
@@ -411,14 +518,30 @@ document.getElementById('confirmBtn').onclick = () => {
   if (!menu) return;
 
   let items = Array.from(menu.querySelectorAll('.menu-list-song'));
-
   if (!items.length && menu.classList.contains('menu-list')) {
     items = Array.from(menu.querySelectorAll('li'));
   }
   if (!items.length) return;
 
+  console.log("Confirm selecting item at index:", currentMenuIndex);
   items[currentMenuIndex]?.click();
 };
+
+audioPlayer.addEventListener('ended', () => {
+  console.log("Audio ended, currentSongIndex:", currentSongIndex, "currentAlbumSongs:", currentAlbumSongs);
+  if (
+    currentAlbumSongs.length &&
+    currentSongIndex >= 0 &&
+    currentSongIndex < currentAlbumSongs.length - 1
+  ) {
+    playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
+  } else {
+    playPauseBtn.textContent = "▶";
+    currentTrack = null;
+    currentSongIndex = -1;
+    console.log("Reached end of album or no more songs.");
+  }
+});
 
 // Disk Touch/Cursor Scroll 
 const diskTouch = document.getElementById('diskTouch');
@@ -432,6 +555,7 @@ function getAngle(e, center) {
 }
 
 function handleDiskStart(e) {
+  console.log("Disk touch/click start");
   const rect = diskTouch.getBoundingClientRect();
   const center = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
   lastAngle = getAngle(e, center);
@@ -453,10 +577,12 @@ function handleDiskMove(e) {
 
   // Scroll threshold
   while (scrollAccumulator > 30) {
+    console.log("Disk scroll: next");
     scrollMenu(1);
     scrollAccumulator -= 30;
   }
   while (scrollAccumulator < -30) {
+    console.log("Disk scroll: prev");
     scrollMenu(-1);
     scrollAccumulator += 30;
   }
@@ -464,6 +590,7 @@ function handleDiskMove(e) {
 }
 
 function handleDiskEnd(e) {
+  console.log("Disk touch/click end");
   document.removeEventListener(e.type.startsWith('touch') ? 'touchmove' : 'mousemove', handleDiskMove);
   document.removeEventListener(e.type.startsWith('touch') ? 'touchend' : 'mouseup', handleDiskEnd);
   lastAngle = null;
@@ -477,52 +604,84 @@ if (diskTouch) {
 
 // Menu Scrolling Logic
 function scrollMenu(direction) {
-  // Prefer #songsList if present, else .album-list-left, else .menu-list
+  console.log("Scrolling menu, direction:", direction);
   let menu =
     document.getElementById('songsList') ||
-    document.querySelector('.album-list-left') ||
+    document.getElementById('albumCarousel') ||
     document.querySelector('.menu-list');
   if (!menu) return;
 
-  // Always select only .menu-list-song items for song and album lists
-  let items = Array.from(menu.querySelectorAll('.menu-list-song'));
-  // For main menu, fallback to LI items
+  let items = Array.from(menu.querySelectorAll('.menu-list-song, .carousel-album'));
   if (!items.length && menu.classList.contains('menu-list')) {
     items = Array.from(menu.querySelectorAll('li'));
   }
   if (!items.length) return;
 
-  // Remove active from previous
   items[currentMenuIndex]?.classList.remove('active');
+
+  // Carousel logic for albums
+  if (menu.id === 'albumCarousel') {
+    currentMenuIndex += direction;
+    if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
+    if (currentMenuIndex >= items.length) currentMenuIndex = 0;
+    setCarouselAlbum(currentMenuIndex, Object.keys(albums).sort((a, b) => a.localeCompare(b)));
+    return;
+  }
+
   if (menu.id === 'songsList') clearScrollingSong(currentMenuIndex);
   if (menu.id === 'albumsList' || menu.classList.contains('album-list-left')) clearScrollingAlbum(currentMenuIndex);
 
-  // Update index
   currentMenuIndex += direction;
   if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
   if (currentMenuIndex >= items.length) currentMenuIndex = 0;
 
-  // Add active to new
   items[currentMenuIndex].classList.add('active');
   items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
   if (menu.id === 'songsList') setScrollingSong(currentMenuIndex);
   if (menu.id === 'albumsList' || menu.classList.contains('album-list-left')) setScrollingAlbum(currentMenuIndex);
+
+  console.log("Menu scrolled to index:", currentMenuIndex);
 }
+
+nextBtn.onclick = () => {
+  console.log("Next button clicked (playback)");
+  if (
+    currentAlbumSongs.length &&
+    currentSongIndex >= 0 &&
+    currentSongIndex < currentAlbumSongs.length - 1
+  ) {
+    playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
+  }
+};
+
+prevBtn.onclick = () => {
+  console.log("Prev button clicked (playback)");
+  if (
+    currentAlbumSongs.length &&
+    currentSongIndex > 0
+  ) {
+    playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
+  }
+};
 
 // Reset menu index on screen change
 function resetMenuIndex() {
+  console.log("Resetting menu index");
   currentMenuIndex = 0;
   setTimeout(() => scrollMenu(0), 10);
 }
 
 // Playlist Storage (for future expansion)
 function savePlaylists() {
+  console.log("Saving playlists to localStorage");
   localStorage.setItem('playlists', JSON.stringify(playlists));
 }
 
+console.log("App starting, rendering main menu");
 renderMainMenu();
 navStack = [renderMainMenu];
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');
+  console.log("Service worker registered");
 }
