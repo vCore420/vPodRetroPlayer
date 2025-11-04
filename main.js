@@ -4,30 +4,18 @@ const playPauseBtn = document.getElementById('playPauseBtn');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 
-let tracks = []; 
-let albums = {}; 
+let tracks = [];
+let albums = {};
 let playlists = JSON.parse(localStorage.getItem('playlists')) || [];
 let navStack = [];
-let currentTrack = null; 
+let currentTrack = null;
 let currentMenuIndex = 0;
 let currentAlbumSongs = [];
 let currentSongIndex = -1;
 
-function renderLoadingScreen(message = "Loading your music...") {
-  console.log("Rendering loading screen:", message);
-  renderScreen(`
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
-      <div class="loader" style="margin-bottom:18px;">
-        <div style="width:40px;height:40px;border:4px solid #ccc;border-top:4px solid #0074d9;border-radius:50%;animation:spin 1s linear infinite;"></div>
-      </div>
-      <div style="font-size:1.1em;color:#555;">${message}</div>
-    </div>
-  `, 'forward');
-}
+// --- GENERIC RENDERERS ---
 
-// Navigation & Screen Rendering 
 function renderScreen(content, direction = 'forward') {
-  console.log("Rendering screen, direction:", direction);
   const oldContent = vpodScreen.querySelector('.screen-content');
   if (oldContent) {
     oldContent.classList.remove('screen-active');
@@ -41,14 +29,86 @@ function renderScreen(content, direction = 'forward') {
   resetMenuIndex();
 }
 
+function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "menuList" }, direction = 'forward') {
+  renderScreen(`
+    <div>
+      ${title ? `<div class="menu-title" style="font-weight:bold;font-size:1.2em;text-align:center;margin-bottom:12px;">${title}</div>` : ''}
+      <ul class="menu-list" id="${id}">
+        ${items.map((item, idx) => `<li data-idx="${idx}">${item.label}</li>`).join('')}
+      </ul>
+  `, direction);
+
+  items.forEach((item, idx) => {
+    document.querySelector(`#${id} li[data-idx="${idx}"]`).onclick = () => onItemClick(idx, item);
+  });
+  if (showBack && onBack) {
+    document.getElementById('genericBackBtn').onclick = onBack;
+  }
+}
+
+function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone }, direction = 'forward') {
+  renderScreen(`
+    <div class="album-carousel-container">
+      <div class="album-carousel" id="albumCarousel"></div>
+      <div class="album-title" id="albumTitle">${title || ''}</div>
+      ${showDone ? `<button id="donePlaylistBtn" style="margin-top:12px;font-size:1em;">Done</button>` : ''}
+    </div>
+  `, direction);
+
+  const carousel = document.getElementById('albumCarousel');
+  carousel.innerHTML = '';
+  albumsList.forEach((album, idx) => {
+    const albumObj = albums[album];
+    const div = document.createElement('div');
+    div.className = 'carousel-album';
+    div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
+    div.onclick = () => onAlbumClick(album, idx);
+    carousel.appendChild(div);
+  });
+  setCarouselAlbum(currentMenuIndex, albumsList);
+
+  if (showDone && onDone) {
+    document.getElementById('donePlaylistBtn').onclick = onDone;
+  }
+}
+
+function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false }, direction = 'forward') {
+  renderScreen(`
+    <div class="album-list">
+      <div class="album-list-left" id="songsListContainer" ${selectMode ? 'data-playlist-select="true"' : ''}>
+        <div id="songsList"></div>
+      </div>
+      <div class="album-list-right">
+        <img src="${songs[0]?.cover || 'default-cover.png'}" class="album-cover" alt="Album Cover">
+      </div>
+    </div>
+    ${selectMode ? `<div style="text-align:center;margin-top:8px;"><span style="font-size:1em;color:#0074d9;">Tap songs to add/remove from playlist</span></div>` : ''}
+  `, direction);
+
+  const songsList = document.getElementById('songsList');
+  songsList.innerHTML = '';
+  songs.forEach((track, idx) => {
+    const isSelected = selectedTracks.some(t =>
+      (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
+      (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
+    );
+    const div = document.createElement('div');
+    div.className = 'menu-list-song';
+    div.innerHTML = `<span>${selectMode && isSelected ? '✅ ' : ''}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
+    div.onclick = () => onSongClick(track, idx);
+    songsList.appendChild(div);
+  });
+
+}
+
+// --- NAVIGATION HELPERS ---
+
 function goTo(screenFn, ...args) {
-  console.log("Navigating to new screen:", screenFn.name, args);
   navStack.push({ fn: screenFn, args });
   screenFn('forward', ...args);
 }
 
 function goBack() {
-  console.log("Going back in navStack, current length:", navStack.length);
   if (navStack.length > 1) {
     navStack.pop();
     const { fn, args } = navStack[navStack.length - 1];
@@ -56,28 +116,45 @@ function goBack() {
   }
 }
 
-// Main Menu 
-function renderMainMenu(direction = 'forward') {
-  renderScreen(`
-    <ul class="menu-list">
-      <li id="menu-load">Load Music</li>
-      <li id="menu-albums">Albums</li>
-      <li id="menu-artists">Artists</li>
-      <li id="menu-playlists">Playlists</li>
-      <li id="menu-nowplaying">Now Playing</li>
-    </ul>
-  `, direction);
-
-  document.getElementById('menu-load').onclick = () => { currentMenuIndex = 0; goTo(renderLoadMusic); };
-  document.getElementById('menu-albums').onclick = () => { currentMenuIndex = 1; goTo(renderAlbumsMenu); };
-  document.getElementById('menu-artists').onclick = () => { currentMenuIndex = 2; goTo(renderArtistsMenu); };
-  document.getElementById('menu-playlists').onclick = () => { currentMenuIndex = 3; goTo(renderPlaylistsMenu); };
-  document.getElementById('menu-nowplaying').onclick = () => { currentMenuIndex = 4; goTo(renderNowPlayingScreen); };
+function resetMenuIndex() {
+  currentMenuIndex = 0;
+  setTimeout(() => scrollMenu(0), 10);
 }
 
-// Load Music Screen 
+// --- SPLASH & APP START ---
+
+function fadeOutSplashAndStart() {
+  const splash = document.getElementById('splashScreen');
+  splash.classList.add('hide');
+  setTimeout(() => {
+    splash.style.display = 'none';
+    startApp();
+  }, 1000);
+}
+
+function startApp() {
+  renderMainMenu();
+  navStack = [{ fn: renderMainMenu, args: [] }];
+}
+
+// --- MAIN MENU ---
+
+function renderMainMenu(direction = 'forward') {
+  renderMenuList({
+    items: [
+      { label: "Load Music", action: renderLoadMusic },
+      { label: "Albums", action: renderAlbumsMenu },
+      { label: "Artists", action: renderArtistsMenu },
+      { label: "Playlists", action: renderPlaylistsMenu },
+      { label: "Now Playing", action: renderNowPlayingScreen }
+    ],
+    onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); }
+  }, direction);
+}
+
+// --- LOAD MUSIC ---
+
 function renderLoadMusic(direction = 'forward') {
-  console.log("Rendering load music screen");
   renderScreen(`
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <input type="file" id="fileInput" accept=".mp3,.flac,.cue,.m3u" multiple webkitdirectory directory style="display:none;">
@@ -86,12 +163,22 @@ function renderLoadMusic(direction = 'forward') {
   `, direction);
 
   const fileInput = document.getElementById('fileInput');
-  document.getElementById('customFileBtn').onclick = () => {
-    console.log("Clicked: Choose Music Folder");
-    fileInput.click();
-  };
+  document.getElementById('customFileBtn').onclick = () => fileInput.click();
   fileInput.onchange = handleFiles;
 }
+
+function renderLoadingScreen(message = "Loading your music...") {
+  renderScreen(`
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+      <div class="loader" style="margin-bottom:18px;">
+        <div style="width:40px;height:40px;border:4px solid #ccc;border-top:4px solid #0074d9;border-radius:50%;animation:spin 1s linear infinite;"></div>
+      </div>
+      <div style="font-size:1.1em;color:#555;">${message}</div>
+    </div>
+  `, 'forward');
+}
+
+// --- FILE HANDLING, ALBUM GROUPING, ETC. ---
 
 function handleFiles(e) {
   console.log("Handling files:", e.target.files);
@@ -280,50 +367,30 @@ function groupTracksByAlbum() {
   console.log("Albums grouped:", albums);
 }
 
-// Albums Menu
+// --- ALBUMS MENU ---
+
 function renderAlbumsMenu(direction = 'forward') {
-  console.log("Rendering albums menu (carousel)");
-  renderScreen(`
-    <div class="album-carousel-container">
-      <div class="album-carousel" id="albumCarousel"></div>
-      <div class="album-title" id="albumTitle"></div>
-    </div>
-  `, direction);
-
-  renderAlbumsCarousel();
-}
-
-function renderAlbumsCarousel() {
   const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
-  const carousel = document.getElementById('albumCarousel');
-  const title = document.getElementById('albumTitle');
-  carousel.innerHTML = '';
-
-  if (albumNames.length === 0) {
-    carousel.innerHTML = '<div style="padding:24px;">No albums loaded.</div>';
-    title.textContent = '';
-    return;
-  }
-
-  albumNames.forEach((album, idx) => {
-    const albumObj = albums[album];
-    const div = document.createElement('div');
-    div.className = 'carousel-album';
-    div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
-    div.onclick = () => {
-      currentMenuIndex = idx;
-      goTo(dir => renderAlbumSongsMenu(album, dir));
-    };
-    carousel.appendChild(div);
-  });
-
-  setCarouselAlbum(currentMenuIndex, albumNames);
+  renderAlbumCarousel({
+    albumsList: albumNames,
+    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album); }
+  }, direction);
 }
+
+function renderAlbumSongsMenu(direction = 'forward', album) {
+  const albumObj = albums[album];
+  renderSongList({
+    songs: albumObj.songs,
+    onSongClick: (track, idx) => { currentMenuIndex = idx; playTrackFromAlbum(track, albumObj.songs); }
+  }, direction);
+}
+
+// -- Album Carousel --
 
 function setCarouselAlbum(idx, albumNames) {
   const carousel = document.getElementById('albumCarousel');
   const title = document.getElementById('albumTitle');
-  const spacing = 80; // px between covers (was 140)
+  const spacing = 80; // px between covers
 
   Array.from(carousel.children).forEach((el, i) => {
     el.className = 'carousel-album';
@@ -341,14 +408,14 @@ function setCarouselAlbum(idx, albumNames) {
     } else if (i < idx) {
       el.classList.add('carousel-album-left');
       const offset = spacing * (idx - i);
-      el.style.transform = `translate(calc(-50% - ${offset}px), -50%) scale(0.95) rotateY(55deg)`; // was 35deg
+      el.style.transform = `translate(calc(-50% - ${offset}px), -50%) scale(0.95) rotateY(55deg)`;
       el.style.zIndex = 5 - (idx - i);
       el.style.opacity = 0.7;
       el.style.filter = 'brightness(0.85) blur(0.5px)';
     } else if (i > idx) {
       el.classList.add('carousel-album-right');
       const offset = spacing * (i - idx);
-      el.style.transform = `translate(calc(-50% + ${offset}px), -50%) scale(0.95) rotateY(-55deg)`; // was -35deg
+      el.style.transform = `translate(calc(-50% + ${offset}px), -50%) scale(0.95) rotateY(-55deg)`;
       el.style.zIndex = 5 - (i - idx);
       el.style.opacity = 0.7;
       el.style.filter = 'brightness(0.85) blur(0.5px)';
@@ -378,24 +445,6 @@ function clearScrollingAlbum(idx) {
   if (albumsList.children[idx]) {
     albumsList.children[idx].classList.remove('scrolling');
   }
-}
-
-// Album Songs Menu 
-function renderAlbumSongsMenu(direction = 'forward', album) {
-  console.log("Rendering album songs menu for:", album);
-  const albumObj = albums[album];
-  renderScreen(`
-    <div class="album-list">
-      <div class="album-list-left" id="songsListContainer">
-        <div id="songsList"></div>
-      </div>
-      <div class="album-list-right">
-        <img src="${albumObj.cover}" class="album-cover" alt="Album Cover">
-      </div>
-    </div>
-  `, direction);
-
-  renderSongsList(albumObj.songs);
 }
 
 function renderSongsList(songs) {
@@ -434,16 +483,270 @@ function clearScrollingSong(idx) {
   }
 }
 
-// Playlists Menu (Placeholder)
-function renderPlaylistsMenu(direction = 'forward') {
-  console.log("Rendering playlists menu");
-  renderScreen(`
-    <div style="padding:24px;text-align:center;">Playlists coming soon...</div>
-  `, direction);
+// --- ARTISTS MENU ---
 
+function renderArtistsMenu(direction = 'forward') {
+  const artistSet = new Set(tracks.map(t => t.artist || 'Unknown Artist'));
+  const artistNames = Array.from(artistSet).sort((a, b) => a.localeCompare(b));
+  renderMenuList({
+    title: "Artists",
+    items: artistNames.map(name => ({ label: name })),
+    onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(renderArtistAlbumsMenu, item.label); },
+    onBack: goBack,
+    id: "artistsList"
+  }, direction);
 }
 
-// Now Playing Screen
+function renderArtistAlbumsMenu(direction = 'forward', artist) {
+  const artistAlbums = Object.keys(albums)
+    .filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+  renderAlbumCarousel({
+    albumsList: artistAlbums,
+    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album); },
+    title: artist
+  }, direction);
+}
+
+// --- PLAYLISTS MENU & CREATION ---
+
+function renderPlaylistsMenu(direction = 'forward') {
+  renderScreen(`
+    <div style="display:flex;flex-direction:column;height:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <button id="addPlaylistBtn" style="font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">＋</button>
+        <span style="font-size:1.2em;font-weight:bold;margin:auto;">Playlists</span>
+      </div>
+      <ul class="menu-list" id="playlistsList" style="margin-top:18px;">
+        ${playlists.length === 0 ? '<li>No playlists yet.</li>' : playlists.map((pl, idx) =>
+          `<li data-idx="${idx}">${pl.name}</li>`
+        ).join('')}
+      </ul>
+      <div id="playlistNameModal" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:10000;">
+        <div style="background:#fff;padding:24px 18px;border-radius:16px;box-shadow:0 2px 12px #0003;display:flex;flex-direction:column;align-items:center;">
+          <label for="playlistNameInput" style="font-size:1.1em;color:#222;margin-bottom:8px;">Playlist Name</label>
+          <input id="playlistNameInput" type="text" maxlength="32" style="font-size:1.1em;padding:6px 12px;border-radius:8px;border:1px solid #ccc;width:180px;margin-bottom:12px;">
+          <div style="display:flex;gap:12px;">
+            <button id="playlistNameCancel" style="padding:6px 18px;border-radius:8px;border:none;background:#eee;color:#444;font-size:1em;">Cancel</button>
+            <button id="playlistNameConfirm" style="padding:6px 18px;border-radius:8px;border:none;background:#0074d9;color:#fff;font-size:1em;">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `, direction);
+
+  document.getElementById('addPlaylistBtn').onclick = () => showPlaylistNameModal();
+
+  playlists.forEach((pl, idx) => {
+    document.querySelector(`#playlistsList li[data-idx="${idx}"]`).onclick = () => renderPlaylistSongsMenu('forward', idx);
+  });
+}
+
+function showPlaylistNameModal() {
+  const modal = document.getElementById('playlistNameModal');
+  const input = document.getElementById('playlistNameInput');
+  modal.style.display = 'flex';
+  input.value = '';
+  input.focus();
+
+  function closeModal() {
+    modal.style.display = 'none';
+    document.getElementById('playlistNameCancel').onclick = null;
+    document.getElementById('playlistNameConfirm').onclick = null;
+    input.onkeydown = null;
+  }
+
+  document.getElementById('playlistNameCancel').onclick = closeModal;
+
+  document.getElementById('playlistNameConfirm').onclick = () => {
+    const name = input.value.trim();
+    if (!name) {
+      input.focus();
+      return;
+    }
+    closeModal();
+    playlists.push({ name, tracks: [] });
+    savePlaylists();
+    window.creatingPlaylist = playlists[playlists.length - 1];
+    goTo(renderAlbumSelectionForPlaylist);
+  };
+
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") document.getElementById('playlistNameConfirm').click();
+    if (e.key === "Escape") closeModal();
+  };
+}
+
+function startPlaylistCreation(playlistName) {
+  window.creatingPlaylist = { name: playlistName, tracks: [] };
+  renderAlbumSelectionForPlaylist();
+}
+
+function renderAlbumSelectionForPlaylist(direction = 'forward') {
+  const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+  renderScreen(`
+    <div class="album-carousel-container">
+      <div class="album-carousel" id="albumCarousel"></div>
+      <div class="album-title" id="albumTitle"></div>
+      <div style="text-align:center;margin-top:12px;">
+        <span style="font-size:1em;color:#0074d9;">Select an album to add songs</span>
+      </div>
+      <button id="donePlaylistBtn" style="margin-top:12px;font-size:1em;">Done</button>
+    </div>
+  `, direction);
+
+  const carousel = document.getElementById('albumCarousel');
+  carousel.innerHTML = '';
+  albumNames.forEach((album, idx) => {
+    const albumObj = albums[album];
+    const div = document.createElement('div');
+    div.className = 'carousel-album';
+    div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
+    div.onclick = () => {
+      window.creatingPlaylist.selectedAlbum = album;
+      goTo(renderSongSelectionForPlaylist, album);
+    };
+    carousel.appendChild(div);
+  });
+  setCarouselAlbum(currentMenuIndex, albumNames);
+
+  document.getElementById('donePlaylistBtn').onclick = () => {
+    if (!window.creatingPlaylist.tracks.length) {
+      alert("Please add at least one song to your playlist.");
+      return;
+    }
+    savePlaylists();
+    delete window.creatingPlaylist;
+    goBack();
+  };
+}
+
+function renderSongSelectionForPlaylist(direction = 'forward', album) {
+  const albumObj = albums[album];
+  renderScreen(`
+    <div class="album-list">
+      <div class="album-list-left" id="playlistSongsSelectContainer" data-playlist-select="true">
+        <div id="playlistSongsSelectList"></div>
+      </div>
+      <div class="album-list-right">
+        <img src="${albumObj.songs[0]?.cover || 'default-cover.png'}" class="album-cover" alt="Album Cover">
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:8px;"><span style="font-size:1em;color:#0074d9;">Tap songs to add/remove from playlist</span></div>
+  `, direction);
+
+  const songsList = document.getElementById('playlistSongsSelectList');
+  songsList.innerHTML = '';
+  albumObj.songs.forEach((track, idx) => {
+    const isSelected = window.creatingPlaylist.tracks.some(t =>
+      (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
+      (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
+    );
+    const div = document.createElement('div');
+    div.className = 'menu-list-song';
+    div.innerHTML = `<span>${isSelected ? '✅ ' : ''}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
+    div.onclick = () => {
+      toggleTrackInCreatingPlaylist(track);
+      // Update tick in-place
+      const isNowSelected = window.creatingPlaylist.tracks.some(t =>
+        (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
+        (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
+      );
+      div.innerHTML = `<span>${isNowSelected ? '✅ ' : ''}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
+    };
+    songsList.appendChild(div);
+  });
+}
+
+function toggleTrackInCreatingPlaylist(track) {
+  const pl = window.creatingPlaylist;
+  const idx = pl.tracks.findIndex(t =>
+    (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
+    (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
+  );
+  if (idx >= 0) {
+    pl.tracks.splice(idx, 1);
+  } else {
+    pl.tracks.push({
+      fileName: track.file?.name,
+      album: track.album,
+      artist: track.artist,
+      relativePath: track.file?.webkitRelativePath || '',
+      title: track.title
+    });
+  }
+}
+
+function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
+  const playlist = playlists[playlistIdx];
+  renderScreen(`
+    <div style="display:flex;flex-direction:column;height:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <button id="editPlaylistBtn" title="Add Songs" style="font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">＋</button>
+        <span style="font-size:1.2em;font-weight:bold;margin:auto;">${playlist.name}</span>
+        <button id="deletePlaylistBtn" title="Delete Playlist" style="font-size:1.3em;font-weight:bold;background:none;border:none;color:#d90429;cursor:pointer;">🗑️</button>
+      </div>
+      <ul class="menu-list" id="playlistSongsList" style="margin-top:18px;">
+        ${playlist.tracks.map((track, idx) =>
+          `<li data-idx="${idx}">${track.title || track.fileName} - ${track.artist || ''}</li>`
+        ).join('')}
+      </ul>
+    </div>
+  `, direction);
+
+  // "+" button: edit/add songs
+  document.getElementById('editPlaylistBtn').onclick = () => {
+    window.creatingPlaylist = playlist;
+    goTo(renderAlbumSelectionForPlaylist);
+  };
+
+  // Trash can: delete playlist
+  document.getElementById('deletePlaylistBtn').onclick = () => {
+    if (confirm(`Delete playlist "${playlist.name}"?`)) {
+      playlists.splice(playlistIdx, 1);
+      savePlaylists();
+      renderPlaylistsMenu('back');
+    }
+  };
+
+  // Song click: play song
+  playlist.tracks.forEach((track, idx) => {
+    document.querySelector(`#playlistSongsList li[data-idx="${idx}"]`).onclick = () => {
+      playPlaylistTrack(playlist, idx);
+    };
+  });
+}
+
+function playPlaylistTrack(playlist, idx) {
+  const trackData = playlist.tracks[idx];
+  const match = tracks.find(t =>
+    (t.file?.webkitRelativePath && t.file.webkitRelativePath === trackData.relativePath) ||
+    (t.file?.name === trackData.fileName &&
+     t.album === trackData.album &&
+     t.artist === trackData.artist)
+  );
+  if (match) {
+    currentAlbumSongs = playlist.tracks.map(plTrack =>
+      tracks.find(t =>
+        (t.file?.webkitRelativePath && t.file.webkitRelativePath === plTrack.relativePath) ||
+        (t.file?.name === plTrack.fileName &&
+         t.album === plTrack.album &&
+         t.artist === plTrack.artist)
+      )
+    ).filter(Boolean);
+    currentSongIndex = currentAlbumSongs.findIndex(t =>
+      (t.file?.webkitRelativePath && t.file.webkitRelativePath === trackData.relativePath) ||
+      (t.file?.name === trackData.fileName &&
+       t.album === trackData.album &&
+       t.artist === trackData.artist)
+    );
+    playTrackFromAlbum(match, currentAlbumSongs);
+  } else {
+    alert("This song is not loaded.");
+  }
+}
+
+// --- NOW PLAYING ---
+
 function renderNowPlayingScreen(direction = 'forward') {
   renderScreen(`
     <div class="nowplaying-container">
@@ -491,62 +794,29 @@ function updateNowPlayingProgress() {
   }
 }
 
-// Artist Menu 
-function renderArtistsMenu(direction = 'forward') {
-  // Get unique sorted artist names
-  const artistSet = new Set(tracks.map(t => t.artist || 'Unknown Artist'));
-  const artistNames = Array.from(artistSet).sort((a, b) => a.localeCompare(b));
+// --- AUDIO PLAYBACK ---
 
-  renderScreen(`
-    <ul class="menu-list" id="artistsList">
-      ${artistNames.map((artist, idx) => `<li data-idx="${idx}">${artist}</li>`).join('')}
-    </ul>
-  `, direction);
+audioPlayer.addEventListener('timeupdate', updateNowPlayingProgress);
+audioPlayer.addEventListener('loadedmetadata', updateNowPlayingProgress);
+audioPlayer.addEventListener('play', updateNowPlayingProgress);
+audioPlayer.addEventListener('pause', updateNowPlayingProgress);
 
-  artistNames.forEach((artist, idx) => {
-    document.querySelector(`#artistsList li[data-idx="${idx}"]`).onclick = () => {
-      currentMenuIndex = idx;
-      goTo(renderArtistAlbumsMenu, artist);
-    };
-  });
-} 
+function playTrackFromAlbum(track, albumSongs) {
+  currentAlbumSongs = albumSongs || [track];
+  currentSongIndex = currentAlbumSongs.findIndex(t => t.file === track.file);
+  currentTrack = track;
+  currentMenuIndex = currentSongIndex;
 
-function renderArtistAlbumsMenu(direction = 'forward', artist) {
-  // Filter albums by artist
-  const artistAlbums = Object.keys(albums)
-    .filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+  const url = URL.createObjectURL(track.file);
+  audioPlayer.src = url;
+  audioPlayer.play();
+  playPauseBtn.textContent = "⏸";
+  setScrollingSong(currentMenuIndex);
 
-  renderScreen(`
-    <div class="album-carousel-container">
-      <div class="album-carousel" id="albumCarousel"></div>
-      <div class="album-title" id="albumTitle"></div>
-    </div>
-  `, direction);
-
-  // Render only the artist's albums in the carousel
-  const carousel = document.getElementById('albumCarousel');
-  const title = document.getElementById('albumTitle');
-  carousel.innerHTML = '';
-
-  if (artistAlbums.length === 0) {
-    carousel.innerHTML = '<div style="padding:24px;">No albums for this artist.</div>';
-    title.textContent = '';
-    return;
+  const activeScreen = document.querySelector('.screen-content.screen-active');
+  if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
+    renderNowPlayingScreen('forward');
   }
-
-  artistAlbums.forEach((album, idx) => {
-    const albumObj = albums[album];
-    const div = document.createElement('div');
-    div.className = 'carousel-album';
-    div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
-    div.onclick = () => {
-      currentMenuIndex = idx;
-      goTo(renderAlbumSongsMenu, album);
-    };
-    carousel.appendChild(div);
-  });
-
-  setCarouselAlbum(currentMenuIndex, artistAlbums);
 }
 
 function formatTime(sec) {
@@ -556,36 +826,14 @@ function formatTime(sec) {
   return `${min}:${s.toString().padStart(2, '0')}`;
 }
 
-audioPlayer.addEventListener('timeupdate', updateNowPlayingProgress);
-audioPlayer.addEventListener('loadedmetadata', updateNowPlayingProgress);
-audioPlayer.addEventListener('play', updateNowPlayingProgress);
-audioPlayer.addEventListener('pause', updateNowPlayingProgress);
-
-// Audio Playback
-function playTrackFromAlbum(track, albumSongs) {
-  console.log("Playing:", track.title, "from albumSongs:", albumSongs);
-  currentAlbumSongs = albumSongs || [track];
-  currentSongIndex = currentAlbumSongs.findIndex(t => t.file === track.file);
-  currentTrack = track;
-  currentMenuIndex = currentSongIndex; // Sync menu selection to playback
-
-  const url = URL.createObjectURL(track.file);
-  audioPlayer.src = url;
-  audioPlayer.play();
-  playPauseBtn.textContent = "⏸";
-  setScrollingSong(currentMenuIndex); // Highlight the playing song
-
-  const activeScreen = document.querySelector('.screen-content.screen-active');
-  if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
-    renderNowPlayingScreen('forward');
-  }
-}
+// -- DISK CONTROLS --
 
 // Disk Pad Controls 
 document.getElementById('menuBtn').onclick = () => {
   console.log("Menu button clicked");
   goBack();
 };
+
 document.getElementById('playPauseBtn').onclick = () => {
   console.log("Play/Pause button clicked");
   if (!audioPlayer.src) return;
@@ -597,6 +845,7 @@ document.getElementById('playPauseBtn').onclick = () => {
     playPauseBtn.textContent = "▶";
   }
 };
+
 document.getElementById('nextBtn').onclick = () => {
   console.log("Next button clicked");
   if (
@@ -607,6 +856,7 @@ document.getElementById('nextBtn').onclick = () => {
     playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
   }
 };
+
 document.getElementById('prevBtn').onclick = () => {
   console.log("Prev button clicked");
   if (
@@ -616,19 +866,42 @@ document.getElementById('prevBtn').onclick = () => {
     playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
   }
 };
+
 document.getElementById('confirmBtn').onclick = () => {
-  console.log("Confirm button clicked");
-  // Album carousel logic
+  // 1. Playlist song selection mode: check for playlistSongsSelectList FIRST
+  const playlistSongsSelectList = document.getElementById('playlistSongsSelectList');
+  if (playlistSongsSelectList && playlistSongsSelectList.children.length) {
+    let items = Array.from(playlistSongsSelectList.querySelectorAll('.menu-list-song'));
+    if (items.length) {
+      // This will call your toggle handler, NOT play the song
+      items[currentMenuIndex]?.click();
+    }
+    return; // Prevent fallback logic!
+  }
+
+  // 2. Album carousel logic
   const albumCarousel = document.getElementById('albumCarousel');
   if (albumCarousel && albumCarousel.children.length) {
-    const centerAlbum = albumCarousel.children[currentMenuIndex];
-    if (centerAlbum) {
-      centerAlbum.click();
+    let albumNames = [];
+    if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
+      const artist = navStack[navStack.length - 1].args[0];
+      albumNames = Object.keys(albums).filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+    } else {
+      albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+    }
+    const album = albumNames[currentMenuIndex];
+    if (album) {
+      // --- FIX: If in playlist creation/edit mode, open playlist song selection ---
+      if (window.creatingPlaylist) {
+        goTo(renderSongSelectionForPlaylist, album);
+      } else {
+        goTo(renderAlbumSongsMenu, album);
+      }
       return;
     }
   }
 
-  // Artists menu logic
+  // 3. Artists menu logic
   const artistsList = document.getElementById('artistsList');
   if (artistsList && artistsList.children.length) {
     const selectedArtist = artistsList.children[currentMenuIndex];
@@ -638,7 +911,21 @@ document.getElementById('confirmBtn').onclick = () => {
     }
   }
 
-  // Fallback: normal menu logic
+  // 4. Playlists menu logic
+  const playlistsList = document.getElementById('playlistsList');
+  if (playlistsList && playlistsList.children.length) {
+    playlistsList.children[currentMenuIndex]?.click();
+    return;
+  }
+
+  // 5. Playlist songs menu logic
+  const playlistSongsList = document.getElementById('playlistSongsList');
+  if (playlistSongsList && playlistSongsList.children.length) {
+    playlistSongsList.children[currentMenuIndex]?.click();
+    return;
+  }
+
+  // 6. Fallback: normal menu logic
   let menu =
     document.getElementById('songsList') ||
     document.querySelector('.album-list-left') ||
@@ -651,7 +938,6 @@ document.getElementById('confirmBtn').onclick = () => {
   }
   if (!items.length) return;
 
-  console.log("Confirm selecting item at index:", currentMenuIndex);
   items[currentMenuIndex]?.click();
 };
 
@@ -733,10 +1019,25 @@ if (diskTouch) {
 // Menu Scrolling Logic
 function scrollMenu(direction) {
   console.log("Scrolling menu, direction:", direction);
+  // Playlist song selection mode
+  const playlistSongsSelectList = document.getElementById('playlistSongsSelectList');
+  if (playlistSongsSelectList) {
+    let items = Array.from(playlistSongsSelectList.querySelectorAll('.menu-list-song'));
+    if (!items.length) return;
+
+    items[currentMenuIndex]?.classList.remove('active');
+    currentMenuIndex += direction;
+    if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
+    if (currentMenuIndex >= items.length) currentMenuIndex = 0;
+    items[currentMenuIndex].classList.add('active');
+    items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  // Normal menu logic
   let menu =
     document.getElementById('songsList') ||
     document.getElementById('albumCarousel') ||
-    document.getElementById('artistsList') || // <-- add this line
+    document.getElementById('artistsList') || 
     document.querySelector('.menu-list');
   if (!menu) return;
 
@@ -753,7 +1054,14 @@ function scrollMenu(direction) {
     currentMenuIndex += direction;
     if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
     if (currentMenuIndex >= items.length) currentMenuIndex = 0;
-    setCarouselAlbum(currentMenuIndex, Object.keys(albums).sort((a, b) => a.localeCompare(b)));
+    let albumNames = [];
+    if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
+      const artist = navStack[navStack.length - 1].args[0];
+      albumNames = Object.keys(albums).filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+    } else {
+      albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+    }
+    setCarouselAlbum(currentMenuIndex, albumNames);
     return;
   }
 
@@ -803,22 +1111,19 @@ prevBtn.onclick = () => {
   }
 };
 
-// Reset menu index on screen change
-function resetMenuIndex() {
-  console.log("Resetting menu index");
-  currentMenuIndex = 0;
-  setTimeout(() => scrollMenu(0), 10);
-}
+// --- PLAYLIST STORAGE ---
 
-// Playlist Storage (for future expansion)
 function savePlaylists() {
-  console.log("Saving playlists to localStorage");
   localStorage.setItem('playlists', JSON.stringify(playlists));
 }
 
-console.log("App starting, rendering main menu");
-renderMainMenu();
-navStack = [{ fn: renderMainMenu, args: [] }];
+// --- APP STARTUP ---
+
+window.onload = () => {
+  fadeOutSplashAndStart();
+};
+
+// -- Service Worker --
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');
