@@ -93,6 +93,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+  overflow-y: auto;
 }
 
 .screen-slide-in {
@@ -103,6 +104,7 @@ body {
 }
 .screen-active {
   transform: translateX(0);
+  
 }
 .menu-list {
   list-style: none;
@@ -137,7 +139,6 @@ body {
 }
 .album-list-left {
   width: 50%;
-  overflow-y: auto;
   border-right: 1px solid #eee;
 }
 .album-list-right {
@@ -434,170 +435,16 @@ body {
   100% { transform: rotate(360deg);}
 }
 
-/* --- Tablet Landscape Styling --- */
-@media (min-width: 900px) and (max-width: 1200px) and (orientation: landscape) {
-  body {
-    min-width: 0;
-    min-height: 0;
-    padding: 0;
-    margin: 0;
-    font-size: 1.1em;
-    background: #f8f8f8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  #splashScreen {
-    opacity: 1;
-    pointer-events: all;
-    background: #000;
-    transition: opacity 2s;
-    border-radius: 18px;
-  }
-
-  #splashScreen.hide {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .vpod-container {
-    width: 700px;
-    height: 830px;
-    border-radius: 56px;
-    margin: 0 auto;
-    padding: 48px 0 64px 0;
-    box-shadow:
-      0 16px 48px 0 rgba(0,0,0,0.13),
-      0 2px 8px 0 rgba(0,0,0,0.06),
-      0 0 0 8px #e0e0e0 inset,
-      0 2px 0 0 #c0c0c0 inset;
-    border-width: 4px;
-  }
-
-  .vpod-screen {
-    width: 600px;
-    height: 480px;
-    border-radius: 28px;
-    margin-bottom: 48px;
-    font-size: 1.15em;
-    border-width: 2.5px;
-    box-shadow:
-      0 2px 4px rgba(0,0,0,0.13),
-      0 0 0 4px #e0e0e0,
-      0 4px 16px 4px #b0b0b0 inset;
-  }
-
-  .vpod-controls {
-    width: 600px;
-    height: 320px;
-  }
-
-  .vpod-disk {
-    width: 320px;
-    height: 320px;
-    border-width: 2.5px;
-  }
-  .vpod-disk-center {
-    width: 104px;
-    height: 104px;
-    border-width: 2.5px;
-  }
-  .vpod-disk-btn {
-    font-size: 2em;
-  }
-  .vpod-disk-menu   { top: 28px; left: 50%; transform: translateX(-50%); }
-  .vpod-disk-play   { bottom: 28px; left: 50%; transform: translateX(-50%); }
-  .vpod-disk-prev   { left: 28px; top: 50%; transform: translateY(-50%); }
-  .vpod-disk-next   { right: 28px; top: 50%; transform: translateY(-50%); }
-  .vpod-disk-touch {
-    width: 320px;
-    height: 320px;
-  }
-
-  .album-cover {
-    width: 180px;
-    height: 180px;
-    border-radius: 12px;
-  }
-
-  .album-carousel {
-    height: 320px;
-    margin-bottom: 32px;
-  }
-
-  .carousel-album {
-    width: 240px;
-    height: 240px;
-  }
-
-  .carousel-cover {
-    width: 240px;
-    height: 240px;
-    border-radius: 8px;
-  }
-
-  .carousel-album-center {
-    transform: translate(-50%, -50%) scale(1.35) rotateY(0deg);
-  }
-
-  .album-title {
-    font-size: 1.5em;
-    margin-top: 18px;
-  }
-
-  .nowplaying-container {
-    padding: 55px 0 0 0;
-  }
-
-  .nowplaying-info {
-    gap: 48px;
-    margin-bottom: 48px;
-  }
-
-  .nowplaying-cover img {
-    width: 220px;
-    height: 220px;
-    border-radius: 12px;
-    margin-left: 0;
-    margin-bottom: 0;
-    transform: rotateY(18deg) scale(1.08);
-  }
-
-  .nowplaying-meta {
-    min-width: 240px;
-    font-size: 1.2em;
-  }
-
-  .nowplaying-title {
-    font-size: 1.5em;
-  }
-
-  .nowplaying-artist, .nowplaying-album {
-    font-size: 1.1em;
-  }
-
-  .nowplaying-progress {
-    gap: 24px;
-    padding: 0 32px 32px 32px;
-  }
-
-  .nowplaying-bar-bg {
-    height: 18px;
-    border-radius: 9px;
-  }
-}
-
 /* --- Responsive vpod for Mobile --- */
 @media (max-width: 600px) {
   .vpod-container {
     width: 85vw;
-    height: 85vh;
+    height: 80vh;
     min-width: 0;
     min-height: 0;
     border-radius: 7vw;
     margin: 1vw auto;
-    padding: 8vw 0 6vw 0;
+    padding: 5vw 0 8vw 0;
   }
 
   .vpod-screen {
@@ -606,8 +453,8 @@ body {
     min-width: 0;
     min-height: 0;
     border-radius: 4vw;
-    margin-bottom: 20vw;
-    font-size: 1.1em;
+    margin-bottom: 8vw;
+    font-size: 1em;
     border-width: 0.7vw;
     box-shadow:
       0 0.5vw 0.5vw rgba(0,0,0,0.13),
@@ -623,14 +470,24 @@ body {
   }
 
   .vpod-disk {
-    width: 60vw;
-    height: 60vw;
+    width: 50vw;
+    height: 50vw;
     border-radius: 50%;
     border-width: 0.7vw;
   }
+  .vpod-disk:before {
+    content: "";
+    position: absolute;
+    left: 50px; top: 20px;
+    width: 160px; height: 60px;
+    background: linear-gradient(140deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.05) 100%);
+    border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+    pointer-events: none;
+    z-index: 1;
+  }
   .vpod-disk-center {
-    width: 20vw;
-    height: 20vw;
+    width: 18vw;
+    height: 18vw;
     border-width: 0.7vw;
   }
   .vpod-disk-btn {
@@ -680,13 +537,13 @@ body {
   }
 
   .carousel-album {
-    width: 18vw;
-    height: 18vw;
+    width: 22vw;
+    height: 20vw;
   }
 
   .carousel-cover {
-    width: 18vw;
-    height: 18vw;
+    width: 24vw;
+    height: 24vw;
     border-radius: 3vw;
   }
 
@@ -701,14 +558,14 @@ body {
 
   /* --- Mobile Now Playing --- */
   .nowplaying-container {
-    padding: 8vw 0 0 0;
+    padding: 2vw 0 0 0;
     min-height: 0;
   }
 
   .nowplaying-info {
     flex-direction: column;
-    gap: 4vw;
-    margin-bottom: 6vw;
+    gap: 1vw;
+    margin-bottom: 2vw;
     align-items: center;
     justify-content: center;
   }
@@ -718,7 +575,7 @@ body {
     height: 28vw;
     border-radius: 3vw;
     margin-left: 0;
-    margin-bottom: 2vw;
+    margin-bottom: 1vw;
     transform: rotateY(14deg) scale(1.04);
   }
 
@@ -738,7 +595,7 @@ body {
 
   .nowplaying-progress {
     gap: 3vw;
-    padding: 0 4vw 4vw 4vw;
+    padding: 0 4vw 2vw 4vw;
   }
 
   .nowplaying-bar-bg {

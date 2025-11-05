@@ -79,7 +79,7 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
         <div id="songsList"></div>
       </div>
       <div class="album-list-right">
-        <img src="${songs[0]?.cover || 'default-cover.png'}" class="album-cover" alt="Album Cover">
+        <img src="${albums[songs[0]?.album]?.cover || 'default-cover.png'}" class="album-cover" alt="Album Cover">
       </div>
     </div>
     ${selectMode ? `<div style="text-align:center;margin-top:8px;"><span style="font-size:1em;color:#0074d9;">Tap songs to add/remove from playlist</span></div>` : ''}
@@ -381,6 +381,7 @@ function renderAlbumSongsMenu(direction = 'forward', album) {
   const albumObj = albums[album];
   renderSongList({
     songs: albumObj.songs,
+    albumCover: albumObj.cover,
     onSongClick: (track, idx) => { currentMenuIndex = idx; playTrackFromAlbum(track, albumObj.songs); }
   }, direction);
 }
@@ -628,7 +629,7 @@ function renderSongSelectionForPlaylist(direction = 'forward', album) {
         <div id="playlistSongsSelectList"></div>
       </div>
       <div class="album-list-right">
-        <img src="${albumObj.songs[0]?.cover || 'default-cover.png'}" class="album-cover" alt="Album Cover">
+        <img src="${albumObj.cover || 'default-cover.png'}" class="album-cover" alt="Album Cover">
       </div>
     </div>
     <div style="text-align:center;margin-top:8px;"><span style="font-size:1em;color:#0074d9;">Tap songs to add/remove from playlist</span></div>
