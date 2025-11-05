@@ -79,7 +79,7 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
         <div id="songsList"></div>
       </div>
       <div class="album-list-right">
-        <img src="${albums[songs[0]?.album]?.cover || 'default-cover.png'}" class="album-cover" alt="Album Cover">
+        <img src="${albumCover || albums[songs[0]?.album]?.cover || 'default-cover.png'}" class="album-cover" alt="Album Cover">
       </div>
     </div>
     ${selectMode ? `<div style="text-align:center;margin-top:8px;"><span style="font-size:1em;color:#0074d9;">Tap songs to add/remove from playlist</span></div>` : ''}
@@ -129,7 +129,7 @@ function fadeOutSplashAndStart() {
   setTimeout(() => {
     splash.style.display = 'none';
     startApp();
-  }, 1000);
+  }, 2000);
 }
 
 function startApp() {

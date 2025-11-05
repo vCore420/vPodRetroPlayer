@@ -7,7 +7,8 @@ const toCache = [
   "manifest.json",
   "icon-192.png",
   "icon-512.png",
-  "default-cover.png"
+  "default-cover.png",
+  "logo.png"
 ];
 
 self.addEventListener("install", event => {
