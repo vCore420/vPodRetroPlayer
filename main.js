@@ -72,7 +72,7 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
   }
 }
 
-function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false }, direction = 'forward') {
+function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false, albumCover }, direction = 'forward') {
   renderScreen(`
     <div class="album-list">
       <div class="album-list-left" id="songsListContainer" ${selectMode ? 'data-playlist-select="true"' : ''}>
@@ -129,7 +129,7 @@ function fadeOutSplashAndStart() {
   setTimeout(() => {
     splash.style.display = 'none';
     startApp();
-  }, 2000);
+  }, 1000);
 }
 
 function startApp() {
@@ -381,7 +381,7 @@ function renderAlbumSongsMenu(direction = 'forward', album) {
   const albumObj = albums[album];
   renderSongList({
     songs: albumObj.songs,
-    albumCover: albumObj.cover,
+    albumCover: albumObj.cover, 
     onSongClick: (track, idx) => { currentMenuIndex = idx; playTrackFromAlbum(track, albumObj.songs); }
   }, direction);
 }
