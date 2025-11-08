@@ -83,11 +83,11 @@ function updateHotBarTime() {
 }
 setInterval(updateHotBarTime, 1000);
 
-function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone }, direction = 'forward') {
+function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone, selectedIdx = 0 }, direction = 'forward') {
   renderScreen(`
     <div class="album-carousel-container">
       <div class="album-carousel" id="albumCarousel"></div>
-      <div class="album-title" id="albumTitle">${title || ''}</div>
+      <div class="album-title" id="albumTitle"></div>
       ${showDone ? `<button id="donePlaylistBtn" style="margin-top:12px;font-size:1em;">Done</button>` : ''}
     </div>
   `, direction);
@@ -102,11 +102,13 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
     div.onclick = () => onAlbumClick(album, idx);
     carousel.appendChild(div);
   });
-  setCarouselAlbum(currentMenuIndex, albumsList);
+  setCarouselAlbum(selectedIdx, albumsList);
 
   if (showDone && onDone) {
     document.getElementById('donePlaylistBtn').onclick = onDone;
   }
+  // Set currentMenuIndex for scroll wheel navigation
+  currentMenuIndex = selectedIdx;
 }
 
 function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false, albumCover }, direction = 'forward') {
@@ -150,7 +152,14 @@ function renderMainMenu(direction = 'forward') {
       { label: "Now Playing", action: renderNowPlayingScreen },
       { label: "Settings", action: renderSettingsMenu }
     ],
-    onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); },
+    onItemClick: (idx, item) => {
+  currentMenuIndex = idx;
+    if (item.action === renderAlbumsMenu) {
+      goTo(renderAlbumsMenu, 0);
+    } else {
+      goTo(item.action);
+    }
+  },
     before: renderHotBar()
   }, direction);
   updateHotBarTime();
@@ -184,20 +193,29 @@ function renderLoadingScreen(message = "Loading your music...") {
 
 // --- ALBUMS MENU ---
 
-function renderAlbumsMenu(direction = 'forward') {
+function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
   const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
   renderAlbumCarousel({
     albumsList: albumNames,
-    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album); }
+    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album, idx); },
+    selectedIdx
   }, direction);
 }
 
-function renderAlbumSongsMenu(direction = 'forward', album) {
+function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist = null) {
   const albumObj = albums[album];
   renderSongList({
     songs: albumObj.songs,
     albumCover: albumObj.cover, 
-    onSongClick: (track, idx) => { currentMenuIndex = idx; playTrackFromAlbum(track, albumObj.songs); }
+    onSongClick: (track, idx) => { currentMenuIndex = idx; playTrackFromAlbum(track, albumObj.songs); },
+    showBack: true,
+    onBack: () => {
+      if (artist) {
+        goTo(renderArtistAlbumsMenu, 'back', artist, albumIdx);
+      } else {
+        goTo(renderAlbumsMenu, 'back', albumIdx);
+      }
+    }
   }, direction);
 }
 
@@ -315,13 +333,14 @@ function renderArtistsMenu(direction = 'forward') {
   }, direction);
 }
 
-function renderArtistAlbumsMenu(direction = 'forward', artist) {
+function renderArtistAlbumsMenu(direction = 'forward', artist, selectedIdx = 0) {
   const artistAlbums = Object.keys(albums)
     .filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
   renderAlbumCarousel({
     albumsList: artistAlbums,
-    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album); },
-    title: artist
+    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album, idx, artist); },
+    title: artist,
+    selectedIdx
   }, direction);
 }
 

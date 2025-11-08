@@ -72,7 +72,7 @@ function startPlaylistCreation(playlistName) {
   renderAlbumSelectionForPlaylist();
 }
 
-function renderAlbumSelectionForPlaylist(direction = 'forward') {
+function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0) {
   const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
   renderScreen(`
     <div class="album-carousel-container">
@@ -94,11 +94,11 @@ function renderAlbumSelectionForPlaylist(direction = 'forward') {
     div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
     div.onclick = () => {
       window.creatingPlaylist.selectedAlbum = album;
-      goTo(renderSongSelectionForPlaylist, album);
+      goTo(renderSongSelectionForPlaylist, album, idx);
     };
     carousel.appendChild(div);
   });
-  setCarouselAlbum(currentMenuIndex, albumNames);
+  setCarouselAlbum(selectedIdx, albumNames);
 
   document.getElementById('donePlaylistBtn').onclick = () => {
     if (!window.creatingPlaylist.tracks.length) {
@@ -109,9 +109,10 @@ function renderAlbumSelectionForPlaylist(direction = 'forward') {
     delete window.creatingPlaylist;
     goBack();
   };
+  currentMenuIndex = selectedIdx;
 }
 
-function renderSongSelectionForPlaylist(direction = 'forward', album) {
+function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx = 0) {
   const albumObj = albums[album];
   renderScreen(`
     <div class="album-list">
@@ -146,6 +147,9 @@ function renderSongSelectionForPlaylist(direction = 'forward', album) {
     };
     songsList.appendChild(div);
   });
+
+  // When going back, pass the albumIdx
+  window.onPlaylistSongSelectionBack = () => goTo(renderAlbumSelectionForPlaylist, 'back', albumIdx);
 }
 
 function toggleTrackInCreatingPlaylist(track) {

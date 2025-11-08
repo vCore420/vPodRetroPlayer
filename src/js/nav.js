@@ -1,15 +1,31 @@
 // --- NAVIGATION HELPERS ---
 
 function goTo(screenFn, ...args) {
-  navStack.push({ fn: screenFn, args });
-  screenFn('forward', ...args);
+  navStack.push({ fn: screenFn, args: ['forward', ...args] });
+
+  if (navStack.length > 1) {
+    const prev = navStack[navStack.length - 2];
+    if (prev.fn === renderAlbumsMenu) {
+      prev.args[1] = args[1] !== undefined ? args[1] : 0;
+    }
+    if (prev.fn === renderArtistAlbumsMenu) {
+      prev.args[2] = args[1] !== undefined ? args[1] : 0;
+    }
+    if (prev.fn === renderAlbumSelectionForPlaylist) {
+      prev.args[1] = args[1] !== undefined ? args[1] : 0;
+    }
+  }
+
+  screenFn(...navStack[navStack.length - 1].args);
 }
 
 function goBack() {
   if (navStack.length > 1) {
     navStack.pop();
     const { fn, args } = navStack[navStack.length - 1];
-    fn('back', ...args);
+    args[0] = 'back'; // Set direction to 'back'
+    console.log("Going back to:", fn.name, "with args:", args);
+    fn(...args);
   }
 }
 
@@ -76,18 +92,22 @@ document.getElementById('confirmBtn').onclick = () => {
   if (albumCarousel && albumCarousel.children.length) {
     let albumNames = [];
     if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-      const artist = navStack[navStack.length - 1].args[0];
+      const artist = navStack[navStack.length - 1].args[1];
       albumNames = Object.keys(albums).filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+    } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist) {
+      albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
     } else {
       albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
     }
     const album = albumNames[currentMenuIndex];
     if (album) {
-      // --- FIX: If in playlist creation/edit mode, open playlist song selection ---
       if (window.creatingPlaylist) {
-        goTo(renderSongSelectionForPlaylist, album);
+        goTo(renderSongSelectionForPlaylist, album, currentMenuIndex);
+      } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
+        const artist = navStack[navStack.length - 1].args[1];
+        goTo(renderAlbumSongsMenu, album, currentMenuIndex, artist);
       } else {
-        goTo(renderAlbumSongsMenu, album);
+        goTo(renderAlbumSongsMenu, album, currentMenuIndex);
       }
       return;
     }
@@ -248,8 +268,10 @@ function scrollMenu(direction) {
     if (currentMenuIndex >= items.length) currentMenuIndex = 0;
     let albumNames = [];
     if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-      const artist = navStack[navStack.length - 1].args[0];
+      const artist = navStack[navStack.length - 1].args[1];
       albumNames = Object.keys(albums).filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+    } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist) {
+      albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
     } else {
       albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
     }
