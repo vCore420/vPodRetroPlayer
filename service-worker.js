@@ -2,6 +2,7 @@ const CACHE_NAME = "vmusic-cache-v9";
 const toCache = [
   "./",
   "index.html",
+  "manifest.json",
   "src/js/main.js",
   "src/js/ui.js",
   "src/js/nav.js",
@@ -9,7 +10,6 @@ const toCache = [
   "src/js/handler.js",
   "src/js/audio.js",
   "src/css/styles.css",
-  "src/json/manifest.json",
   "src/img/icon-192.png",
   "src/img/icon-512.png",
   "src/img/default-cover.png",
@@ -36,5 +36,4 @@ self.addEventListener("fetch", event => {
       response || fetch(event.request)
     )
   );
-
 });
