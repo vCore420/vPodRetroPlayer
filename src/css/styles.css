@@ -145,10 +145,13 @@ body {
   display: flex;
   flex-direction: row;
   height: 100%;
+  position: relative;
 }
 .album-list-left {
   width: 50%;
   border-right: 1px solid #eee;
+  overflow-y: auto; 
+  height: 100%;
 }
 .album-list-right {
   width: 50%;
@@ -156,6 +159,11 @@ body {
   align-items: center;
   justify-content: center;
   background: #f4f4f4;
+  position: absolute;     
+  right: 0;
+  top: 0;
+  height: 100%;
+  z-index: 2;
 }
 .album-cover {
   width: 160px;
