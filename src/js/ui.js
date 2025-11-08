@@ -1,3 +1,16 @@
+const defaultTimeSettings = {
+  hourFormat: '24', // or '12'
+  dateFormat: 'DD/MM/YYYY' // or 'MM/DD/YYYY'
+};
+
+function getTimeSettings() {
+  return JSON.parse(localStorage.getItem('timeSettings')) || defaultTimeSettings;
+}
+
+function saveTimeSettings(settings) {
+  localStorage.setItem('timeSettings', JSON.stringify(settings));
+}
+
 // --- GENERIC RENDERERS ---
 
 function renderScreen(content, direction = 'forward') {
@@ -14,13 +27,15 @@ function renderScreen(content, direction = 'forward') {
   resetMenuIndex();
 }
 
-function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "menuList" }, direction = 'forward') {
+function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "menuList", before = "" }, direction = 'forward') {
   renderScreen(`
+    ${before}
     <div>
       ${title ? `<div class="menu-title" style="font-weight:bold;font-size:1.2em;text-align:center;margin-bottom:12px;">${title}</div>` : ''}
       <ul class="menu-list" id="${id}">
         ${items.map((item, idx) => `<li data-idx="${idx}">${item.label}</li>`).join('')}
       </ul>
+    </div>
   `, direction);
 
   items.forEach((item, idx) => {
@@ -30,6 +45,43 @@ function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "men
     document.getElementById('genericBackBtn').onclick = onBack;
   }
 }
+
+function renderHotBar() {
+  return `
+    <div id="hotBar" style="
+      width:100%;height:28px;display:flex;align-items:center;justify-content:center;
+      font-size:1em;color:#222;z-index:10;">
+      <span id="hotBarTime" style="flex:1;text-align:center;font-weight:bold;"></span>
+      <span style="position:absolute;right:4px;top:2px;font-size:1.3em;">
+        <span id="hotBarBattery" title="Battery Full">
+          <svg width="40" height="30" viewBox="0 0 28 30" style="vertical-align:middle;">
+            <rect x="1" y="3" width="24" height="8" rx="2" fill="#fff" stroke="#222" stroke-width="2"/>
+            <rect x="3" y="5" width="20" height="4" rx="1" fill="#4caf50"/>
+            <rect x="25" y="6" width="2" height="2" rx="1" fill="#222"/>
+          </svg>
+        </span>
+      </span>
+    </div>
+  `;
+}
+
+// Update time
+function updateHotBarTime() {
+  const el = document.getElementById('hotBarTime');
+  if (el) {
+    const now = new Date();
+    const settings = getTimeSettings ? getTimeSettings() : { hourFormat: '24' };
+    let h = now.getHours();
+    let m = now.getMinutes().toString().padStart(2, '0');
+    let ampm = '';
+    if (settings.hourFormat === '12') {
+      ampm = h >= 12 ? ' PM' : ' AM';
+      h = h % 12 || 12;
+    }
+    el.textContent = `${h}:${m}${ampm}`;
+  }
+}
+setInterval(updateHotBarTime, 1000);
 
 function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone }, direction = 'forward') {
   renderScreen(`
@@ -98,8 +150,10 @@ function renderMainMenu(direction = 'forward') {
       { label: "Now Playing", action: renderNowPlayingScreen },
       { label: "Settings", action: renderSettingsMenu }
     ],
-    onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); }
+    onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); },
+    before: renderHotBar()
   }, direction);
+  updateHotBarTime();
 }
 
 // --- LOAD MUSIC ---
@@ -274,7 +328,9 @@ function renderArtistAlbumsMenu(direction = 'forward', artist) {
 // --- NOW PLAYING ---
 
 function renderNowPlayingScreen(direction = 'forward') {
-  renderScreen(`
+  renderScreen(
+    renderHotBar() +
+    `
     <div class="nowplaying-container">
       <div class="nowplaying-info">
         <div class="nowplaying-cover">
@@ -295,7 +351,8 @@ function renderNowPlayingScreen(direction = 'forward') {
       </div>
     </div>
   `, direction);
-
+  
+  updateHotBarTime();
   updateNowPlayingProgress();
 }
 
@@ -326,13 +383,16 @@ function renderSettingsMenu(direction = 'forward') {
   renderMenuList({
     title: "Settings",
     items: [
-      { label: "Equalizer", action: renderEqualizerMenu }
+      { label: "Equalizer", action: renderEqualizerMenu },
+      { label: "Date and Time", action: renderDateTimeMenu }
       // Add more settings here 
     ],
     onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); },
     onBack: goBack,
-    id: "settingsList"
+    id: "settingsList",
+    before: renderHotBar()
   }, direction);
+  updateHotBarTime();
 }
 
 function renderEqualizerMenu(direction = 'forward', selectedIdx = null) {
@@ -387,3 +447,95 @@ function renderEqualizerMenu(direction = 'forward', selectedIdx = null) {
     eqList.children[selectedIdx].scrollIntoView({ block: 'nearest' });
   }
 }
+
+function renderDateTimeMenu(direction = 'forward') {
+  const settings = getTimeSettings();
+  const now = new Date();
+
+  // Format time
+  let hours = now.getHours();
+  let minutes = now.getMinutes().toString().padStart(2, '0');
+  let ampm = '';
+  if (settings.hourFormat === '12') {
+    ampm = hours >= 12 ? ' PM' : ' AM';
+    hours = hours % 12 || 12;
+  }
+  const timeStr = `${hours}:${minutes}${ampm}`;
+
+  // Format date
+  const day = now.getDate().toString().padStart(2, '0');
+  const month = (now.getMonth()+1).toString().padStart(2, '0');
+  const year = now.getFullYear();
+  let dateStr = settings.dateFormat === 'MM/DD/YYYY'
+    ? `${month}/${day}/${year}`
+    : `${day}/${month}/${year}`;
+
+  renderScreen(
+    renderHotBar() +
+  `<div style="padding:32px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+    <div id="dateTimeTime" style="font-size:2em;font-weight:bold;margin-bottom:8px;">${timeStr}</div>
+    <div id="dateTimeDate" style="font-size:1.2em;color:#444;margin-bottom:24px;">${dateStr}</div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:1em;">Time Format:</label>
+        <select id="hourFormatSelect" style="margin-left:8px;font-size:1em;">
+          <option value="24" ${settings.hourFormat === '24' ? 'selected' : ''}>24 Hour</option>
+          <option value="12" ${settings.hourFormat === '12' ? 'selected' : ''}>12 Hour</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:1em;">Date Format:</label>
+        <select id="dateFormatSelect" style="margin-left:8px;font-size:1em;">
+          <option value="DD/MM/YYYY" ${settings.dateFormat === 'DD/MM/YYYY' ? 'selected' : ''}>DD/MM/YYYY</option>
+          <option value="MM/DD/YYYY" ${settings.dateFormat === 'MM/DD/YYYY' ? 'selected' : ''}>MM/DD/YYYY</option>
+        </select>
+      </div>
+    </div>`,
+    direction
+  );
+
+  // Handlers
+  document.getElementById('hourFormatSelect').onchange = (e) => {
+    settings.hourFormat = e.target.value;
+    saveTimeSettings(settings);
+    updateDateTimeMenuDisplay();
+  };
+  document.getElementById('dateFormatSelect').onchange = (e) => {
+    settings.dateFormat = e.target.value;
+    saveTimeSettings(settings);
+    updateDateTimeMenuDisplay();
+  };
+
+  // Live update time/date every second, but only update the text, not the whole screen
+  if (window.dateTimeMenuInterval) clearInterval(window.dateTimeMenuInterval);
+  window.dateTimeMenuInterval = setInterval(updateDateTimeMenuDisplay, 1000);
+
+}
+
+function updateDateTimeMenuDisplay() {
+  const settings = getTimeSettings();
+  const now = new Date();
+
+  // Format time
+  let hours = now.getHours();
+  let minutes = now.getMinutes().toString().padStart(2, '0');
+  let ampm = '';
+  if (settings.hourFormat === '12') {
+    ampm = hours >= 12 ? ' PM' : ' AM';
+    hours = hours % 12 || 12;
+  }
+  const timeStr = `${hours}:${minutes}${ampm}`;
+
+  // Format date
+  const day = now.getDate().toString().padStart(2, '0');
+  const month = (now.getMonth()+1).toString().padStart(2, '0');
+  const year = now.getFullYear();
+  let dateStr = settings.dateFormat === 'MM/DD/YYYY'
+    ? `${month}/${day}/${year}`
+    : `${day}/${month}/${year}`;
+
+  const timeEl = document.getElementById('dateTimeTime');
+  const dateEl = document.getElementById('dateTimeDate');
+  if (timeEl) timeEl.textContent = timeStr;
+  if (dateEl) dateEl.textContent = dateStr;
+}
+
