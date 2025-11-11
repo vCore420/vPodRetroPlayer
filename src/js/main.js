@@ -14,6 +14,9 @@ let currentTrack = null;
 let currentMenuIndex = 0;
 let currentAlbumSongs = [];
 let currentSongIndex = -1;
+let isShuffleOn = false;
+let originalAlbumSongs = null;
+let originalSongIndex = -1;
 
 // --- SPLASH & APP START ---
 

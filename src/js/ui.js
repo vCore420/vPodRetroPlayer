@@ -1,6 +1,6 @@
 const defaultTimeSettings = {
-  hourFormat: '24', // or '12'
-  dateFormat: 'DD/MM/YYYY' // or 'MM/DD/YYYY'
+  hourFormat: '24', 
+  dateFormat: 'DD/MM/YYYY' 
 };
 
 function getTimeSettings() {
@@ -54,10 +54,16 @@ function renderHotBar() {
       <span id="hotBarTime" style="flex:1;text-align:center;font-weight:bold;"></span>
       <span style="position:absolute;right:4px;top:2px;font-size:1.3em;">
         <span id="hotBarBattery" title="Battery Full">
-          <svg width="40" height="30" viewBox="0 0 28 30" style="vertical-align:middle;">
-            <rect x="1" y="3" width="24" height="8" rx="2" fill="#fff" stroke="#222" stroke-width="2"/>
-            <rect x="3" y="5" width="20" height="4" rx="1" fill="#4caf50"/>
+          <svg width="40" height="36" viewBox="0 0 28 30" style="vertical-align:middle;">
+            <rect x="1" y="3" width="24" height="8" rx="2" fill="#fff" stroke="#222" stroke-width="1"/>
+            <rect x="2" y="4" width="22" height="6" rx="1" fill="url(#batteryGradient)"/>
             <rect x="25" y="6" width="2" height="2" rx="1" fill="#222"/>
+            <defs>
+              <linearGradient id="batteryGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="60%" stop-color="#0074d9" />
+                <stop offset="100%" stop-color="#4fc3f7" />
+              </linearGradient>
+            </defs>
           </svg>
         </span>
       </span>
@@ -119,9 +125,9 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
       </div>
       <div class="album-list-right">
         <img src="${albumCover || albums[songs[0]?.album]?.cover || 'src/img/default-cover.png'}" class="album-cover" alt="Album Cover">
+        ${selectMode ? `<div style="margin-top:18px;text-align:center;width:100%;"><span style="font-size:1em;color:#0074d9;word-break:break-word;">Tap songs to add/remove from playlist</span></div>` : ''}
       </div>
     </div>
-    ${selectMode ? `<div style="text-align:center;margin-top:8px;"><span style="font-size:1em;color:#0074d9;">Tap songs to add/remove from playlist</span></div>` : ''}
   `, direction);
 
   const songsList = document.getElementById('songsList');
@@ -361,6 +367,11 @@ function renderNowPlayingScreen(direction = 'forward') {
           <div class="nowplaying-album">${currentTrack ? currentTrack.album : ''}</div>
         </div>
       </div>
+      <div style="display:flex;justify-content:center;align-items:center;margin-top:12px;">
+        <button id="shuffleBtn" class="shuffle-btn${isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle">
+          <i class="fa-solid fa-shuffle"></i>
+        </button>
+      </div>
       <div class="nowplaying-progress">
         <span id="nowplayingElapsed">0:00</span>
         <div class="nowplaying-bar-bg">
@@ -373,6 +384,8 @@ function renderNowPlayingScreen(direction = 'forward') {
   
   updateHotBarTime();
   updateNowPlayingProgress();
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  if (shuffleBtn) shuffleBtn.onclick = toggleShuffle;
 }
 
 function getCurrentCover() {

@@ -6,6 +6,12 @@ audioPlayer.addEventListener('play', updateNowPlayingProgress);
 audioPlayer.addEventListener('pause', updateNowPlayingProgress);
 
 function playTrackFromAlbum(track, albumSongs) {
+  if (albumSongs !== currentAlbumSongs) {
+    isShuffleOn = false;
+    originalAlbumSongs = null;
+    originalSongIndex = -1;
+  }
+
   currentAlbumSongs = albumSongs || [track];
   currentSongIndex = currentAlbumSongs.findIndex(t => t.file === track.file);
   currentTrack = track;
@@ -91,4 +97,45 @@ function setEQPreset(preset) {
       bassEQ.gain.value = 8; midEQ.gain.value = 0; trebleEQ.gain.value = -2; break;
   }
   localStorage.setItem('eqPreset', preset);
+}
+
+function toggleShuffle() {
+  // If turning shuffle ON
+  if (!isShuffleOn) {
+    isShuffleOn = true;
+    // Save original order and index only if not already saved
+    if (!originalAlbumSongs) {
+      originalAlbumSongs = currentAlbumSongs.slice();
+      originalSongIndex = currentSongIndex;
+    }
+    // Shuffle the album/playlist
+    let shuffled = currentAlbumSongs.slice();
+    let currentSong = shuffled.splice(currentSongIndex, 1)[0];
+    // Fisher-Yates shuffle
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    // Place current song at the start, then the rest
+    currentAlbumSongs = [currentSong, ...shuffled];
+    currentSongIndex = 0;
+  } else {
+    // If turning shuffle OFF
+    isShuffleOn = false;
+    if (originalAlbumSongs) {
+      // Find the current song in the original list
+      const currentSong = currentAlbumSongs[currentSongIndex];
+      currentAlbumSongs = originalAlbumSongs.slice();
+      currentSongIndex = currentAlbumSongs.findIndex(
+        t => t.file === currentSong.file
+      );
+      // If not found, fallback to originalSongIndex
+      if (currentSongIndex === -1) currentSongIndex = originalSongIndex;
+      // Clear the saved original order
+      originalAlbumSongs = null;
+      originalSongIndex = -1;
+    }
+  }
+  // Always re-render Now Playing to update shuffle button state
+  renderNowPlayingScreen('forward');
 }

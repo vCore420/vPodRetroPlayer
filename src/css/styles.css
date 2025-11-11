@@ -119,7 +119,7 @@ body {
   transition: background 0.2s;
 }
 .menu-list li:hover, .menu-list li.active {
-  background: #e0eaff;
+  background: #4fc2f73d;
 }
 .menu-back {
   margin-top: auto;
@@ -266,6 +266,22 @@ body {
   letter-spacing: 0.02em;
 }
 
+#donePlaylistBtn {
+  background: #4fc3f7;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.4em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: background 0.2s;
+}
+
+#donePlaylistBtn:hover {
+  background: #0074d9;
+}
+
 .nowplaying-container {
   display: flex;
   flex-direction: column;
@@ -278,9 +294,9 @@ body {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center; /* Center horizontally */
+  justify-content: center; 
   margin-bottom: 32px;
-  gap: 32px; /* More space between cover and text */
+  gap: 32px; 
 }
 
 .nowplaying-cover img {
@@ -291,7 +307,7 @@ body {
   transform: rotateY(18deg) scale(1.05);
   background: #eee;
   object-fit: cover;
-  margin-left: 12px; /* Add a little left margin */
+  margin-left: 12px; 
 }
 
 .nowplaying-meta {
@@ -338,6 +354,30 @@ body {
   border-radius: 6px;
   width: 0%;
   transition: width 0.2s linear;
+}
+
+.shuffle-btn {
+  font-size: 1.6em;
+  padding: 6px 18px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: #888;
+  margin-right: 8px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shuffle-btn.shuffle-on {
+  color: #0074d9;
+}
+
+.shuffle-btn:active {
+  background: #e0eaff;
 }
 
 .vpod-controls {
@@ -495,7 +535,7 @@ body {
   .vpod-disk:before {
     content: "";
     position: absolute;
-    left: 50px; top: 20px;
+    left: 20px; top: 20px;
     width: 160px; height: 60px;
     background: linear-gradient(140deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.05) 100%);
     border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
