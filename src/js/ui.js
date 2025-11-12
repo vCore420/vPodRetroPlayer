@@ -367,7 +367,7 @@ function renderNowPlayingScreen(direction = 'forward') {
           <div class="nowplaying-album">${currentTrack ? currentTrack.album : ''}</div>
         </div>
       </div>
-      <div style="display:flex;justify-content:center;align-items:center;margin-top:12px;">
+      <div style="display:flex;justify-content:flex-end;align-items:flex-end;">
         <button id="shuffleBtn" class="shuffle-btn${isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle">
           <i class="fa-solid fa-shuffle"></i>
         </button>
