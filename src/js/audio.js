@@ -23,6 +23,8 @@ function playTrackFromAlbum(track, albumSongs) {
   playPauseBtn.textContent = "⏸";
   setScrollingSong(currentMenuIndex);
 
+  if (window.updateMediaSessionMetadata) window.updateMediaSessionMetadata();
+  
   const activeScreen = document.querySelector('.screen-content.screen-active');
   if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
     renderNowPlayingScreen('forward');

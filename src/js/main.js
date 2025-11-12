@@ -41,6 +41,44 @@ window.onload = () => {
   fadeOutSplashAndStart();
 };
 
+// --- MEDIA SESSION API ---
+
+if ('mediaSession' in navigator) {
+  function updateMediaSessionMetadata() {
+    if (!currentTrack) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.title,
+      artist: currentTrack.artist,
+      album: currentTrack.album,
+      artwork: [
+        { src: (albums[currentTrack.album]?.cover || 'src/img/default-cover.png'), sizes: '512x512', type: 'image/png' }
+      ]
+    });
+  }
+  window.updateMediaSessionMetadata = updateMediaSessionMetadata;
+
+  audioPlayer.addEventListener('play', updateMediaSessionMetadata);
+
+  navigator.mediaSession.setActionHandler('play', () => {
+    audioPlayer.play();
+    playPauseBtn.textContent = "⏸";
+  });
+  navigator.mediaSession.setActionHandler('pause', () => {
+    audioPlayer.pause();
+    playPauseBtn.textContent = "▶";
+  });
+  navigator.mediaSession.setActionHandler('previoustrack', () => {
+    if (currentAlbumSongs.length && currentSongIndex > 0) {
+      playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
+    }
+  });
+  navigator.mediaSession.setActionHandler('nexttrack', () => {
+    if (currentAlbumSongs.length && currentSongIndex < currentAlbumSongs.length - 1) {
+      playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
+    }
+  });
+}
+
 // -- Service Worker --
 
 if ('serviceWorker' in navigator) {
