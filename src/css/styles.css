@@ -363,13 +363,16 @@ body {
   border: none;
   background: none;
   color: #888;
-  margin-right: 8px;
+  margin-top:4px;
+  margin-right: 1px;
   cursor: pointer;
   transition: color 0.2s, background 0.2s;
-  outline: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  -webkit-tap-highlight-color: transparent; 
+  outline: none;                            
+  user-select: none;                       
+  -webkit-user-select: none;                
+  -moz-user-select: none;                   
+  -ms-user-select: none;  
 }
 
 .shuffle-btn.shuffle-on {
