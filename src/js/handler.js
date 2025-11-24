@@ -1,14 +1,20 @@
 // --- FILE HANDLING, ALBUM GROUPING, ETC. ---
 
+function updateLoadingCounter(loaded, total) {
+  const counter = document.getElementById('loadingCounter');
+  if (counter) counter.textContent = `Loaded ${loaded} of ${total} songs`;
+}
+
 function handleFiles(e) {
   console.log("Handling files:", e.target.files);
-  renderLoadingScreen("Loading your music...");
 
   const files = Array.from(e.target.files);
   const audioFiles = files.filter(f => f.name.match(/\.(mp3|flac)$/i));
   const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
   const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
   window.imageFiles = window.imageFiles ? window.imageFiles.concat(imageFiles) : imageFiles;
+
+  renderLoadingScreen("Loading your music...");
 
   console.log("Audio files:", audioFiles);
   console.log("Cue files:", cueFiles);
@@ -95,7 +101,9 @@ function handleFiles(e) {
               album: album || 'Unidentified Album'
             });
           }
-          if (++done === total) {
+          done++;
+          updateLoadingCounter(done, total);
+          if (done === total) {
             cueTracks.forEach(ct => {
               if (!tracks.some(t =>
                 t.file.name === ct.file.name &&
@@ -118,7 +126,9 @@ function handleFiles(e) {
               album: 'Unidentified Album'
             });
           }
-          if (++done === total) {
+          done++;
+          updateLoadingCounter(done, total);
+          if (done === total) {
             cueTracks.forEach(ct => {
               if (!tracks.some(t =>
                 t.file.name === ct.file.name &&

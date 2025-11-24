@@ -17,6 +17,7 @@ let currentSongIndex = -1;
 let isShuffleOn = false;
 let originalAlbumSongs = null;
 let originalSongIndex = -1;
+let songRatings = JSON.parse(localStorage.getItem('songRatings')) || {}; 
 
 // --- SPLASH & APP START ---
 
@@ -38,6 +39,8 @@ function startApp() {
 // --- APP STARTUP ---
 
 window.onload = () => {
+  const savedColour = localStorage.getItem('vpodColour');
+  if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
   fadeOutSplashAndStart();
 };
 
@@ -77,9 +80,39 @@ if ('mediaSession' in navigator) {
       playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
     }
   });
+
+  navigator.mediaSession.setActionHandler('like', () => {
+    if (!currentTrack) return;
+    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+    songRatings[trackId] = 'like';
+    localStorage.setItem('songRatings', JSON.stringify(songRatings));
+    if (window.renderNowPlayingScreen) renderNowPlayingScreen('forward');
+  });
+
+  navigator.mediaSession.setActionHandler('dislike', () => {
+    if (!currentTrack) return;
+    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+    songRatings[trackId] = 'dislike';
+    localStorage.setItem('songRatings', JSON.stringify(songRatings));
+    if (window.renderNowPlayingScreen) renderNowPlayingScreen('forward');
+  });
+
+  navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+    audioPlayer.currentTime = Math.max(audioPlayer.currentTime - (details.seekOffset || 10), 0);
+  });
+
+  navigator.mediaSession.setActionHandler('seekforward', (details) => {
+    audioPlayer.currentTime = Math.min(audioPlayer.currentTime + (details.seekOffset || 10), audioPlayer.duration);
+  });
+
+  navigator.mediaSession.setActionHandler('shuffle', () => {
+    if (typeof toggleShuffle === 'function') {
+      toggleShuffle();
+    }
+  });
 }
 
- -- Service Worker --
+// -- Service Worker --
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');

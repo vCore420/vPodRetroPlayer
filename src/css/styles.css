@@ -476,18 +476,59 @@ body {
   box-shadow: 0 0 12px 2px #c0c0c08e, 0 0 6px rgba(0, 0, 0, 0.041);
 }
 
-.custom-file-btn {
-  background: linear-gradient(145deg, #fcfcfc 60%, #f0f0f0 100%);
+.load-music-btn {
+  background: radial-gradient(circle at 60% 40%, #e0eaff 70%, #0074d9 100%);
   color: #222;
-  border: 2px solid #bbb;
-  border-radius: 14px;
-  padding: 14px 32px;
-  font-size: 1.1em;
+  border: 0;
+  border-radius: 24px;
+  padding: 20px 48px;
+  font-size: 1.25em;
   font-family: inherit;
   font-weight: bold;
   cursor: pointer;
-  margin-bottom: 18px;
+  margin-bottom: 24px;
+  box-shadow:
+    0 4px 18px rgba(0,0,0,0.13),
+    0 1px 4px rgba(0,0,0,0.08);
+  transition: background 0.22s, transform 0.15s;
   outline: none;
+  letter-spacing: 0.04em;
+  position: relative;
+  overflow: hidden;
+}
+
+.load-music-btn .btn-icon {
+  display: inline-block;
+  font-size: 1.5em;
+  margin-right: 16px;
+  vertical-align: middle;
+  animation: btnPulse 1.2s infinite alternate;
+}
+
+@keyframes btnPulse {
+  0% { transform: scale(1);}
+  100% { transform: scale(1.18);}
+}
+
+.load-music-btn .btn-text {
+  display: inline-block;
+  vertical-align: middle;
+  font-weight: bold;
+  letter-spacing: 0.06em;
+}
+
+.load-music-btn:hover,
+.load-music-btn:focus {
+  background: radial-gradient(circle at 60% 40%, #0074d9 80%, #4fc3f7 100%);
+  color: #fff;
+  transform: scale(1.04);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.16);
+}
+
+.load-music-btn:active {
+  background: #0074d9;
+  color: #fff;
+  transform: scale(0.98);
 }
 
 @keyframes spin {

@@ -1,14 +1,16 @@
 // --- PLAYLISTS MENU & CREATION ---
 
 function renderPlaylistsMenu(direction = 'forward') {
-  renderScreen(`
-    <div style="display:flex;flex-direction:column;height:100%;">
+  renderScreen(
+    renderHotBar() +
+    `<div style="display:flex;flex-direction:column;height:100%;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <button id="addPlaylistBtn" style="font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">＋</button>
         <span style="font-size:1.2em;font-weight:bold;margin:auto;">Playlists</span>
       </div>
       <ul class="menu-list" id="playlistsList" style="margin-top:18px;">
-        ${playlists.length === 0 ? '<li>No playlists yet.</li>' : playlists.map((pl, idx) =>
+        <li data-liked="true" style="color:#0074d9;font-weight:bold;"><i class="fa-solid fa-heart"></i> Liked Songs</li>
+        ${playlists.length === 0 ? '' : playlists.map((pl, idx) =>
           `<li data-idx="${idx}">${pl.name}</li>`
         ).join('')}
       </ul>
@@ -27,8 +29,19 @@ function renderPlaylistsMenu(direction = 'forward') {
 
   document.getElementById('addPlaylistBtn').onclick = () => showPlaylistNameModal();
 
+  // Liked playlist click
+  document.querySelector('#playlistsList li[data-liked="true"]').onclick = () => renderPlaylistSongsMenu('forward', 'liked');
+
+  // User playlists click
   playlists.forEach((pl, idx) => {
     document.querySelector(`#playlistsList li[data-idx="${idx}"]`).onclick = () => renderPlaylistSongsMenu('forward', idx);
+  });
+}
+
+function getLikedTracks() {
+  return tracks.filter(track => {
+    const trackId = `${track.title}|${track.artist}|${track.album}`;
+    return songRatings[trackId] === 'like';
   });
 }
 
@@ -114,8 +127,9 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
 
 function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx = 0) {
   const albumObj = albums[album];
-  renderScreen(`
-    <div class="album-list">
+  renderScreen(
+    renderHotBar() +
+    `<div class="album-list">
       <div class="album-list-left" id="playlistSongsSelectContainer" data-playlist-select="true">
         <div id="playlistSongsSelectList"></div>
       </div>
@@ -172,41 +186,50 @@ function toggleTrackInCreatingPlaylist(track) {
 }
 
 function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
-  const playlist = playlists[playlistIdx];
-  renderScreen(`
-    <div style="display:flex;flex-direction:column;height:100%;">
+  let playlist, tracksToShow;
+  if (playlistIdx === 'liked') {
+    playlist = { name: "Liked Songs", tracks: getLikedTracks() };
+    tracksToShow = playlist.tracks;
+  } else {
+    playlist = playlists[playlistIdx];
+    tracksToShow = playlist.tracks;
+  }
+  renderScreen(
+    renderHotBar() +
+    `<div style="display:flex;flex-direction:column;height:100%;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <button id="editPlaylistBtn" title="Add Songs" style="font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">＋</button>
+        ${playlistIdx !== 'liked' ? `<button id="editPlaylistBtn" title="Add Songs" style="font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">＋</button>` : '<span></span>'}
         <span style="font-size:1.2em;font-weight:bold;margin:auto;">${playlist.name}</span>
-        <button id="deletePlaylistBtn" title="Delete Playlist" style="font-size:1.3em;font-weight:bold;background:none;border:none;color:#d90429;cursor:pointer;">🗑️</button>
+        ${playlistIdx !== 'liked' ? `<button id="deletePlaylistBtn" title="Delete Playlist" style="font-size:1.3em;font-weight:bold;background:none;border:none;color:#d90429;cursor:pointer;">🗑️</button>` : '<span></span>'}
       </div>
       <ul class="menu-list" id="playlistSongsList" style="margin-top:18px;">
-        ${playlist.tracks.map((track, idx) =>
+        ${tracksToShow.map((track, idx) =>
           `<li data-idx="${idx}">${track.title || track.fileName} - ${track.artist || ''}</li>`
         ).join('')}
       </ul>
     </div>
   `, direction);
 
-  // "+" button: edit/add songs
-  document.getElementById('editPlaylistBtn').onclick = () => {
-    window.creatingPlaylist = playlist;
-    goTo(renderAlbumSelectionForPlaylist);
-  };
+  // "+" button: edit/add songs (only for user playlists)
+  if (playlistIdx !== 'liked') {
+    document.getElementById('editPlaylistBtn').onclick = () => {
+      window.creatingPlaylist = playlist;
+      goTo(renderAlbumSelectionForPlaylist);
+    };
 
-  // Trash can: delete playlist
-  document.getElementById('deletePlaylistBtn').onclick = () => {
-    if (confirm(`Delete playlist "${playlist.name}"?`)) {
-      playlists.splice(playlistIdx, 1);
-      savePlaylists();
-      renderPlaylistsMenu('back');
-    }
-  };
+    document.getElementById('deletePlaylistBtn').onclick = () => {
+      if (confirm(`Delete playlist "${playlist.name}"?`)) {
+        playlists.splice(playlistIdx, 1);
+        savePlaylists();
+        renderPlaylistsMenu('back');
+      }
+    };
+  }
 
   // Song click: play song
-  playlist.tracks.forEach((track, idx) => {
+  tracksToShow.forEach((track, idx) => {
     document.querySelector(`#playlistSongsList li[data-idx="${idx}"]`).onclick = () => {
-      playPlaylistTrack(playlist, idx);
+      playPlaylistTrack({ tracks: tracksToShow }, idx);
     };
   });
 }

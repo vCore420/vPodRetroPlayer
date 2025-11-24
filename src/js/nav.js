@@ -61,6 +61,10 @@ document.getElementById('nextBtn').onclick = () => {
     currentSongIndex >= 0 &&
     currentSongIndex < currentAlbumSongs.length - 1
   ) {
+    // Track skip if not at end
+    if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
+      window.logTrackSkip(currentTrack);
+    }
     playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
   }
 };
@@ -71,6 +75,10 @@ document.getElementById('prevBtn').onclick = () => {
     currentAlbumSongs.length &&
     currentSongIndex > 0
   ) {
+    // Track skip if not at start
+    if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
+      window.logTrackSkip(currentTrack);
+    }
     playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
   }
 };
@@ -137,8 +145,15 @@ document.getElementById('confirmBtn').onclick = () => {
     return;
   }
 
-  // 6. Fallback: normal menu logic
+  // 6. Colour menu confirm
+  if (document.getElementById('colourGrid')) {
+    if (window.onColourMenuConfirm) window.onColourMenuConfirm();
+    return;
+  }
+
+  // 7. Fallback: normal menu logic
   let menu =
+    document.getElementById('allSongsList') ||
     document.getElementById('songsList') ||
     document.querySelector('.album-list-left') ||
     document.querySelector('.menu-list');
@@ -231,6 +246,12 @@ if (diskTouch) {
 // Menu Scrolling Logic
 function scrollMenu(direction) {
   console.log("Scrolling menu, direction:", direction);
+  // Colour menu disk scroll
+  if (document.getElementById('colourGrid')) {
+    if (window.onColourMenuScroll) window.onColourMenuScroll(direction);
+    return;
+  }
+
   // Playlist song selection mode
   const playlistSongsSelectList = document.getElementById('playlistSongsSelectList');
   if (playlistSongsSelectList) {
@@ -247,25 +268,57 @@ function scrollMenu(direction) {
   }
   // Normal menu logic
   let menu =
+    document.getElementById('allSongsList') ||
     document.getElementById('songsList') ||
     document.getElementById('albumCarousel') ||
     document.getElementById('artistsList') || 
     document.querySelector('.menu-list');
   if (!menu) return;
 
-  let items = Array.from(menu.querySelectorAll('.menu-list-song, .carousel-album, li'));
-  if (!items.length && menu.classList.contains('menu-list')) {
+  // Get items for the active menu
+  let items;
+  if (menu.id === 'allSongsList') {
+    items = Array.from(menu.querySelectorAll('.menu-list-song'));
+  } else if (menu.id === 'songsList') {
+    items = Array.from(menu.querySelectorAll('.menu-list-song'));
+  } else if (menu.id === 'albumCarousel') {
+    items = Array.from(menu.querySelectorAll('.carousel-album'));
+  } else if (menu.id === 'artistsList') {
     items = Array.from(menu.querySelectorAll('li'));
+  } else if (menu.classList.contains('menu-list')) {
+    items = Array.from(menu.querySelectorAll('li'));
+  } else {
+    items = [];
   }
   if (!items.length) return;
 
-  items[currentMenuIndex]?.classList.remove('active');
+  // Remove highlight from all items
+  items.forEach(el => el.classList.remove('active'));
+
+  // Update index
+  currentMenuIndex += direction;
+  if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
+  if (currentMenuIndex >= items.length) currentMenuIndex = 0;
+
+  // Highlight the new item
+  items[currentMenuIndex].classList.add('active');
+  items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
+
+  // Update album art for song lists (including suggested)
+  if (typeof window.updateHighlightedSong === 'function' && menu.id !== 'colourGrid') {
+    window.updateHighlightedSong(currentMenuIndex);
+  }
+
+  // Update album art for All Songs menu
+  if (menu.id === 'allSongsList') {
+    const trackTitle = items[currentMenuIndex].textContent.split(' - ')[0];
+    const track = tracks.find(t => t.title === trackTitle);
+    const albumObj = track ? (albums[track.album] || {}) : {};
+    document.getElementById('allSongsArt').src = albumObj.cover || "src/img/default-cover.png";
+  }
 
   // Carousel logic for albums
   if (menu.id === 'albumCarousel') {
-    currentMenuIndex += direction;
-    if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
-    if (currentMenuIndex >= items.length) currentMenuIndex = 0;
     let albumNames = [];
     if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
       const artist = navStack[navStack.length - 1].args[1];
@@ -281,23 +334,12 @@ function scrollMenu(direction) {
 
   // Artists menu logic
   if (menu.id === 'artistsList') {
-    currentMenuIndex += direction;
-    if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
-    if (currentMenuIndex >= items.length) currentMenuIndex = 0;
     items[currentMenuIndex].classList.add('active');
     items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
     return;
   }
 
-  if (menu.id === 'songsList') clearScrollingSong(currentMenuIndex);
-  if (menu.id === 'albumsList' || menu.classList.contains('album-list-left')) clearScrollingAlbum(currentMenuIndex);
-
-  currentMenuIndex += direction;
-  if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
-  if (currentMenuIndex >= items.length) currentMenuIndex = 0;
-
-  items[currentMenuIndex].classList.add('active');
-  items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
+  // If you need to update scrolling for songs/albums, do it here (but don't increment index again)
   if (menu.id === 'songsList') setScrollingSong(currentMenuIndex);
   if (menu.id === 'albumsList' || menu.classList.contains('album-list-left')) setScrollingAlbum(currentMenuIndex);
 

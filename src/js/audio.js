@@ -16,6 +16,9 @@ function playTrackFromAlbum(track, albumSongs) {
   currentSongIndex = currentAlbumSongs.findIndex(t => t.file === track.file);
   currentTrack = track;
   currentMenuIndex = currentSongIndex;
+  
+  // Track play for suggestions
+  if (window.logTrackPlay) window.logTrackPlay(track);
 
   const url = URL.createObjectURL(track.file);
   audioPlayer.src = url;

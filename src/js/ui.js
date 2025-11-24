@@ -118,8 +118,9 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
 }
 
 function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false, albumCover }, direction = 'forward') {
-  renderScreen(`
-    <div class="album-list">
+  renderScreen(
+    renderHotBar() +
+    `<div class="album-list">
       <div class="album-list-left" id="songsListContainer" ${selectMode ? 'data-playlist-select="true"' : ''}>
         <div id="songsList"></div>
       </div>
@@ -144,6 +145,19 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
     songsList.appendChild(div);
   });
 
+  function updateHighlightedSong(tracks, idx) {
+    Array.from(songsList.children).forEach((el, i) => {
+      el.classList.toggle('active', i === idx);
+    });
+    const albumObj = albums[tracks[idx].album] || {};
+    document.querySelector('.album-list-right img.album-cover').src = albumObj.cover || "src/img/default-cover.png";
+  }
+  // Initial highlight
+  if (songs.length) {
+    updateHighlightedSong(songs, currentMenuIndex);
+  }
+  // Expose for scrollMenu
+  window.updateHighlightedSong = (idx) => updateHighlightedSong(songs, idx);
 }
 
 // --- MAIN MENU ---
@@ -152,10 +166,12 @@ function renderMainMenu(direction = 'forward') {
   renderMenuList({
     items: [
       { label: "Load Music", action: renderLoadMusic },
-      { label: "Albums", action: renderAlbumsMenu },
-      { label: "Artists", action: renderArtistsMenu },
-      { label: "Playlists", action: renderPlaylistsMenu },
       { label: "Now Playing", action: renderNowPlayingScreen },
+      { label: "Playlists", action: renderPlaylistsMenu }, 
+      { label: "Artists", action: renderArtistsMenu },
+      { label: "Albums", action: renderAlbumsMenu },
+      { label: "All Songs", action: renderAllSongsMenu },
+      { label: "Suggested", action: renderSuggestedMenu },
       { label: "Settings", action: renderSettingsMenu }
     ],
     onItemClick: (idx, item) => {
@@ -174,25 +190,35 @@ function renderMainMenu(direction = 'forward') {
 // --- LOAD MUSIC ---
 
 function renderLoadMusic(direction = 'forward') {
-  renderScreen(`
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+  renderScreen(
+    renderHotBar() +
+    `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <input type="file" id="fileInput" accept=".mp3,.flac,.cue,.m3u" multiple webkitdirectory directory style="display:none;">
-      <button id="customFileBtn" class="custom-file-btn">Choose Music Folder</button>
+      <button id="loadMusicBtn" class="load-music-btn">
+        <span class="btn-icon">
+          <i class="fa-solid fa-music"></i>
+        </span>
+        <span class="btn-text">Load Music</span>
+      </button>
     </div>
   `, direction);
 
   const fileInput = document.getElementById('fileInput');
-  document.getElementById('customFileBtn').onclick = () => fileInput.click();
+  document.getElementById('loadMusicBtn').onclick = () => fileInput.click();
   fileInput.onchange = handleFiles;
 }
 
-function renderLoadingScreen(message = "Loading your music...") {
+function renderLoadingScreen(message = "Loading your music...", loaded = 0, total = 0) {
   renderScreen(`
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div class="loader" style="margin-bottom:18px;">
-        <div style="width:40px;height:40px;border:4px solid #ccc;border-top:4px solid #0074d9;border-radius:50%;animation:spin 1s linear infinite;"></div>
+        <div style="width:48px;height:48px;border:5px solid #e0eaff;border-top:5px solid #0074d9;border-radius:50%;animation:spin 1s linear infinite;"></div>
       </div>
-      <div style="font-size:1.1em;color:#555;">${message}</div>
+      <div style="font-size:1.15em;color:#0074d9;font-weight:bold;margin-bottom:8px;">${message}</div>
+      <div id="loadingCounter" style="font-size:1em;color:#555;margin-bottom:4px;">
+        ${total > 0 ? `Loaded ${loaded} of ${total} songs` : ''}
+      </div>
+      <div style="font-size:0.95em;color:#555;">Please wait while your music is loaded.</div>
     </div>
   `, 'forward');
 }
@@ -287,26 +313,7 @@ function clearScrollingAlbum(idx) {
   }
 }
 
-// --- SONG LIST ---
-
-function renderSongsList(songs) {
-  console.log("Rendering songs list:", songs);
-  const songsList = document.getElementById('songsList');
-  songsList.innerHTML = '';
-  songs.forEach((track, idx) => {
-    const div = document.createElement('div');
-    div.className = 'menu-list-song';
-    div.innerHTML = `<span>${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
-    div.onclick = () => {
-      console.log("Clicked song:", track.title, "at index:", idx);
-      currentMenuIndex = idx;
-      playTrackFromAlbum(track, songs);
-    };
-    songsList.appendChild(div);
-  });
-  setScrollingSong(currentMenuIndex);
-  if (songsList.children[currentMenuIndex]);
-}
+// --- SET SCROLLING SONG ---
 
 function setScrollingSong(idx) {
   console.log("Setting scrolling song index:", idx);
@@ -335,6 +342,7 @@ function renderArtistsMenu(direction = 'forward') {
     items: artistNames.map(name => ({ label: name })),
     onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(renderArtistAlbumsMenu, item.label); },
     onBack: goBack,
+    before: renderHotBar(),
     id: "artistsList"
   }, direction);
 }
@@ -350,9 +358,162 @@ function renderArtistAlbumsMenu(direction = 'forward', artist, selectedIdx = 0) 
   }, direction);
 }
 
+// --- All SONGS MENU ---
+
+function renderAllSongsMenu(direction = 'forward') {
+  // Get sort order from localStorage or default to title
+  const sortOrder = localStorage.getItem('allSongsSortOrder') || 'title';
+  let currentSortOrder = sortOrder;
+  let sortedTracks = tracks.slice();
+  function sortTracks(order) {
+    currentSortOrder = order;
+    localStorage.setItem('allSongsSortOrder', order);
+    sortedTracks = tracks.slice();
+    if (order === 'title') {
+      sortedTracks.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (order === 'artist') {
+      sortedTracks.sort((a, b) => a.artist.localeCompare(b.artist));
+    } else if (order === 'album') {
+      sortedTracks.sort((a, b) => a.album.localeCompare(b.album));
+    }
+    renderList(sortedTracks);
+  }
+
+  renderScreen(
+    renderHotBar() +
+    `<div style="display:flex;flex-direction:column;height:90%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <span style="font-size:1.1em;font-weight:bold;margin:auto;">All Songs</span>
+        <button id="sortSongsBtn" title="Sort Songs" style="font-size:1.3em;background:none;border:none;color:#0074d9;cursor:pointer;">
+          <i class="fa-solid fa-arrow-down-a-z"></i>
+        </button>
+      </div>
+      <div style="margin-bottom:2px;">
+        <input id="songSearchInput" type="text" placeholder="Search songs..." style="width:92%;max-width:320px;margin-left:8px;padding:4px 10px;border-radius:8px;border:1px solid #ccc;font-size:0.95em;">
+      </div>
+      <div class="album-list" style="height:calc(100% - 60px);">
+        <div class="album-list-left" id="allSongsListContainer" style="height:100%;overflow-y:auto;">
+          <div id="allSongsList"></div>
+        </div>
+        <div class="album-list-right" id="allSongsArtContainer">
+          <img id="allSongsArt" src="src/img/default-cover.png" class="album-cover" alt="Album Cover">
+        </div>
+      </div>
+    </div>`,
+    direction
+  );
+
+  // Render song list
+  function renderList(filteredTracks) {
+    const songsList = document.getElementById('allSongsList');
+    songsList.innerHTML = '';
+    filteredTracks.forEach((track, idx) => {
+      const div = document.createElement('div');
+      div.className = 'menu-list-song';
+      div.innerHTML = `<span>${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
+      div.onclick = () => {
+        currentMenuIndex = idx;
+        playTrackFromAlbum(track, filteredTracks);
+        updateHighlightedSong(filteredTracks, idx);
+      };
+      songsList.appendChild(div);
+    });
+
+    // Highlight the currentMenuIndex song and show its art
+    function updateHighlightedSong(tracks, idx) {
+      Array.from(songsList.children).forEach((el, i) => {
+        el.classList.toggle('active', i === idx);
+      });
+      const albumObj = albums[tracks[idx].album] || {};
+      document.getElementById('allSongsArt').src = albumObj.cover || "src/img/default-cover.png";
+    }
+
+    // Initial highlight
+    if (filteredTracks.length) {
+      updateHighlightedSong(filteredTracks, currentMenuIndex);
+    }
+  }
+
+  renderList(sortedTracks);
+
+  // Search functionality
+  document.getElementById('songSearchInput').oninput = (e) => {
+    const query = e.target.value.toLowerCase();
+    const filtered = sortedTracks.filter(track =>
+      track.title.toLowerCase().includes(query) ||
+      track.artist.toLowerCase().includes(query) ||
+      track.album.toLowerCase().includes(query)
+    );
+    renderList(filtered);
+  };
+
+  // Sorting popup
+  document.getElementById('sortSongsBtn').onclick = () => {
+    showSortSongsModal(order => {
+      sortTracks(order); 
+    });
+  };
+}
+
+function showSortSongsModal(onSelect) {
+  const vpodScreen = document.getElementById('vpodScreen');
+  const modal = document.createElement('div');
+  modal.style = `
+    position:absolute;top:40px;left:50%;transform:translateX(-50%);
+    width:260px;z-index:9999;
+    background:#fff;padding:18px 12px;border-radius:14px;box-shadow:0 2px 12px #0003;
+    display:flex;flex-direction:column;align-items:center;
+  `;
+  modal.innerHTML = `
+    <div style="font-size:1.1em;font-weight:bold;margin-bottom:10px;">Sort Songs By</div>
+    <button style="margin:4px 0;padding:7px 18px;border-radius:8px;border:none;background:#e0eaff;color:#0074d9;font-size:1em;" data-sort="title">Title (A-Z)</button>
+    <button style="margin:4px 0;padding:7px 18px;border-radius:8px;border:none;background:#e0eaff;color:#0074d9;font-size:1em;" data-sort="artist">Artist (A-Z)</button>
+    <button style="margin:4px 0;padding:7px 18px;border-radius:8px;border:none;background:#e0eaff;color:#0074d9;font-size:1em;" data-sort="album">Album (A-Z)</button>
+    <button style="margin-top:12px;padding:5px 14px;border-radius:8px;border:none;background:#eee;color:#444;font-size:1em;" id="closeSortModal">Cancel</button>
+  `;
+  vpodScreen.appendChild(modal);
+
+  modal.querySelectorAll('button[data-sort]').forEach(btn => {
+    btn.onclick = () => {
+      onSelect(btn.getAttribute('data-sort'));
+      vpodScreen.removeChild(modal);
+    };
+  });
+  modal.querySelector('#closeSortModal').onclick = () => {
+    vpodScreen.removeChild(modal);
+  };
+}
+
+// -- SUGGESTED SONGS MENU ---
+
+function renderSuggestedMenu(direction = 'forward') {
+  const suggested = window.getSuggestedTracks ? window.getSuggestedTracks(tracks, 20) : [];
+  if (!suggested.length) {
+    renderScreen(
+      renderHotBar() +
+      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">Suggested Songs</div>
+        <div style="font-size:1em;color:#444;text-align:center;">
+          Not enough listening data yet.<br>
+          Play, like, or skip songs to get suggestions!
+        </div>
+      </div>`,
+      direction
+    );
+    return;
+  }
+  renderSongList({
+    songs: suggested,
+    onSongClick: (track, idx) => { currentMenuIndex = idx; playTrackFromAlbum(track, suggested); },
+    albumCover: albums[suggested[0]?.album]?.cover
+  }, direction);
+}
+
 // --- NOW PLAYING ---
 
 function renderNowPlayingScreen(direction = 'forward') {
+  const trackId = currentTrack ? `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}` : '';
+  const rating = songRatings[trackId];
   renderScreen(
     renderHotBar() +
     `
@@ -367,7 +528,15 @@ function renderNowPlayingScreen(direction = 'forward') {
           <div class="nowplaying-album">${currentTrack ? currentTrack.album : ''}</div>
         </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;align-items:flex-end;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <button id="likeBtn" class="like-btn" title="Like" style="font-size:1.6em;color:${rating === 'like' ? '#0074d9' : '#888'};background:none;border:none;cursor:pointer;margin-left:20px;">
+            <i class="fa-solid fa-thumbs-up"></i>
+          </button>
+          <button id="dislikeBtn" class="dislike-btn" title="Dislike" style="font-size:1.6em;color:${rating === 'dislike' ? '#d90429' : '#888'};background:none;border:none;cursor:pointer;margin-left:10px;">
+            <i class="fa-solid fa-thumbs-down"></i>
+          </button>
+        </div>
         <button id="shuffleBtn" class="shuffle-btn${isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle">
           <i class="fa-solid fa-shuffle"></i>
         </button>
@@ -381,9 +550,26 @@ function renderNowPlayingScreen(direction = 'forward') {
       </div>
     </div>
   `, direction);
-  
+
   updateHotBarTime();
   updateNowPlayingProgress();
+
+  document.getElementById('likeBtn').onclick = () => {
+    if (!currentTrack) return;
+    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+    songRatings[trackId] = songRatings[trackId] === 'like' ? null : 'like';
+    localStorage.setItem('songRatings', JSON.stringify(songRatings));
+    if (window.setTrackRating) window.setTrackRating(currentTrack, 'like');
+    renderNowPlayingScreen('forward');
+  };
+  document.getElementById('dislikeBtn').onclick = () => {
+    if (!currentTrack) return;
+    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+    songRatings[trackId] = songRatings[trackId] === 'dislike' ? null : 'dislike';
+    localStorage.setItem('songRatings', JSON.stringify(songRatings));
+    if (window.setTrackRating) window.setTrackRating(currentTrack, 'dislike');
+    renderNowPlayingScreen('forward');
+  };
   const shuffleBtn = document.getElementById('shuffleBtn');
   if (shuffleBtn) shuffleBtn.onclick = toggleShuffle;
 }
@@ -416,7 +602,8 @@ function renderSettingsMenu(direction = 'forward') {
     title: "Settings",
     items: [
       { label: "Equalizer", action: renderEqualizerMenu },
-      { label: "Date and Time", action: renderDateTimeMenu }
+      { label: "Date and Time", action: renderDateTimeMenu },
+      { label: "iPod Colour", action: renderColourMenu }
       // Add more settings here 
     ],
     onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); },
@@ -469,6 +656,7 @@ function renderEqualizerMenu(direction = 'forward', selectedIdx = null) {
         }
         currentMenuIndex = idx;
     },
+    before: renderHotBar(),
     onBack: goBack,
     id: "eqList"
   }, direction);
@@ -571,3 +759,78 @@ function updateDateTimeMenuDisplay() {
   if (dateEl) dateEl.textContent = dateStr;
 }
 
+function renderColourMenu(direction = 'forward') {
+  const colours = [
+    { name: "White", value: "linear-gradient(160deg, #fff 0%, #f6f6f8 60%, #e2e2e4 100%)" },
+    { name: "Silver", value: "linear-gradient(160deg, #e0e0e0 0%, #bdbdbd 60%, #757575 100%)" },
+    { name: "Black", value: "linear-gradient(160deg, #222 0%, #444 60%, #888 100%)" },
+    { name: "Gold", value: "linear-gradient(160deg, #fff8e1 0%, #ffd700 60%, #bfa640 100%)" },
+    { name: "Red", value: "linear-gradient(160deg, #ffe0e0 0%, #ff5252 60%, #b71c1c 100%)" },
+    { name: "Orange", value: "linear-gradient(160deg, #fff3e0 0%, #ffb74d 60%, #ff9800 100%)" },
+    { name: "Yellow", value: "linear-gradient(160deg, #fffde7 0%, #fff176 60%, #ffd600 100%)" },
+    { name: "Green", value: "linear-gradient(160deg, #e0ffe0 0%, #a1f7a1 60%, #00d974 100%)" },
+    { name: "Blue", value: "linear-gradient(160deg, #e0eaff 0%, #4fc3f7 60%, #0074d9 100%)" },
+    { name: "Pink", value: "linear-gradient(160deg, #ffe0f7 0%, #f7a1e3 60%, #d90074 100%)" },
+    { name: "Purple", value: "linear-gradient(160deg, #f3e0ff 0%, #b39ddb 60%, #6a1b9a 100%)" }
+    
+  ];
+  let selectedIdx = parseInt(localStorage.getItem('vpodColourIdx') || "0", 10);
+
+  renderScreen(
+    renderHotBar() +
+    `<div style="padding:4px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+      <div style="font-size:1.2em;font-weight:bold;margin-bottom:18px;">Choose iPod Colour</div>
+      <div id="colourGrid" style="display:grid;grid-template-columns:repeat(4, 64px);gap:14px;">
+        ${colours.map((c, idx) =>
+          `<button class="colour-btn${idx === selectedIdx ? ' active' : ''}" data-idx="${idx}" title="${c.name}" style="
+            width:60px;height:60px;border-radius:14px;border:3px solid ${idx === selectedIdx ? '#0074d9' : '#ccc'};
+            background:${c.value};box-shadow:0 2px 8px rgba(0,0,0,0.13);cursor:pointer;outline:none;">
+            ${idx === selectedIdx ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : ''}
+          </button>`
+        ).join('')}
+      </div>
+    </div>`,
+    direction
+  );
+
+  // Disk scroll support
+  let gridBtns = Array.from(document.querySelectorAll('.colour-btn'));
+  function highlightColour(idx) {
+    gridBtns.forEach((btn, i) => btn.classList.toggle('active', i === idx));
+    gridBtns.forEach((btn, i) => btn.style.borderColor = i === idx ? '#0074d9' : '#ccc');
+    gridBtns.forEach((btn, i) => btn.innerHTML = i === idx ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : '');
+    currentMenuIndex = idx;
+  }
+  highlightColour(selectedIdx);
+
+  // Center button selects colour
+  window.onColourMenuConfirm = () => {
+    const idx = currentMenuIndex;
+    document.querySelector('.vpod-container').style.background = colours[idx].value;
+    localStorage.setItem('vpodColour', colours[idx].value);
+    localStorage.setItem('vpodColourIdx', idx);
+    highlightColour(idx);
+  };
+
+  // Disk scroll logic for colour grid
+  window.onColourMenuScroll = (direction) => {
+    selectedIdx += direction;
+    if (selectedIdx < 0) selectedIdx = colours.length - 1;
+    if (selectedIdx >= colours.length) selectedIdx = 0;
+    highlightColour(selectedIdx);
+  };
+
+  gridBtns.forEach((btn, idx) => {
+    btn.onclick = () => {
+      highlightColour(idx);
+      currentMenuIndex = idx;
+      document.querySelector('.vpod-container').style.background = colours[idx].value;
+      localStorage.setItem('vpodColour', colours[idx].value);
+      localStorage.setItem('vpodColourIdx', idx);
+    };
+  });
+
+  // Set colour on load
+  const savedColour = localStorage.getItem('vpodColour');
+  if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
+}
