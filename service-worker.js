@@ -1,4 +1,4 @@
-const CACHE_NAME = "vmusic-cache-v11";
+const CACHE_NAME = "vmusic-cache-v12";
 const toCache = [
   "./",
   "index.html",
@@ -9,6 +9,7 @@ const toCache = [
   "src/js/playlist.js",
   "src/js/handler.js",
   "src/js/audio.js",
+  "src/js/suggestions.js",
   "src/css/styles.css",
   "src/img/icon-192.png",
   "src/img/icon-512.png",
