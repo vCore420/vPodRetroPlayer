@@ -81,22 +81,6 @@ if ('mediaSession' in navigator) {
     }
   });
 
-  navigator.mediaSession.setActionHandler('like', () => {
-    if (!currentTrack) return;
-    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-    songRatings[trackId] = 'like';
-    localStorage.setItem('songRatings', JSON.stringify(songRatings));
-    if (window.renderNowPlayingScreen) renderNowPlayingScreen('forward');
-  });
-
-  navigator.mediaSession.setActionHandler('dislike', () => {
-    if (!currentTrack) return;
-    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-    songRatings[trackId] = 'dislike';
-    localStorage.setItem('songRatings', JSON.stringify(songRatings));
-    if (window.renderNowPlayingScreen) renderNowPlayingScreen('forward');
-  });
-
   navigator.mediaSession.setActionHandler('seekbackward', (details) => {
     audioPlayer.currentTime = Math.max(audioPlayer.currentTime - (details.seekOffset || 10), 0);
   });
@@ -114,7 +98,7 @@ if ('mediaSession' in navigator) {
 
 // -- Service Worker --
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-  console.log("Service worker registered");
-}
+//if ('serviceWorker' in navigator) {
+//  navigator.serviceWorker.register('service-worker.js');
+//  console.log("Service worker registered");
+//}

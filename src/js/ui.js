@@ -14,6 +14,7 @@ function saveTimeSettings(settings) {
 // --- GENERIC RENDERERS ---
 
 function renderScreen(content, direction = 'forward') {
+  window.updateHighlightedSong = null;
   const oldContent = vpodScreen.querySelector('.screen-content');
   if (oldContent) {
     oldContent.classList.remove('screen-active');
@@ -39,7 +40,10 @@ function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "men
   `, direction);
 
   items.forEach((item, idx) => {
-    document.querySelector(`#${id} li[data-idx="${idx}"]`).onclick = () => onItemClick(idx, item);
+    document.querySelector(`#${id} li[data-idx="${idx}"]`).onclick = () => {
+      currentMenuIndex = idx;
+      onItemClick(idx, item);
+    };
   });
   if (showBack && onBack) {
     document.getElementById('genericBackBtn').onclick = onBack;
@@ -105,7 +109,10 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
     const div = document.createElement('div');
     div.className = 'carousel-album';
     div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
-    div.onclick = () => onAlbumClick(album, idx);
+    div.onclick = () => {
+      currentMenuIndex = idx;
+      onAlbumClick(album, currentMenuIndex);
+    };
     carousel.appendChild(div);
   });
   setCarouselAlbum(selectedIdx, albumsList);
@@ -141,23 +148,22 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
     const div = document.createElement('div');
     div.className = 'menu-list-song';
     div.innerHTML = `<span>${selectMode && isSelected ? '✅ ' : ''}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
-    div.onclick = () => onSongClick(track, idx);
+    div.onclick = () => {
+      currentMenuIndex = idx;
+      updateHighlightedSong(songs, currentMenuIndex);
+      onSongClick(track, idx);
+    };
     songsList.appendChild(div);
   });
 
-  function updateHighlightedSong(tracks, idx) {
+  function updateHighlightedSong(tracks) {
     Array.from(songsList.children).forEach((el, i) => {
-      el.classList.toggle('active', i === idx);
+      el.classList.toggle('active', i === currentMenuIndex);
     });
-    const albumObj = albums[tracks[idx].album] || {};
+    const albumObj = albums[tracks[currentMenuIndex].album] || {};
     document.querySelector('.album-list-right img.album-cover').src = albumObj.cover || "src/img/default-cover.png";
   }
-  // Initial highlight
-  if (songs.length) {
-    updateHighlightedSong(songs, currentMenuIndex);
-  }
-  // Expose for scrollMenu
-  window.updateHighlightedSong = (idx) => updateHighlightedSong(songs, idx);
+  window.updateHighlightedSong = () => updateHighlightedSong(songs);
 }
 
 // --- MAIN MENU ---
@@ -414,24 +420,20 @@ function renderAllSongsMenu(direction = 'forward') {
       div.onclick = () => {
         currentMenuIndex = idx;
         playTrackFromAlbum(track, filteredTracks);
-        updateHighlightedSong(filteredTracks, idx);
+        updateHighlightedSong(filteredTracks, currentMenuIndex);
       };
       songsList.appendChild(div);
     });
 
     // Highlight the currentMenuIndex song and show its art
-    function updateHighlightedSong(tracks, idx) {
+    function updateHighlightedSong(tracks) {
       Array.from(songsList.children).forEach((el, i) => {
-        el.classList.toggle('active', i === idx);
+        el.classList.toggle('active', i === currentMenuIndex);
       });
-      const albumObj = albums[tracks[idx].album] || {};
+      const albumObj = albums[tracks[currentMenuIndex].album] || {};
       document.getElementById('allSongsArt').src = albumObj.cover || "src/img/default-cover.png";
     }
-
-    // Initial highlight
-    if (filteredTracks.length) {
-      updateHighlightedSong(filteredTracks, currentMenuIndex);
-    }
+    window.updateHighlightedSong = () => updateHighlightedSong(filteredTracks);
   }
 
   renderList(sortedTracks);
@@ -796,10 +798,9 @@ function renderColourMenu(direction = 'forward') {
   // Disk scroll support
   let gridBtns = Array.from(document.querySelectorAll('.colour-btn'));
   function highlightColour(idx) {
-    gridBtns.forEach((btn, i) => btn.classList.toggle('active', i === idx));
-    gridBtns.forEach((btn, i) => btn.style.borderColor = i === idx ? '#0074d9' : '#ccc');
-    gridBtns.forEach((btn, i) => btn.innerHTML = i === idx ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : '');
-    currentMenuIndex = idx;
+    gridBtns.forEach((btn, i) => btn.classList.toggle('active', i === currentMenuIndex));
+    gridBtns.forEach((btn, i) => btn.style.borderColor = i === currentMenuIndex ? '#0074d9' : '#ccc');
+    gridBtns.forEach((btn, i) => btn.innerHTML = i === currentMenuIndex ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : '');
   }
   highlightColour(selectedIdx);
 
@@ -822,11 +823,11 @@ function renderColourMenu(direction = 'forward') {
 
   gridBtns.forEach((btn, idx) => {
     btn.onclick = () => {
-      highlightColour(idx);
       currentMenuIndex = idx;
-      document.querySelector('.vpod-container').style.background = colours[idx].value;
-      localStorage.setItem('vpodColour', colours[idx].value);
-      localStorage.setItem('vpodColourIdx', idx);
+      highlightColour(currentMenuIndex);
+      document.querySelector('.vpod-container').style.background = colours[currentMenuIndex].value;
+      localStorage.setItem('vpodColour', colours[currentMenuIndex].value);
+      localStorage.setItem('vpodColourIdx', currentMenuIndex);
     };
   });
 

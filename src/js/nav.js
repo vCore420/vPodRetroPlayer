@@ -147,7 +147,8 @@ document.getElementById('confirmBtn').onclick = () => {
 
   // 6. Colour menu confirm
   if (document.getElementById('colourGrid')) {
-    if (window.onColourMenuConfirm) window.onColourMenuConfirm();
+    if (window.onColourMenuScroll) window.onColourMenuScroll(direction);
+    highlightColour(currentMenuIndex);
     return;
   }
 
@@ -304,9 +305,9 @@ function scrollMenu(direction) {
   items[currentMenuIndex].classList.add('active');
   items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
 
-  // Update album art for song lists (including suggested)
+  // Call master highlight function if available
   if (typeof window.updateHighlightedSong === 'function' && menu.id !== 'colourGrid') {
-    window.updateHighlightedSong(currentMenuIndex);
+    window.updateHighlightedSong();
   }
 
   // Update album art for All Songs menu
