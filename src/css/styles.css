@@ -214,7 +214,7 @@ body {
   align-items: center;
   justify-content: center;
   perspective: 1200px;
-  margin-bottom: 18px;
+  margin-bottom: 1px;
   overflow: visible;
 }
 
@@ -234,12 +234,51 @@ body {
 }
 
 .carousel-cover {
+  position: relative;
   width: 120px;
   height: 120px;
   border-radius: 12px;
   box-shadow: 0 2px 16px rgba(0,0,0,0.18);
   background: #eee;
   object-fit: cover;
+  margin-bottom: 0;
+}
+
+/* Reflection effect */
+.carousel-cover-reflect {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.carousel-cover-reflect img.reflection {
+  width: 120px;
+  height: 45px;
+  border-radius: 2px 2px 24px 24px;
+  object-fit: cover;
+  transform: scaleY(-1);
+  opacity: 0.10;
+  filter: blur(2px);
+  margin-top: -8px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.01) 80%);
+}
+
+.carousel-cover-reflect::after {
+  content: "";
+  display: block;
+  position: absolute;
+  left: 0; right: 0;
+  top: 100%;
+  height: 40px;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.01) 80%);
+  /* Reflection image */
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 100%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 .carousel-album-center {
@@ -262,7 +301,7 @@ body {
   font-weight: bold;
   color: #222;
   text-align: center;
-  margin-top: 8px;
+  margin-top: 6px;
   letter-spacing: 0.02em;
 }
 
@@ -531,6 +570,21 @@ body {
   transform: scale(0.98);
 }
 
+.screen-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.35s forwards;
+}
+.screen-fade-out {
+  opacity: 1;
+  animation: fadeOut 0.35s forwards;
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+@keyframes fadeOut {
+  to { opacity: 0; }
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg);}
   100% { transform: rotate(360deg);}
@@ -702,5 +756,41 @@ body {
   .nowplaying-bar-bg {
     height: 3vw;
     border-radius: 2vw;
+  }
+
+  .about-userinfo,
+  .user-stats-box {
+    padding: 4vw 3vw;
+    border-radius: 5vw;
+    box-shadow: 0 1vw 4vw #0001;
+    margin-bottom: 4vw;
+    background: #f6f6f8;
+    width: 80vw;
+    max-width: 80vw;
+    font-size: 1em;
+  }
+  .about-title,
+  .user-stats-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 3vw;
+    text-align: center;
+  }
+  .about-details,
+  .user-stats-details {
+    font-size: 1em;
+    color: #444;
+    text-align: center;
+    margin-bottom: 3vw;
+    max-width: 80vw;
+  }
+  .about-serial {
+    font-size: 1em;
+    color: #222;
+    word-break: break-all;
+  }
+  .user-stats-box b {
+    font-size: 1em;
+    color: #0074d9;
   }
 }

@@ -104,7 +104,12 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
     const albumObj = albums[album];
     const div = document.createElement('div');
     div.className = 'carousel-album';
-    div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
+    div.innerHTML = `
+      <div class="carousel-cover-reflect">
+        <img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">
+        <img src="${albumObj.cover}" class="reflection" alt="Reflection">
+      </div>
+    `;
     div.onclick = () => {
       window.creatingPlaylist.selectedAlbum = album;
       goTo(renderSongSelectionForPlaylist, album, idx);

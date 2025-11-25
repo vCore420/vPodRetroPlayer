@@ -88,17 +88,11 @@ if ('mediaSession' in navigator) {
   navigator.mediaSession.setActionHandler('seekforward', (details) => {
     audioPlayer.currentTime = Math.min(audioPlayer.currentTime + (details.seekOffset || 10), audioPlayer.duration);
   });
-
-  navigator.mediaSession.setActionHandler('shuffle', () => {
-    if (typeof toggleShuffle === 'function') {
-      toggleShuffle();
-    }
-  });
 }
 
 // -- Service Worker --
 
-//if ('serviceWorker' in navigator) {
-//  navigator.serviceWorker.register('service-worker.js');
-//  console.log("Service worker registered");
-//}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+  console.log("Service worker registered");
+}

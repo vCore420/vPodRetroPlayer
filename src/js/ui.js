@@ -11,6 +11,20 @@ function saveTimeSettings(settings) {
   localStorage.setItem('timeSettings', JSON.stringify(settings));
 }
 
+function masterHighlight({ containerSelector, itemsSelector, tracks, albumArtSelector }) {
+  const container = document.querySelector(containerSelector);
+  if (!container) return;
+  const items = Array.from(container.querySelectorAll(itemsSelector));
+  items.forEach((el, i) => {
+    el.classList.toggle('active', i === currentMenuIndex);
+  });
+  if (albumArtSelector && tracks && tracks[currentMenuIndex]) {
+    const albumObj = albums[tracks[currentMenuIndex].album] || {};
+    const artImg = document.querySelector(albumArtSelector);
+    if (artImg) artImg.src = albumObj.cover || "src/img/default-cover.png";
+  }
+}
+
 // --- GENERIC RENDERERS ---
 
 function renderScreen(content, direction = 'forward') {
@@ -18,14 +32,15 @@ function renderScreen(content, direction = 'forward') {
   const oldContent = vpodScreen.querySelector('.screen-content');
   if (oldContent) {
     oldContent.classList.remove('screen-active');
-    oldContent.classList.add(direction === 'forward' ? 'screen-slide-out' : 'screen-slide-in');
+    oldContent.classList.add(direction === 'forward' ? 'screen-fade-out' : 'screen-fade-in');
     setTimeout(() => oldContent.remove(), 350);
   }
   const div = document.createElement('div');
-  div.className = 'screen-content screen-active';
+  div.className = 'screen-content screen-active screen-fade-in';
   div.innerHTML = content;
   vpodScreen.appendChild(div);
   resetMenuIndex();
+  updateHotBarTime();
 }
 
 function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "menuList", before = "" }, direction = 'forward') {
@@ -42,12 +57,18 @@ function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "men
   items.forEach((item, idx) => {
     document.querySelector(`#${id} li[data-idx="${idx}"]`).onclick = () => {
       currentMenuIndex = idx;
+      masterHighlight({
+        containerSelector: `#${id}`,
+        itemsSelector: 'li'
+      });
       onItemClick(idx, item);
     };
+    // After rendering all items:
+    window.updateHighlightedSong = () => masterHighlight({
+      containerSelector: `#${id}`,
+      itemsSelector: 'li'
+    });
   });
-  if (showBack && onBack) {
-    document.getElementById('genericBackBtn').onclick = onBack;
-  }
 }
 
 function renderHotBar() {
@@ -108,7 +129,12 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
     const albumObj = albums[album];
     const div = document.createElement('div');
     div.className = 'carousel-album';
-    div.innerHTML = `<img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">`;
+    div.innerHTML = `
+      <div class="carousel-cover-reflect">
+        <img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">
+        <img src="${albumObj.cover}" class="reflection" alt="Reflection">
+      </div>
+    `;
     div.onclick = () => {
       currentMenuIndex = idx;
       onAlbumClick(album, currentMenuIndex);
@@ -150,20 +176,18 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
     div.innerHTML = `<span>${selectMode && isSelected ? '✅ ' : ''}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
     div.onclick = () => {
       currentMenuIndex = idx;
-      updateHighlightedSong(songs, currentMenuIndex);
+      window.updateHighlightedSong();
       onSongClick(track, idx);
     };
     songsList.appendChild(div);
   });
 
-  function updateHighlightedSong(tracks) {
-    Array.from(songsList.children).forEach((el, i) => {
-      el.classList.toggle('active', i === currentMenuIndex);
-    });
-    const albumObj = albums[tracks[currentMenuIndex].album] || {};
-    document.querySelector('.album-list-right img.album-cover').src = albumObj.cover || "src/img/default-cover.png";
-  }
-  window.updateHighlightedSong = () => updateHighlightedSong(songs);
+  window.updateHighlightedSong = () => masterHighlight({
+    containerSelector: '#songsList',
+    itemsSelector: '.menu-list-song',
+    tracks: songs,
+    albumArtSelector: '.album-list-right img.album-cover'
+  });
 }
 
 // --- MAIN MENU ---
@@ -420,20 +444,17 @@ function renderAllSongsMenu(direction = 'forward') {
       div.onclick = () => {
         currentMenuIndex = idx;
         playTrackFromAlbum(track, filteredTracks);
-        updateHighlightedSong(filteredTracks, currentMenuIndex);
+        window.updateHighlightedSong();
       };
       songsList.appendChild(div);
     });
 
-    // Highlight the currentMenuIndex song and show its art
-    function updateHighlightedSong(tracks) {
-      Array.from(songsList.children).forEach((el, i) => {
-        el.classList.toggle('active', i === currentMenuIndex);
-      });
-      const albumObj = albums[tracks[currentMenuIndex].album] || {};
-      document.getElementById('allSongsArt').src = albumObj.cover || "src/img/default-cover.png";
-    }
-    window.updateHighlightedSong = () => updateHighlightedSong(filteredTracks);
+    window.updateHighlightedSong = () => masterHighlight({
+      containerSelector: '#allSongsList',
+      itemsSelector: '.menu-list-song',
+      tracks: filteredTracks,
+      albumArtSelector: '#allSongsArt'
+    });
   }
 
   renderList(sortedTracks);
@@ -605,7 +626,9 @@ function renderSettingsMenu(direction = 'forward') {
     items: [
       { label: "Equalizer", action: renderEqualizerMenu },
       { label: "Date and Time", action: renderDateTimeMenu },
-      { label: "iPod Colour", action: renderColourMenu }
+      { label: "iPod Colour", action: renderColourMenu },
+      { label: "User Stats", action: renderUserStatsMenu },
+      { label: "About", action: renderAboutMenu }
       // Add more settings here 
     ],
     onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); },
@@ -834,4 +857,68 @@ function renderColourMenu(direction = 'forward') {
   // Set colour on load
   const savedColour = localStorage.getItem('vpodColour');
   if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
+}
+
+ 
+function renderAboutMenu(direction = 'forward') {
+  renderScreen(
+    renderHotBar() +
+    `<div style="padding:68px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+      <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">About vRetro Player</div>
+      <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
+        vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
+        <br>
+        Version: <b>0.13</b><br>
+        Developed by: <b>vCore</b><br>
+        <br>
+        Enjoy your music with a retro touch!
+      </div>
+      <div style="background:#f6f6f8;border-radius:16px;padding:18px 24px;box-shadow:0 2px 8px #0001;margin-bottom:18px;">
+        <div style="font-size:1.1em;font-weight:bold;margin-bottom:8px;">User Info</div>
+        <div style="font-size:1em;color:#222;">
+          Name: <b>iPod User</b><br>
+          Model: <b>vPod Classic</b><br>
+          Serial: <b>#${(localStorage.getItem('vpodSerial') || (Math.floor(Math.random()*1e8).toString(16)) )}</b>
+        </div>
+      </div>
+    </div>`,
+    direction
+  );
+  // Save serial if not set
+  if (!localStorage.getItem('vpodSerial')) {
+    localStorage.setItem('vpodSerial', document.querySelector('.background #aboutSerial').textContent);
+  }
+}
+
+function renderUserStatsMenu(direction = 'forward') {
+  // Gather stats from suggestions.js
+  const habits = JSON.parse(localStorage.getItem('userHabits')) || {};
+  const totalPlays = Object.values(habits).reduce((sum, h) => sum + (h.plays || 0), 0);
+  const totalSkips = Object.values(habits).reduce((sum, h) => sum + (h.skips || 0), 0);
+  const totalLikes = Object.values(habits).filter(h => h.liked).length;
+  const totalDislikes = Object.values(habits).filter(h => h.disliked).length;
+  const mostPlayed = Object.entries(habits)
+    .sort((a, b) => (b[1].plays || 0) - (a[1].plays || 0))[0];
+  const mostLiked = Object.entries(habits)
+    .filter(([id, h]) => h.liked)
+    .sort((a, b) => (b[1].plays || 0) - (a[1].plays || 0))[0];
+
+  renderScreen(
+    renderHotBar() +
+    `<div style="padding:2px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+      <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">User Stats</div>
+      <div style="background:#f6f6f8;border-radius:16px;padding:18px 24px;box-shadow:0 2px 8px #0001;margin-bottom:18px;">
+        <div style="font-size:1.1em;font-weight:bold;margin-bottom:8px;">Music Traits</div>
+        <div style="font-size:1em;color:#222;">
+          Total Songs Played: <b>${totalPlays}</b><br>
+          Total Songs Skipped: <b>${totalSkips}</b><br>
+          Total Songs Liked: <b>${totalLikes}</b><br>
+          Total Songs Disliked: <b>${totalDislikes}</b><br>
+          ${mostPlayed ? `Most Played Song: <b>${mostPlayed[0].split('|')[0]}</b> (${mostPlayed[1].plays} plays)<br>` : ''}
+          ${mostLiked ? `Most Liked Song: <b>${mostLiked[0].split('|')[0]}</b> (${mostLiked[1].plays} plays)<br>` : ''}
+        </div>
+      </div>
+    </div>`,
+    direction
+  );
 }

@@ -202,8 +202,8 @@ function handleDiskStart(e) {
   const center = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
   lastAngle = getAngle(e, center);
   scrollAccumulator = 0;
-  document.addEventListener(e.type.startsWith('touch') ? 'touchmove' : 'mousemove', handleDiskMove);
-  document.addEventListener(e.type.startsWith('touch') ? 'touchend' : 'mouseup', handleDiskEnd);
+  document.addEventListener(e.type.startsWith('touch') ? 'touchmove' : 'mousemove', handleDiskMove, { passive: false });
+  document.addEventListener(e.type.startsWith('touch') ? 'touchend' : 'mouseup', handleDiskEnd, { passive: false });
   e.preventDefault();
 }
 
