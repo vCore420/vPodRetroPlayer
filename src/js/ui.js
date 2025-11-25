@@ -577,36 +577,24 @@ function renderNowPlayingScreen(direction = 'forward') {
   updateHotBarTime();
   updateNowPlayingProgress();
 
-  const likeBtn = document.getElementById('likeBtn');
-  const dislikeBtn = document.getElementById('dislikeBtn');
+  document.getElementById('likeBtn').onclick = () => {
+    if (!currentTrack) return;
+    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+    songRatings[trackId] = songRatings[trackId] === 'like' ? null : 'like';
+    localStorage.setItem('songRatings', JSON.stringify(songRatings));
+    if (window.setTrackRating) window.setTrackRating(currentTrack, 'like');
+    renderNowPlayingScreen('forward');
+  };
+  document.getElementById('dislikeBtn').onclick = () => {
+    if (!currentTrack) return;
+    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+    songRatings[trackId] = songRatings[trackId] === 'dislike' ? null : 'dislike';
+    localStorage.setItem('songRatings', JSON.stringify(songRatings));
+    if (window.setTrackRating) window.setTrackRating(currentTrack, 'dislike');
+    renderNowPlayingScreen('forward');
+  };
   const shuffleBtn = document.getElementById('shuffleBtn');
-
-  if (likeBtn) {
-    likeBtn.onclick = () => {
-      if (!currentTrack) return;
-      const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-      songRatings[trackId] = songRatings[trackId] === 'like' ? null : 'like';
-      localStorage.setItem('songRatings', JSON.stringify(songRatings));
-      if (window.setTrackRating) window.setTrackRating(currentTrack, 'like');
-      renderNowPlayingScreen('forward');
-    };
-  }
-  if (dislikeBtn) {
-    dislikeBtn.onclick = () => {
-      if (!currentTrack) return;
-      const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-      songRatings[trackId] = songRatings[trackId] === 'dislike' ? null : 'dislike';
-      localStorage.setItem('songRatings', JSON.stringify(songRatings));
-      if (window.setTrackRating) window.setTrackRating(currentTrack, 'dislike');
-      renderNowPlayingScreen('forward');
-    };
-  }
-  if (shuffleBtn) {
-    shuffleBtn.onclick = () => {
-      toggleShuffle();
-      renderNowPlayingScreen('forward');
-    };
-  }
+  if (shuffleBtn) shuffleBtn.onclick = toggleShuffle;
 }
 
 function getCurrentCover() {
