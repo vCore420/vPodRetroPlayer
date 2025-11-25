@@ -577,24 +577,36 @@ function renderNowPlayingScreen(direction = 'forward') {
   updateHotBarTime();
   updateNowPlayingProgress();
 
-  document.getElementById('likeBtn').onclick = () => {
-    if (!currentTrack) return;
-    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-    songRatings[trackId] = songRatings[trackId] === 'like' ? null : 'like';
-    localStorage.setItem('songRatings', JSON.stringify(songRatings));
-    if (window.setTrackRating) window.setTrackRating(currentTrack, 'like');
-    renderNowPlayingScreen('forward');
-  };
-  document.getElementById('dislikeBtn').onclick = () => {
-    if (!currentTrack) return;
-    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-    songRatings[trackId] = songRatings[trackId] === 'dislike' ? null : 'dislike';
-    localStorage.setItem('songRatings', JSON.stringify(songRatings));
-    if (window.setTrackRating) window.setTrackRating(currentTrack, 'dislike');
-    renderNowPlayingScreen('forward');
-  };
+  const likeBtn = document.getElementById('likeBtn');
+  const dislikeBtn = document.getElementById('dislikeBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
-  if (shuffleBtn) shuffleBtn.onclick = toggleShuffle;
+
+  if (likeBtn) {
+    likeBtn.onclick = () => {
+      if (!currentTrack) return;
+      const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+      songRatings[trackId] = songRatings[trackId] === 'like' ? null : 'like';
+      localStorage.setItem('songRatings', JSON.stringify(songRatings));
+      if (window.setTrackRating) window.setTrackRating(currentTrack, 'like');
+      renderNowPlayingScreen('forward');
+    };
+  }
+  if (dislikeBtn) {
+    dislikeBtn.onclick = () => {
+      if (!currentTrack) return;
+      const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+      songRatings[trackId] = songRatings[trackId] === 'dislike' ? null : 'dislike';
+      localStorage.setItem('songRatings', JSON.stringify(songRatings));
+      if (window.setTrackRating) window.setTrackRating(currentTrack, 'dislike');
+      renderNowPlayingScreen('forward');
+    };
+  }
+  if (shuffleBtn) {
+    shuffleBtn.onclick = () => {
+      toggleShuffle();
+      renderNowPlayingScreen('forward');
+    };
+  }
 }
 
 function getCurrentCover() {
