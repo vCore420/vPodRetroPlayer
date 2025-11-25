@@ -555,7 +555,7 @@ body {
     min-height: 0;
     border-radius: 4vw;
     margin-bottom: 8vw;
-    font-size: 1em;
+    font-size: 0.9em;
     border-width: 0.7vw;
     box-shadow:
       0 0.5vw 0.5vw rgba(0,0,0,0.13),
@@ -664,19 +664,19 @@ body {
   }
 
   .nowplaying-info {
-    flex-direction: column;
-    gap: 1vw;
-    margin-bottom: 2vw;
+    display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
+    justify-content: center; 
+    margin-bottom: 24px;
+    gap: 18px; 
   }
 
   .nowplaying-cover img {
     width: 28vw;
     height: 28vw;
     border-radius: 3vw;
-    margin-left: 0;
-    margin-bottom: 1vw;
+    margin-top: 2vw;
     transform: rotateY(14deg) scale(1.04);
   }
 
@@ -691,7 +691,7 @@ body {
   }
 
   .nowplaying-artist, .nowplaying-album {
-    font-size: 1em;
+    font-size: 0.9em;
   }
 
   .nowplaying-progress {
