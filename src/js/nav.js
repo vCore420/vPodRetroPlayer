@@ -329,7 +329,17 @@ function scrollMenu(direction) {
     } else {
       albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
     }
+
+    // Clamp index
+    if (currentMenuIndex < 0) currentMenuIndex = albumNames.length - 1;
+    if (currentMenuIndex >= albumNames.length) currentMenuIndex = 0;
+
+    // Prevent overlapping scrolls
+    if (carouselScrolling) return;
+    carouselScrolling = true;
     setCarouselAlbum(currentMenuIndex, albumNames);
+    setTimeout(() => { carouselScrolling = false; }, 350); // match CSS transition duration
+
     return;
   }
 
@@ -347,23 +357,3 @@ function scrollMenu(direction) {
   console.log("Menu scrolled to index:", currentMenuIndex);
 }
 
-nextBtn.onclick = () => {
-  console.log("Next button clicked (playback)");
-  if (
-    currentAlbumSongs.length &&
-    currentSongIndex >= 0 &&
-    currentSongIndex < currentAlbumSongs.length - 1
-  ) {
-    playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
-  }
-};
-
-prevBtn.onclick = () => {
-  console.log("Prev button clicked (playback)");
-  if (
-    currentAlbumSongs.length &&
-    currentSongIndex > 0
-  ) {
-    playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
-  }
-};

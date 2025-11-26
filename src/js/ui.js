@@ -283,41 +283,43 @@ function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist
 
 // -- Album Carousel --
 
+let carouselUpdateTimeout = null;
+
 function setCarouselAlbum(idx, albumNames) {
-  const carousel = document.getElementById('albumCarousel');
-  const title = document.getElementById('albumTitle');
-  const spacing = 80; // px between covers
+    const carousel = document.getElementById('albumCarousel');
+    const title = document.getElementById('albumTitle');
+    const spacing = 80; // px between covers
 
-  Array.from(carousel.children).forEach((el, i) => {
-    el.className = 'carousel-album';
-    el.style.zIndex = '';
-    el.style.opacity = '';
-    el.style.filter = '';
-    el.style.transform = '';
+    Array.from(carousel.children).forEach((el, i) => {
+      el.className = 'carousel-album';
+      el.style.zIndex = '';
+      el.style.opacity = '';
+      el.style.filter = '';
+      el.style.transform = '';
 
-    if (i === idx) {
-      el.classList.add('carousel-album-center');
-      el.style.transform = `translate(-50%, -50%) scale(1.25) rotateY(0deg)`;
-      el.style.zIndex = 10;
-      el.style.opacity = 1;
-      el.style.filter = 'brightness(1) blur(0px)';
-    } else if (i < idx) {
-      el.classList.add('carousel-album-left');
-      const offset = spacing * (idx - i);
-      el.style.transform = `translate(calc(-50% - ${offset}px), -50%) scale(0.95) rotateY(55deg)`;
-      el.style.zIndex = 5 - (idx - i);
-      el.style.opacity = 0.7;
-      el.style.filter = 'brightness(0.85) blur(0.5px)';
-    } else if (i > idx) {
-      el.classList.add('carousel-album-right');
-      const offset = spacing * (i - idx);
-      el.style.transform = `translate(calc(-50% + ${offset}px), -50%) scale(0.95) rotateY(-55deg)`;
-      el.style.zIndex = 5 - (i - idx);
-      el.style.opacity = 0.7;
-      el.style.filter = 'brightness(0.85) blur(0.5px)';
-    }
-  });
-  title.textContent = albumNames[idx] || '';
+      if (i === idx) {
+        el.classList.add('carousel-album-center');
+        el.style.transform = `translate(-50%, -50%) scale(1.25) rotateY(0deg)`;
+        el.style.zIndex = 10;
+        el.style.opacity = 1;
+        el.style.filter = 'brightness(1) blur(0px)';
+      } else if (i < idx) {
+        el.classList.add('carousel-album-left');
+        const offset = spacing * (idx - i);
+        el.style.transform = `translate(calc(-50% - ${offset}px), -50%) scale(0.95) rotateY(55deg)`;
+        el.style.zIndex = 5 - (idx - i);
+        el.style.opacity = 0.7;
+        el.style.filter = 'brightness(0.85) blur(0.5px)';
+      } else if (i > idx) {
+        el.classList.add('carousel-album-right');
+        const offset = spacing * (i - idx);
+        el.style.transform = `translate(calc(-50% + ${offset}px), -50%) scale(0.95) rotateY(-55deg)`;
+        el.style.zIndex = 5 - (i - idx);
+        el.style.opacity = 0.7;
+        el.style.filter = 'brightness(0.85) blur(0.5px)';
+      }
+    });
+    title.textContent = albumNames[idx] || '';
 }
 
 function setScrollingAlbum(idx) {
@@ -412,9 +414,10 @@ function renderAllSongsMenu(direction = 'forward') {
   renderScreen(
     renderHotBar() +
     `<div style="display:flex;flex-direction:column;height:90%;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <span style="font-size:1.1em;font-weight:bold;margin:auto;">All Songs</span>
-        <button id="sortSongsBtn" title="Sort Songs" style="font-size:1.3em;background:none;border:none;color:#0074d9;cursor:pointer;">
+      <div style="position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:4px;height:38px;">
+        <span style="font-size:1.1em;font-weight:bold;display:block;margin:0 auto;">All Songs</span>
+        <button id="sortSongsBtn" title="Sort Songs"
+          style="position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:1.3em;background:none;border:none;color:#0074d9;cursor:pointer;">
           <i class="fa-solid fa-arrow-down-a-z"></i>
         </button>
       </div>
@@ -534,6 +537,45 @@ function renderSuggestedMenu(direction = 'forward') {
 
 // --- NOW PLAYING ---
 
+function attachNowPlayingButtonListeners() {
+  const likeBtn = document.getElementById('likeBtn');
+  const dislikeBtn = document.getElementById('dislikeBtn');
+  const shuffleBtn = document.getElementById('shuffleBtn');
+
+  if (likeBtn) {
+    likeBtn.onclick = () => {
+      if (!currentTrack) return;
+      const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+      songRatings[trackId] = songRatings[trackId] === 'like' ? null : 'like';
+      localStorage.setItem('songRatings', JSON.stringify(songRatings));
+      if (window.setTrackRating) window.setTrackRating(currentTrack, 'like');
+      // Update button color directly instead of re-rendering
+      likeBtn.style.color = songRatings[trackId] === 'like' ? '#0074d9' : '#888';
+      dislikeBtn.style.color = songRatings[trackId] === 'dislike' ? '#d90429' : '#888';
+    };
+  }
+  if (dislikeBtn) {
+    dislikeBtn.onclick = () => {
+      if (!currentTrack) return;
+      const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
+      songRatings[trackId] = songRatings[trackId] === 'dislike' ? null : 'dislike';
+      localStorage.setItem('songRatings', JSON.stringify(songRatings));
+      if (window.setTrackRating) window.setTrackRating(currentTrack, 'dislike');
+      // Update button color directly instead of re-rendering
+      likeBtn.style.color = songRatings[trackId] === 'like' ? '#0074d9' : '#888';
+      dislikeBtn.style.color = songRatings[trackId] === 'dislike' ? '#d90429' : '#888';
+    };
+  }
+  if (shuffleBtn) {
+    shuffleBtn.onclick = () => {
+      toggleShuffle();
+      shuffleBtn.classList.toggle('shuffle-on', isShuffleOn);
+    };
+  }
+}
+
+window.attachNowPlayingButtonListeners = attachNowPlayingButtonListeners;
+
 function renderNowPlayingScreen(direction = 'forward') {
   const trackId = currentTrack ? `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}` : '';
   const rating = songRatings[trackId];
@@ -576,25 +618,6 @@ function renderNowPlayingScreen(direction = 'forward') {
 
   updateHotBarTime();
   updateNowPlayingProgress();
-
-  document.getElementById('likeBtn').onclick = () => {
-    if (!currentTrack) return;
-    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-    songRatings[trackId] = songRatings[trackId] === 'like' ? null : 'like';
-    localStorage.setItem('songRatings', JSON.stringify(songRatings));
-    if (window.setTrackRating) window.setTrackRating(currentTrack, 'like');
-    renderNowPlayingScreen('forward');
-  };
-  document.getElementById('dislikeBtn').onclick = () => {
-    if (!currentTrack) return;
-    const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-    songRatings[trackId] = songRatings[trackId] === 'dislike' ? null : 'dislike';
-    localStorage.setItem('songRatings', JSON.stringify(songRatings));
-    if (window.setTrackRating) window.setTrackRating(currentTrack, 'dislike');
-    renderNowPlayingScreen('forward');
-  };
-  const shuffleBtn = document.getElementById('shuffleBtn');
-  if (shuffleBtn) shuffleBtn.onclick = toggleShuffle;
 }
 
 function getCurrentCover() {
@@ -859,7 +882,7 @@ function renderColourMenu(direction = 'forward') {
   if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
 }
 
- 
+// UPDATE VERSION HERE
 function renderAboutMenu(direction = 'forward') {
   renderScreen(
     renderHotBar() +
@@ -867,8 +890,8 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">About vRetro Player</div>
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
-        <br>
-        Version: <b>0.13</b><br>
+        <br>        
+        Version: <b>0.14</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -922,3 +945,12 @@ function renderUserStatsMenu(direction = 'forward') {
     direction
   );
 }
+
+// Observe Now Playing screen for changes and attach listeners
+const observer = new MutationObserver(() => {
+  const nowPlaying = document.querySelector('.nowplaying-container');
+  if (nowPlaying) {
+    attachNowPlayingButtonListeners();
+  }
+});
+observer.observe(document.getElementById('vpodScreen'), { childList: true, subtree: true });

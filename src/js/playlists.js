@@ -4,9 +4,12 @@ function renderPlaylistsMenu(direction = 'forward') {
   renderScreen(
     renderHotBar() +
     `<div style="display:flex;flex-direction:column;height:100%;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <button id="addPlaylistBtn" style="font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">＋</button>
-        <span style="font-size:1.2em;font-weight:bold;margin:auto;">Playlists</span>
+      <div style="position:relative;display:flex;align-items:center;justify-content:center;height:38px;">
+        <button id="addPlaylistBtn"
+          style="position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">
+          ＋
+        </button>
+        <span style="font-size:1.2em;font-weight:bold;display:block;margin:0 auto;">Playlists</span>
       </div>
       <ul class="menu-list" id="playlistsList" style="margin-top:18px;">
         <li data-liked="true" style="color:#0074d9;font-weight:bold;"><i class="fa-solid fa-heart"></i> Liked Songs</li>
@@ -241,11 +244,16 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
 
 function playPlaylistTrack(playlist, idx) {
   const trackData = playlist.tracks[idx];
+  // Try to find the track in the global tracks array
   const match = tracks.find(t =>
     (t.file?.webkitRelativePath && t.file.webkitRelativePath === trackData.relativePath) ||
     (t.file?.name === trackData.fileName &&
      t.album === trackData.album &&
-     t.artist === trackData.artist)
+     t.artist === trackData.artist) ||
+    // Fallback: match by title, artist, album
+    (t.title === trackData.title &&
+     t.artist === trackData.artist &&
+     t.album === trackData.album)
   );
   if (match) {
     currentAlbumSongs = playlist.tracks.map(plTrack =>
@@ -253,14 +261,20 @@ function playPlaylistTrack(playlist, idx) {
         (t.file?.webkitRelativePath && t.file.webkitRelativePath === plTrack.relativePath) ||
         (t.file?.name === plTrack.fileName &&
          t.album === plTrack.album &&
-         t.artist === plTrack.artist)
+         t.artist === plTrack.artist) ||
+        (t.title === plTrack.title &&
+         t.artist === plTrack.artist &&
+         t.album === plTrack.album)
       )
     ).filter(Boolean);
     currentSongIndex = currentAlbumSongs.findIndex(t =>
       (t.file?.webkitRelativePath && t.file.webkitRelativePath === trackData.relativePath) ||
       (t.file?.name === trackData.fileName &&
        t.album === trackData.album &&
-       t.artist === trackData.artist)
+       t.artist === trackData.artist) ||
+      (t.title === trackData.title &&
+       t.artist === trackData.artist &&
+       t.album === trackData.album)
     );
     playTrackFromAlbum(match, currentAlbumSongs);
   } else {
