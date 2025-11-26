@@ -1,4 +1,4 @@
-const CACHE_NAME = "vmusic-cache-v13";
+const CACHE_NAME = "vmusic-cache-v14";
 const toCache = [
   "./",
   "index.html",
