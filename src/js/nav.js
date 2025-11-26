@@ -329,17 +329,7 @@ function scrollMenu(direction) {
     } else {
       albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
     }
-
-    // Clamp index
-    if (currentMenuIndex < 0) currentMenuIndex = albumNames.length - 1;
-    if (currentMenuIndex >= albumNames.length) currentMenuIndex = 0;
-
-    // Prevent overlapping scrolls
-    if (carouselScrolling) return;
-    carouselScrolling = true;
     setCarouselAlbum(currentMenuIndex, albumNames);
-    setTimeout(() => { carouselScrolling = false; }, 350); // match CSS transition duration
-
     return;
   }
 
