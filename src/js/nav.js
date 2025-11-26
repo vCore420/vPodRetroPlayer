@@ -43,14 +43,14 @@ document.getElementById('menuBtn').onclick = () => {
 };
 
 document.getElementById('playPauseBtn').onclick = () => {
-  console.log("Play/Pause button clicked");
   if (!audioPlayer.src) return;
+  const icon = playPauseBtn.querySelector('i');
   if (audioPlayer.paused) {
     audioPlayer.play();
-    playPauseBtn.textContent = "⏸";
+    if (icon) icon.className = "fa-solid fa-pause";
   } else {
     audioPlayer.pause();
-    playPauseBtn.textContent = "▶";
+    if (icon) icon.className = "fa-solid fa-play";
   }
 };
 
@@ -178,11 +178,22 @@ audioPlayer.addEventListener('ended', () => {
   ) {
     playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
   } else {
-    playPauseBtn.textContent = "▶";
+    const icon = playPauseBtn.querySelector('i');
+    if (icon) icon.className = "fa-solid fa-play";
     currentTrack = null;
     currentSongIndex = -1;
     console.log("Reached end of album or no more songs.");
   }
+});
+
+audioPlayer.addEventListener('play', () => {
+  const icon = playPauseBtn.querySelector('i');
+  if (icon) icon.className = "fa-solid fa-pause";
+});
+
+audioPlayer.addEventListener('pause', () => {
+  const icon = playPauseBtn.querySelector('i');
+  if (icon) icon.className = "fa-solid fa-play";
 });
 
 // Disk Touch/Cursor Scroll 

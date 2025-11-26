@@ -23,7 +23,6 @@ function playTrackFromAlbum(track, albumSongs) {
   const url = URL.createObjectURL(track.file);
   audioPlayer.src = url;
   audioPlayer.play();
-  playPauseBtn.textContent = "⏸";
   setScrollingSong(currentMenuIndex);
 
   if (window.updateMediaSessionMetadata) window.updateMediaSessionMetadata();

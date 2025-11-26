@@ -64,11 +64,9 @@ if ('mediaSession' in navigator) {
 
   navigator.mediaSession.setActionHandler('play', () => {
     audioPlayer.play();
-    playPauseBtn.textContent = "⏸";
   });
   navigator.mediaSession.setActionHandler('pause', () => {
     audioPlayer.pause();
-    playPauseBtn.textContent = "▶";
   });
   navigator.mediaSession.setActionHandler('previoustrack', () => {
     if (currentAlbumSongs.length && currentSongIndex > 0) {
