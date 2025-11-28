@@ -24,14 +24,20 @@ function goBack() {
     navStack.pop();
     const { fn, args } = navStack[navStack.length - 1];
     args[0] = 'back'; // Set direction to 'back'
+    if (fn === renderAlbumsMenu) {
+      args[1] = currentMenuIndex;
+    }
     console.log("Going back to:", fn.name, "with args:", args);
     fn(...args);
   }
 }
 
 function resetMenuIndex() {
-  currentMenuIndex = 0;
-  setTimeout(() => scrollMenu(0), 10);
+  const albumCarousel = document.getElementById('albumCarousel');
+  if (!albumCarousel) {
+    currentMenuIndex = 0;
+    setTimeout(() => scrollMenu(0), 10);
+  }
 }
 
 // -- DISK CONTROLS --
@@ -39,6 +45,11 @@ function resetMenuIndex() {
 // Disk Pad Controls 
 document.getElementById('menuBtn').onclick = () => {
   console.log("Menu button clicked");
+  if (typeof window.onPlaylistAlbumMenuDone === 'function') {
+    window.onPlaylistAlbumMenuDone();
+    window.onPlaylistAlbumMenuDone = null;
+    return;
+  }
   goBack();
 };
 
@@ -350,10 +361,6 @@ function scrollMenu(direction) {
     items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
     return;
   }
-
-  // If you need to update scrolling for songs/albums, do it here (but don't increment index again)
-  if (menu.id === 'songsList') setScrollingSong(currentMenuIndex);
-  if (menu.id === 'albumsList' || menu.classList.contains('album-list-left')) setScrollingAlbum(currentMenuIndex);
 
   console.log("Menu scrolled to index:", currentMenuIndex);
 }

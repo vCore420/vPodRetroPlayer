@@ -39,7 +39,9 @@ function renderScreen(content, direction = 'forward') {
   div.className = 'screen-content screen-active screen-fade-in';
   div.innerHTML = content;
   vpodScreen.appendChild(div);
-  resetMenuIndex();
+  if (!content.includes('album-carousel')) {
+    resetMenuIndex();
+  }
   updateHotBarTime();
 }
 
@@ -171,6 +173,7 @@ function renderMainMenu(direction = 'forward') {
   if (hotBar && hotBar.style.display === 'none') {
     hotBar.style.display = '';
   }
+  currentMenuIndex = 0; // Always highlight first option
   renderMenuList({
     items: [
       { label: "Load Music", action: renderLoadMusic },
@@ -183,7 +186,7 @@ function renderMainMenu(direction = 'forward') {
       { label: "Settings", action: renderSettingsMenu }
     ],
     onItemClick: (idx, item) => {
-    currentMenuIndex = idx;
+      currentMenuIndex = idx;
       if (item.action === renderAlbumsMenu) {
         goTo(renderAlbumsMenu, 0);
       } else {
@@ -191,6 +194,13 @@ function renderMainMenu(direction = 'forward') {
       }
     },
   }, direction);
+
+  // Highlight first menu item
+  masterHighlight({
+    containerSelector: '#menuList',
+    itemsSelector: 'li'
+  });
+
   updateHotBarTime();
 }
 
@@ -245,15 +255,17 @@ function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
     );
     return;
   }
+  currentMenuIndex = selectedIdx;
   renderAlbumCarousel({
     albumsList: albumNames,
     onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album, idx); },
-    selectedIdx
+    selectedIdx: currentMenuIndex
   }, direction);
 }
 
 function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist = null) {
   const albumObj = albums[album];
+  currentMenuIndex = 0; // Ensure first song is highlighted
   renderSongList({
     songs: albumObj.songs,
     albumCover: albumObj.cover, 
@@ -267,89 +279,66 @@ function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist
       }
     }
   }, direction);
+
+  // Highlight first song
+  masterHighlight({
+    containerSelector: '#songsList',
+    itemsSelector: '.menu-list-song',
+    tracks: albumObj.songs,
+    albumArtSelector: '.album-list-right img.album-cover'
+  });
 }
 
 // -- Album Carousel --
 
-let carouselUpdateTimeout = null;
-
 function setCarouselAlbum(idx, albumNames) {
-    const carousel = document.getElementById('albumCarousel');
-    const title = document.getElementById('albumTitle');
-    const spacing = 80; // px between covers
+  const carousel = document.getElementById('albumCarousel');
+  const title = document.getElementById('albumTitle');
+  const visibleRange = 3; // Show center ± 3 albums
 
-    Array.from(carousel.children).forEach((el, i) => {
-      el.className = 'carousel-album';
-      el.style.zIndex = '';
-      el.style.opacity = '';
-      el.style.filter = '';
-      el.style.transform = '';
+  Array.from(carousel.children).forEach((el, i) => {
+    const offset = i - idx;
+    el.className = 'carousel-album';
+    el.style.zIndex = '';
+    el.style.opacity = '';
+    el.style.filter = '';
+    el.style.transform = '';
 
-      if (i === idx) {
-        el.classList.add('carousel-album-center');
-        el.style.transform = `translate(-50%, -50%) scale(1.25) rotateY(0deg)`;
-        el.style.zIndex = 10;
-        el.style.opacity = 1;
-        el.style.filter = 'brightness(1) blur(0px)';
-      } else if (i < idx) {
-        el.classList.add('carousel-album-left');
-        const offset = spacing * (idx - i);
-        el.style.transform = `translate(calc(-50% - ${offset}px), -50%) scale(0.95) rotateY(55deg)`;
-        el.style.zIndex = 5 - (idx - i);
-        el.style.opacity = 0.7;
-        el.style.filter = 'brightness(0.85) blur(0.5px)';
-      } else if (i > idx) {
-        el.classList.add('carousel-album-right');
-        const offset = spacing * (i - idx);
-        el.style.transform = `translate(calc(-50% + ${offset}px), -50%) scale(0.95) rotateY(-55deg)`;
-        el.style.zIndex = 5 - (i - idx);
-        el.style.opacity = 0.7;
-        el.style.filter = 'brightness(0.85) blur(0.5px)';
-      }
-    });
-    title.textContent = albumNames[idx] || '';
-}
-
-function setScrollingAlbum(idx) {
-  console.log("Setting scrolling album index:", idx);
-  const albumsList = document.getElementById('albumsList');
-  Array.from(albumsList.children).forEach((el, i) => {
-    el.classList.toggle('scrolling', i === idx);
+    if (offset === 0) {
+      el.classList.add('carousel-album-center');
+      el.style.transform = `translate(-50%, -50%) scale(1.25) rotateY(0deg)`;
+      el.style.zIndex = 10;
+      el.style.opacity = 1;
+      el.style.filter = 'brightness(1) blur(0px)';
+      el.style.visibility = 'visible';
+      el.style.pointerEvents = 'auto';
+    } else if (offset < 0 && Math.abs(offset) <= visibleRange) {
+      el.classList.add('carousel-album-left');
+      const spacing = 80 * Math.abs(offset);
+      el.style.transform = `translate(calc(-50% - ${spacing}px), -50%) scale(${1 - 0.1 * Math.abs(offset)}) rotateY(55deg)`;
+      el.style.zIndex = 5 - Math.abs(offset);
+      el.style.opacity = 0.7 - 0.1 * Math.abs(offset);
+      el.style.filter = 'brightness(0.85) blur(0.5px)';
+      el.style.visibility = 'visible';
+      el.style.pointerEvents = 'auto';
+    } else if (offset > 0 && Math.abs(offset) <= visibleRange) {
+      el.classList.add('carousel-album-right');
+      const spacing = 80 * Math.abs(offset);
+      el.style.transform = `translate(calc(-50% + ${spacing}px), -50%) scale(${1 - 0.1 * Math.abs(offset)}) rotateY(-55deg)`;
+      el.style.zIndex = 5 - Math.abs(offset);
+      el.style.opacity = 0.7 - 0.1 * Math.abs(offset);
+      el.style.filter = 'brightness(0.85) blur(0.5px)';
+      el.style.visibility = 'visible';
+      el.style.pointerEvents = 'auto';
+    } else {
+      // Hide albums outside the visible range
+      el.style.opacity = 0;
+      el.style.visibility = 'hidden';
+      el.style.pointerEvents = 'none';
+      el.style.transform = 'translate(-50%, -50%) scale(0.7) rotateY(0deg)';
+    }
   });
-  const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
-  if (albumNames[idx]) {
-    const albumArt = document.getElementById('albumArt');
-    const cover = albums[albumNames[idx]].cover;
-    albumArt.innerHTML = `<img src="${cover}" class="album-cover" alt="Album Cover">`;
-    console.log("Displayed album art for:", albumNames[idx], cover);
-  }
-}
-
-function clearScrollingAlbum(idx) {
-  console.log("Clearing scrolling album index:", idx);
-  const albumsList = document.getElementById('albumsList');
-  if (albumsList.children[idx]) {
-    albumsList.children[idx].classList.remove('scrolling');
-  }
-}
-
-// --- SET SCROLLING SONG ---
-
-function setScrollingSong(idx) {
-  console.log("Setting scrolling song index:", idx);
-  const songsList = document.getElementById('songsList');
-  if (!songsList) return; 
-  Array.from(songsList.children).forEach((el, i) => {
-    el.classList.toggle('scrolling', i === idx);
-  });
-}
-
-function clearScrollingSong(idx) {
-  console.log("Clearing scrolling song index:", idx);
-  const songsList = document.getElementById('songsList');
-  if (songsList.children[idx]) {
-    songsList.children[idx].classList.remove('scrolling');
-  }
+  title.textContent = albumNames[idx] || '';
 }
 
 // --- ARTISTS MENU ---
@@ -379,6 +368,7 @@ function renderArtistsMenu(direction = 'forward') {
     );
     return;
   }
+  currentMenuIndex = 0; // Ensure first artist is highlighted
   renderMenuList({
     title: "Artists",
     items: artistNames.map(name => ({ label: name })),
@@ -386,6 +376,12 @@ function renderArtistsMenu(direction = 'forward') {
     onBack: goBack,
     id: "artistsList"
   }, direction);
+
+  // Highlight first artist
+  masterHighlight({
+    containerSelector: '#artistsList',
+    itemsSelector: 'li'
+  });
 }
 
 function renderArtistAlbumsMenu(direction = 'forward', artist, selectedIdx = 0) {
@@ -911,7 +907,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>0.16</b><br>
+        Version: <b>1.1</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!

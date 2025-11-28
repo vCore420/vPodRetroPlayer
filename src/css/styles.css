@@ -273,7 +273,7 @@ body, html {
   transform: scaleY(-1);
   opacity: 0.10;
   filter: blur(2px);
-  margin-top: -8px;
+  margin-top: -4px;
   pointer-events: none;
   background: linear-gradient(to bottom, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.01) 80%);
 }
@@ -696,12 +696,12 @@ body, html {
   .album-carousel-container {
     height: auto;
     min-height: 0;
-    padding-top: 2vw;
+    padding-top: 0;
   }
 
   .album-carousel {
     height: 38vw;
-    margin-bottom: 4vw;
+    margin-bottom: 10vw;
   }
 
   .carousel-album {
@@ -713,6 +713,22 @@ body, html {
     width: 24vw;
     height: 24vw;
     border-radius: 3vw;
+  }
+
+  .carousel-cover-reflect img.reflection {
+    width: 24vw;
+    height: 8vw;
+    border-radius: 2px 2px 24px 24px;
+    transform: scaleY(-1);
+    opacity: 0.10;
+    filter: blur(2px);
+    margin-top: -2vw;
+  }
+
+  .carousel-cover-reflect::after {
+    top: 100%;
+    height: 8vw;
+    border-radius: 0 0 12px 12px;
   }
 
   .carousel-album-center {

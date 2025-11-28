@@ -100,4 +100,4 @@ if ('mediaSession' in navigator) {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js');
   console.log("Service worker registered");
-}
+}  

@@ -96,12 +96,25 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
   const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
   renderScreen(`
     <div class="album-carousel-container">
+      <div style="position:absolute;bottom:8px;right:16px;z-index:20;">
+        <button id="donePlaylistBtn" title="Finish Playlist" style="
+          background:none;
+          border-radius:100%;
+          border:none;
+          box-shadow:none;
+          font-size:1em;
+          color:#0074d9;
+          cursor:pointer;
+          padding:3.5px;
+        ">
+          <i class="fa-solid fa-check"></i>
+        </button>
+      </div>
       <div class="album-carousel" id="albumCarousel"></div>
       <div class="album-title" id="albumTitle"></div>
-      <div style="text-align:center;margin-top:12px;">
+      <div style="text-align:center;margin-top:6px;">
         <span style="font-size:1em;color:#0074d9;">Select an album to add songs</span>
       </div>
-      <button id="donePlaylistBtn" style="margin-top:12px;font-size:1em;">Done</button>
     </div>
   `, direction);
 
@@ -125,6 +138,7 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
   });
   setCarouselAlbum(selectedIdx, albumNames);
 
+  // Done button handler
   document.getElementById('donePlaylistBtn').onclick = () => {
     if (!window.creatingPlaylist.tracks.length) {
       alert("Please add at least one song to your playlist.");
@@ -134,10 +148,23 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
     delete window.creatingPlaylist;
     goBack();
   };
+
   currentMenuIndex = selectedIdx;
+
+  // Register menu button as done
+  window.onPlaylistAlbumMenuDone = () => {
+    document.getElementById('donePlaylistBtn').click();
+  };
+
+  window.onPlaylistAlbumSelectionBack = () => {
+    // Find the index of the playlist being edited/created
+    const playlistIdx = playlists.findIndex(pl => pl === window.creatingPlaylist);
+    goTo(renderPlaylistSongsMenu, 'back', playlistIdx);
+  };
 }
 
 function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx = 0) {
+  window.onPlaylistAlbumMenuDone = null;
   const albumObj = albums[album];
   renderScreen(
     `<div class="album-list">
@@ -234,11 +261,6 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
         renderPlaylistsMenu('back');
       }
     };
-
-    masterHighlight({
-      containerSelector: '#playlistSongsList',
-      itemsSelector: 'li'
-    });
   }
 
   // Song click: play song
@@ -247,6 +269,15 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
       playPlaylistTrack({ tracks: tracksToShow }, idx);
     };
   });
+
+  masterHighlight({
+    containerSelector: '#playlistSongsList',
+    itemsSelector: 'li'
+  });
+
+  window.onPlaylistSongsMenuBack = () => {
+    goTo(renderPlaylistsMenu, 'back');
+  };
 }
 
 function playPlaylistTrack(playlist, idx) {
