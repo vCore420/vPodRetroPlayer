@@ -2,7 +2,6 @@
 
 function renderPlaylistsMenu(direction = 'forward') {
   renderScreen(
-    renderHotBar() +
     `<div style="display:flex;flex-direction:column;height:100%;">
       <div style="position:relative;display:flex;align-items:center;justify-content:center;height:38px;">
         <button id="addPlaylistBtn"
@@ -38,6 +37,11 @@ function renderPlaylistsMenu(direction = 'forward') {
   // User playlists click
   playlists.forEach((pl, idx) => {
     document.querySelector(`#playlistsList li[data-idx="${idx}"]`).onclick = () => renderPlaylistSongsMenu('forward', idx);
+  });
+
+  masterHighlight({
+    containerSelector: '#playlistsList',
+    itemsSelector: 'li'
   });
 }
 
@@ -136,7 +140,6 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
 function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx = 0) {
   const albumObj = albums[album];
   renderScreen(
-    renderHotBar() +
     `<div class="album-list">
       <div class="album-list-left" id="playlistSongsSelectContainer" data-playlist-select="true">
         <div id="playlistSongsSelectList"></div>
@@ -203,7 +206,6 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
     tracksToShow = playlist.tracks;
   }
   renderScreen(
-    renderHotBar() +
     `<div style="display:flex;flex-direction:column;height:100%;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         ${playlistIdx !== 'liked' ? `<button id="editPlaylistBtn" title="Add Songs" style="font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">＋</button>` : '<span></span>'}
@@ -232,6 +234,11 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
         renderPlaylistsMenu('back');
       }
     };
+
+    masterHighlight({
+      containerSelector: '#playlistSongsList',
+      itemsSelector: 'li'
+    });
   }
 
   // Song click: play song

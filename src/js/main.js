@@ -70,11 +70,18 @@ if ('mediaSession' in navigator) {
   });
   navigator.mediaSession.setActionHandler('previoustrack', () => {
     if (currentAlbumSongs.length && currentSongIndex > 0) {
+      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
+        window.logTrackSkip(currentTrack);
+      }
       playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
     }
   });
+
   navigator.mediaSession.setActionHandler('nexttrack', () => {
     if (currentAlbumSongs.length && currentSongIndex < currentAlbumSongs.length - 1) {
+      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
+        window.logTrackSkip(currentTrack);
+      }
       playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
     }
   });

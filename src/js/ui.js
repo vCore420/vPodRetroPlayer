@@ -71,31 +71,6 @@ function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "men
   });
 }
 
-function renderHotBar() {
-  return `
-    <div id="hotBar" style="
-      width:100%;height:28px;display:flex;align-items:center;justify-content:center;
-      font-size:1em;color:#222;z-index:10;">
-      <span id="hotBarTime" style="flex:1;text-align:center;font-weight:bold;"></span>
-      <span style="position:absolute;right:4px;top:2px;font-size:1.3em;">
-        <span id="hotBarBattery" title="Battery Full">
-          <svg width="40" height="36" viewBox="0 0 28 30" style="vertical-align:middle;">
-            <rect x="1" y="3" width="24" height="8" rx="2" fill="#fff" stroke="#222" stroke-width="1"/>
-            <rect x="2" y="4" width="22" height="6" rx="1" fill="url(#batteryGradient)"/>
-            <rect x="25" y="6" width="2" height="2" rx="1" fill="#222"/>
-            <defs>
-              <linearGradient id="batteryGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="60%" stop-color="#0074d9" />
-                <stop offset="100%" stop-color="#4fc3f7" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </span>
-      </span>
-    </div>
-  `;
-}
-
 // Update time
 function updateHotBarTime() {
   const el = document.getElementById('hotBarTime');
@@ -152,7 +127,6 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
 
 function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false, albumCover }, direction = 'forward') {
   renderScreen(
-    renderHotBar() +
     `<div class="album-list">
       <div class="album-list-left" id="songsListContainer" ${selectMode ? 'data-playlist-select="true"' : ''}>
         <div id="songsList"></div>
@@ -193,6 +167,10 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
 // --- MAIN MENU ---
 
 function renderMainMenu(direction = 'forward') {
+  const hotBar = document.getElementById('hotBar');
+  if (hotBar && hotBar.style.display === 'none') {
+    hotBar.style.display = '';
+  }
   renderMenuList({
     items: [
       { label: "Load Music", action: renderLoadMusic },
@@ -205,14 +183,13 @@ function renderMainMenu(direction = 'forward') {
       { label: "Settings", action: renderSettingsMenu }
     ],
     onItemClick: (idx, item) => {
-  currentMenuIndex = idx;
-    if (item.action === renderAlbumsMenu) {
-      goTo(renderAlbumsMenu, 0);
-    } else {
-      goTo(item.action);
-    }
-  },
-    before: renderHotBar()
+    currentMenuIndex = idx;
+      if (item.action === renderAlbumsMenu) {
+        goTo(renderAlbumsMenu, 0);
+      } else {
+        goTo(item.action);
+      }
+    },
   }, direction);
   updateHotBarTime();
 }
@@ -221,7 +198,6 @@ function renderMainMenu(direction = 'forward') {
 
 function renderLoadMusic(direction = 'forward') {
   renderScreen(
-    renderHotBar() +
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <input type="file" id="fileInput" accept=".mp3,.flac,.cue,.m3u" multiple webkitdirectory directory style="display:none;">
       <button id="loadMusicBtn" class="load-music-btn">
@@ -257,6 +233,18 @@ function renderLoadingScreen(message = "Loading your music...", loaded = 0, tota
 
 function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
   const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+  if (albumNames.length === 0) {
+    renderScreen(
+      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">No music loaded</div>
+        <div style="font-size:1em;color:#444;text-align:center;">
+          Please load your music to browse albums.
+        </div>
+      </div>`,
+      direction
+    );
+    return;
+  }
   renderAlbumCarousel({
     albumsList: albumNames,
     onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album, idx); },
@@ -369,12 +357,23 @@ function clearScrollingSong(idx) {
 function renderArtistsMenu(direction = 'forward') {
   const artistSet = new Set(tracks.map(t => t.artist || 'Unknown Artist'));
   const artistNames = Array.from(artistSet).sort((a, b) => a.localeCompare(b));
+  if (artistNames.length === 0 || tracks.length === 0) {
+    renderScreen(
+      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">No music loaded</div>
+        <div style="font-size:1em;color:#444;text-align:center;">
+          Please load your music to browse artists.
+        </div>
+      </div>`,
+      direction
+    );
+    return;
+  }
   renderMenuList({
     title: "Artists",
     items: artistNames.map(name => ({ label: name })),
     onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(renderArtistAlbumsMenu, item.label); },
     onBack: goBack,
-    before: renderHotBar(),
     id: "artistsList"
   }, direction);
 }
@@ -393,6 +392,18 @@ function renderArtistAlbumsMenu(direction = 'forward', artist, selectedIdx = 0) 
 // --- All SONGS MENU ---
 
 function renderAllSongsMenu(direction = 'forward') {
+  if (!tracks.length) {
+    renderScreen(
+      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">No music loaded</div>
+        <div style="font-size:1em;color:#444;text-align:center;">
+          Please load your music to view all songs.
+        </div>
+      </div>`,
+      direction
+    );
+    return;
+  }
   // Get sort order from localStorage or default to title
   const sortOrder = localStorage.getItem('allSongsSortOrder') || 'title';
   let currentSortOrder = sortOrder;
@@ -412,7 +423,6 @@ function renderAllSongsMenu(direction = 'forward') {
   }
 
   renderScreen(
-    renderHotBar() +
     `<div style="display:flex;flex-direction:column;height:90%;">
       <div style="position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:4px;height:38px;">
         <span style="font-size:1.1em;font-weight:bold;display:block;margin:0 auto;">All Songs</span>
@@ -516,7 +526,6 @@ function renderSuggestedMenu(direction = 'forward') {
   const suggested = window.getSuggestedTracks ? window.getSuggestedTracks(tracks, 20) : [];
   if (!suggested.length) {
     renderScreen(
-      renderHotBar() +
       `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
         <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">Suggested Songs</div>
         <div style="font-size:1em;color:#444;text-align:center;">
@@ -580,9 +589,7 @@ function renderNowPlayingScreen(direction = 'forward') {
   const trackId = currentTrack ? `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}` : '';
   const rating = songRatings[trackId];
   renderScreen(
-    renderHotBar() +
-    `
-    <div class="nowplaying-container">
+    `<div class="nowplaying-container">
       <div class="nowplaying-info">
         <div class="nowplaying-cover">
           <img id="nowplayingCover" src="${getCurrentCover()}" alt="Album Cover">
@@ -639,6 +646,14 @@ function updateNowPlayingProgress() {
   if (bar) {
     bar.style.width = duration ? `${(current / duration) * 100}%` : '0%';
   }
+
+  if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+    navigator.mediaSession.setPositionState({
+      duration: duration,
+      playbackRate: audioPlayer.playbackRate,
+      position: current
+    });
+  }
 }
 
 // --- SETTINGS MENU ---
@@ -657,7 +672,6 @@ function renderSettingsMenu(direction = 'forward') {
     onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); },
     onBack: goBack,
     id: "settingsList",
-    before: renderHotBar()
   }, direction);
   updateHotBarTime();
 }
@@ -704,7 +718,6 @@ function renderEqualizerMenu(direction = 'forward', selectedIdx = null) {
         }
         currentMenuIndex = idx;
     },
-    before: renderHotBar(),
     onBack: goBack,
     id: "eqList"
   }, direction);
@@ -739,7 +752,6 @@ function renderDateTimeMenu(direction = 'forward') {
     : `${day}/${month}/${year}`;
 
   renderScreen(
-    renderHotBar() +
   `<div style="padding:32px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
     <div id="dateTimeTime" style="font-size:2em;font-weight:bold;margin-bottom:8px;">${timeStr}</div>
     <div id="dateTimeDate" style="font-size:1.2em;color:#444;margin-bottom:24px;">${dateStr}</div>
@@ -825,7 +837,6 @@ function renderColourMenu(direction = 'forward') {
   let selectedIdx = parseInt(localStorage.getItem('vpodColourIdx') || "0", 10);
 
   renderScreen(
-    renderHotBar() +
     `<div style="padding:4px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div style="font-size:1.2em;font-weight:bold;margin-bottom:18px;">Choose iPod Colour</div>
       <div id="colourGrid" style="display:grid;grid-template-columns:repeat(4, 64px);gap:14px;">
@@ -885,13 +896,12 @@ function renderColourMenu(direction = 'forward') {
 // UPDATE VERSION HERE
 function renderAboutMenu(direction = 'forward') {
   renderScreen(
-    renderHotBar() +
     `<div style="padding:68px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">About vRetro Player</div>
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>0.15</b><br>
+        Version: <b>0.16</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -927,7 +937,6 @@ function renderUserStatsMenu(direction = 'forward') {
     .sort((a, b) => (b[1].plays || 0) - (a[1].plays || 0))[0];
 
   renderScreen(
-    renderHotBar() +
     `<div style="padding:2px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">User Stats</div>
       <div style="background:#f6f6f8;border-radius:16px;padding:18px 24px;box-shadow:0 2px 8px #0001;margin-bottom:18px;">
