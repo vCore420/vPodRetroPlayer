@@ -11,6 +11,10 @@ body {
   justify-content: center;
 }
 
+body, html {
+  overscroll-behavior-y: contain;
+}
+
 #fileInput {
   display: block;
   margin: 20px auto 30px auto;
@@ -34,6 +38,7 @@ body {
   border: 2.5px solid #d4d4d8;       
   position: relative;
   overflow: visible;
+  overscroll-behavior: contain;
 }
 
 .vpod-container::before {
