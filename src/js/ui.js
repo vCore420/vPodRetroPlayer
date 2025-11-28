@@ -355,8 +355,18 @@ function clearScrollingSong(idx) {
 // --- ARTISTS MENU ---
 
 function renderArtistsMenu(direction = 'forward') {
-  const artistSet = new Set(tracks.map(t => t.artist || 'Unknown Artist'));
-  const artistNames = Array.from(artistSet).sort((a, b) => a.localeCompare(b));
+  // Group artists by lowercase name
+  const artistMap = {};
+  tracks.forEach(t => {
+    const raw = t.artist || 'Unknown Artist';
+    const key = raw.trim().toLowerCase();
+    if (!artistMap[key]) artistMap[key] = raw;
+  });
+  // Prepare display names (capitalize each word)
+  const artistNames = Object.values(artistMap)
+    .map(name => name.replace(/\b\w/g, c => c.toUpperCase()))
+    .sort((a, b) => a.localeCompare(b));
+
   if (artistNames.length === 0 || tracks.length === 0) {
     renderScreen(
       `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
