@@ -583,6 +583,26 @@ body, html {
   transform: scale(0.98);
 }
 
+/* Hide scrollbars */
+body, html, .vpod-screen, .screen-content, .album-list-left, .album-list-right, .album-list, #songsList, #allSongsList, #playlistSongsList, #playlistSongsSelectList, #albumCarousel {
+  scrollbar-width: none; 
+  -ms-overflow-style: none;  
+}
+
+body::-webkit-scrollbar,
+.vpod-screen::-webkit-scrollbar,
+.screen-content::-webkit-scrollbar,
+.album-list-left::-webkit-scrollbar,
+.album-list-right::-webkit-scrollbar,
+.album-list::-webkit-scrollbar,
+#songsList::-webkit-scrollbar,
+#allSongsList::-webkit-scrollbar,
+#playlistSongsList::-webkit-scrollbar,
+#playlistSongsSelectList::-webkit-scrollbar,
+#albumCarousel::-webkit-scrollbar {
+  display: none;                
+}
+
 .screen-fade-in {
   opacity: 0;
   animation: fadeIn 0.35s forwards;

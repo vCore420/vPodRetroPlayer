@@ -29,7 +29,8 @@ function playTrackFromAlbum(track, albumSongs) {
   
   const activeScreen = document.querySelector('.screen-content.screen-active');
   if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
-    renderNowPlayingScreen('forward');
+    renderNowPlayingScreen(); // Remove 'forward' argument for a neutral transition
+    console.log("Re-rendering Now Playing screen for new track:", track.title);
   }
 }
 

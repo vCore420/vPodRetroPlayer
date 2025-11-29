@@ -294,7 +294,7 @@ function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist
 function setCarouselAlbum(idx, albumNames) {
   const carousel = document.getElementById('albumCarousel');
   const title = document.getElementById('albumTitle');
-  const visibleRange = 3; // Show center ± 3 albums
+  const visibleRange = 5; // Show center ± 5 albums
 
   Array.from(carousel.children).forEach((el, i) => {
     const offset = i - idx;
@@ -339,6 +339,26 @@ function setCarouselAlbum(idx, albumNames) {
     }
   });
   title.textContent = albumNames[idx] || '';
+}
+
+// --- SET SCROLLING SONG ---
+
+
+function setScrollingSong(idx) {
+  console.log("Setting scrolling song index:", idx);
+  const songsList = document.getElementById('songsList');
+  if (!songsList) return; 
+  Array.from(songsList.children).forEach((el, i) => {
+    el.classList.toggle('scrolling', i === idx);
+  });
+}
+
+function clearScrollingSong(idx) {
+  console.log("Clearing scrolling song index:", idx);
+  const songsList = document.getElementById('songsList');
+  if (songsList.children[idx]) {
+    songsList.children[idx].classList.remove('scrolling');
+  }
 }
 
 // --- ARTISTS MENU ---
@@ -440,7 +460,7 @@ function renderAllSongsMenu(direction = 'forward') {
       <div style="margin-bottom:2px;">
         <input id="songSearchInput" type="text" placeholder="Search songs..." style="width:92%;max-width:320px;margin-left:8px;padding:4px 10px;border-radius:8px;border:1px solid #ccc;font-size:0.95em;">
       </div>
-      <div class="album-list" style="height:calc(100% - 60px);">
+      <div class="album-list" style="height:90%;">
         <div class="album-list-left" id="allSongsListContainer" style="height:100%;overflow-y:auto;">
           <div id="allSongsList"></div>
         </div>
@@ -902,31 +922,19 @@ function renderColourMenu(direction = 'forward') {
 // UPDATE VERSION HERE
 function renderAboutMenu(direction = 'forward') {
   renderScreen(
-    `<div style="padding:68px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+    `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">About vRetro Player</div>
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>1.1</b><br>
+        Version: <b>1.2</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
       </div>
-      <div style="background:#f6f6f8;border-radius:16px;padding:18px 24px;box-shadow:0 2px 8px #0001;margin-bottom:18px;">
-        <div style="font-size:1.1em;font-weight:bold;margin-bottom:8px;">User Info</div>
-        <div style="font-size:1em;color:#222;">
-          Name: <b>iPod User</b><br>
-          Model: <b>vPod Classic</b><br>
-          Serial: <b>#${(localStorage.getItem('vpodSerial') || (Math.floor(Math.random()*1e8).toString(16)) )}</b>
-        </div>
-      </div>
     </div>`,
     direction
   );
-  // Save serial if not set
-  if (!localStorage.getItem('vpodSerial')) {
-    localStorage.setItem('vpodSerial', document.querySelector('.background #aboutSerial').textContent);
-  }
 }
 
 function renderUserStatsMenu(direction = 'forward') {
@@ -944,10 +952,12 @@ function renderUserStatsMenu(direction = 'forward') {
 
   renderScreen(
     `<div style="padding:2px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
-      <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">User Stats</div>
-      <div style="background:#f6f6f8;border-radius:16px;padding:18px 24px;box-shadow:0 2px 8px #0001;margin-bottom:18px;">
-        <div style="font-size:1.1em;font-weight:bold;margin-bottom:8px;">Music Traits</div>
+      <div style="font-size:1.1em;font-weight:bold;margin-bottom:8px;margin-top:8px;">User Info</div>
+      <div style="padding:10px 18px;">
         <div style="font-size:1em;color:#222;">
+          Name: <b>iPod User</b><br>
+          Model: <b>vPod Classic</b><br>
+          Serial: <b>#${(localStorage.getItem('vpodSerial') || (Math.floor(Math.random()*1e8).toString(16)) )}</b><br>
           Total Songs Played: <b>${totalPlays}</b><br>
           Total Songs Skipped: <b>${totalSkips}</b><br>
           Total Songs Liked: <b>${totalLikes}</b><br>
@@ -959,6 +969,10 @@ function renderUserStatsMenu(direction = 'forward') {
     </div>`,
     direction
   );
+  // Save serial if not set
+  if (!localStorage.getItem('vpodSerial')) {
+    localStorage.setItem('vpodSerial', document.querySelector('.background #aboutSerial').textContent);
+  }
 }
 
 // Observe Now Playing screen for changes and attach listeners
