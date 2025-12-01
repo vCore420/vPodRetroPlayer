@@ -583,6 +583,11 @@ body, html {
   transform: scale(0.98);
 }
 
+.recap-slide {
+  transition: transform 0.4s cubic-bezier(.4,1.3,.6,1), opacity 0.3s;
+  will-change: transform, opacity;
+}
+
 /* Hide scrollbars */
 body, html, .vpod-screen, .screen-content, .album-list-left, .album-list-right, .album-list, #songsList, #allSongsList, #playlistSongsList, #playlistSongsSelectList, #albumCarousel {
   scrollbar-width: none; 

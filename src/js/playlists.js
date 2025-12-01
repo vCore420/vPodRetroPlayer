@@ -47,8 +47,9 @@ function renderPlaylistsMenu(direction = 'forward') {
 
 function getLikedTracks() {
   return tracks.filter(track => {
-    const trackId = `${track.title}|${track.artist}|${track.album}`;
-    return songRatings[trackId] === 'like';
+    const trackId = getTrackId(track);
+    const habit = userHabits[trackId];
+    return habit && habit.likeCount > 0;
   });
 }
 

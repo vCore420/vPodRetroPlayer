@@ -3,6 +3,14 @@
 // Data structure for user habits
 let userHabits = JSON.parse(localStorage.getItem('userHabits')) || {};
 
+// Get/Set last stats reset timestamp
+function getLastStatsReset() {
+  return parseInt(localStorage.getItem('userStatsLastReset') || '0', 10);
+}
+function setLastStatsReset(ts) {
+  localStorage.setItem('userStatsLastReset', ts.toString());
+}
+
 // Get a unique track ID
 function getTrackId(track) {
   return `${track.title}|${track.artist}|${track.album}`;
@@ -11,7 +19,17 @@ function getTrackId(track) {
 // Log when a song is played
 function logTrackPlay(track) {
   const id = getTrackId(track);
-  if (!userHabits[id]) userHabits[id] = { plays: 0, lastPlayed: 0, skips: 0, liked: false, disliked: false };
+  if (!userHabits[id]) userHabits[id] = {
+    plays: 0,
+    lastPlayed: 0,
+    skips: 0,
+    liked: false,         // UI: liked this week
+    disliked: false,      // UI: disliked this week
+    likeCount: 0,         // Lifetime likes
+    dislikeCount: 0,      // Lifetime dislikes
+    weeklyLikes: 0,       // Likes this week
+    weeklyDislikes: 0     // Dislikes this week
+  };
   userHabits[id].plays += 1;
   userHabits[id].lastPlayed = Date.now();
   saveUserHabits();
@@ -20,7 +38,17 @@ function logTrackPlay(track) {
 // Log when a song is skipped (next/prev before halfway)
 function logTrackSkip(track) {
   const id = getTrackId(track);
-  if (!userHabits[id]) userHabits[id] = { plays: 0, lastPlayed: 0, skips: 0, liked: false, disliked: false };
+  if (!userHabits[id]) userHabits[id] = {
+    plays: 0,
+    lastPlayed: 0,
+    skips: 0,
+    liked: false,         // UI: liked this week
+    disliked: false,      // UI: disliked this week
+    likeCount: 0,         // Lifetime likes
+    dislikeCount: 0,      // Lifetime dislikes
+    weeklyLikes: 0,       // Likes this week
+    weeklyDislikes: 0     // Dislikes this week
+  };
   userHabits[id].skips += 1;
   saveUserHabits();
 }
@@ -28,9 +56,22 @@ function logTrackSkip(track) {
 // Log when a song is liked/disliked
 function setTrackRating(track, rating) {
   const id = getTrackId(track);
-  if (!userHabits[id]) userHabits[id] = { plays: 0, lastPlayed: 0, skips: 0, liked: false, disliked: false };
-  userHabits[id].liked = rating === 'like';
-  userHabits[id].disliked = rating === 'dislike';
+  if (!userHabits[id]) userHabits[id] = { plays: 0, lastPlayed: 0, skips: 0, liked: false, disliked: false, likeCount: 0, dislikeCount: 0, weeklyLikes: 0, weeklyDislikes: 0, lastLiked: 0 };
+  if (rating === 'like') {
+    userHabits[id].liked = true;
+    userHabits[id].likeCount = (userHabits[id].likeCount || 0) + 1;
+    userHabits[id].weeklyLikes = (userHabits[id].weeklyLikes || 0) + 1;
+    userHabits[id].lastLiked = Date.now();
+    userHabits[id].disliked = false;
+  } else if (rating === 'dislike') {
+    userHabits[id].disliked = true;
+    userHabits[id].dislikeCount = (userHabits[id].dislikeCount || 0) + 1;
+    userHabits[id].weeklyDislikes = (userHabits[id].weeklyDislikes || 0) + 1;
+    userHabits[id].liked = false;
+  } else {
+    userHabits[id].liked = false;
+    userHabits[id].disliked = false;
+  }
   saveUserHabits();
 }
 
@@ -41,68 +82,85 @@ function saveUserHabits() {
 
 // Get suggested tracks
 function getSuggestedTracks(tracks, limit = 20) {
+  const now = Date.now();
+  const habits = JSON.parse(localStorage.getItem('userHabits')) || {};
+
+  // Gather seed data from liked songs
   const seedArtists = new Set();
   const seedAlbums = new Set();
-  Object.entries(userHabits).forEach(([id, habit]) => {
-    if (habit.liked || habit.plays > 0) {
+  const seedGenres = new Set();
+  const seedBPMs = [];
+  Object.entries(habits).forEach(([id, habit]) => {
+    if (habit.likeCount > 0) {
       const [title, artist, album] = id.split('|');
-      if (artist) seedArtists.add(artist);
-      if (album) seedAlbums.add(album);
+      const track = tracks.find(t => getTrackId(t) === id);
+      seedArtists.add(artist);
+      seedAlbums.add(album);
+      if (track && track.genre) seedGenres.add(track.genre);
     }
   });
 
-  const albumSuggestionCount = {};
+  // Helper: score recency of last like
+  function recencyScore(habit) {
+    if (!habit.lastLiked) return 0;
+    const weeksAgo = (now - habit.lastLiked) / (7 * 24 * 3600 * 1000);
+    if (weeksAgo < 1) return 5;
+    if (weeksAgo < 4) return 2;
+    return 0;
+  }
 
-  const scored = tracks
-    .map(track => {
-      const id = getTrackId(track);
-      const habit = userHabits[id] || {};
-      let score = 0;
-      // Habit-based scoring
-      if (habit.liked) score += 10;
-      if (habit.disliked) score -= 10;
-      score += (habit.plays || 0) * 2;
-      score -= (habit.skips || 0);
-      if (habit.lastPlayed && Date.now() - habit.lastPlayed < 7 * 24 * 3600 * 1000) score += 5;
-      // Similarity scoring: only for tracks with no habit data
-      if (
-        !habit.liked &&
-        !habit.plays &&
-        !habit.disliked &&
-        !habit.skips
-      ) {
-        if (seedAlbums.has(track.album)) score += 1; // Lower album bonus
-        if (seedArtists.has(track.artist)) score += 2; // Lower artist bonus
-      }
-      return { track, score, habit };
-    })
-    // Only include tracks with at least one play, like, dislike, skip, or similarity
-    .filter(obj =>
-      obj.habit.plays > 0 ||
-      obj.habit.liked ||
-      obj.habit.disliked ||
-      obj.habit.skips > 0 ||
-      (seedArtists.has(obj.track.artist) && !obj.habit.plays && !obj.habit.liked && !obj.habit.disliked && !obj.habit.skips) ||
-      (seedAlbums.has(obj.track.album) && !obj.habit.plays && !obj.habit.liked && !obj.habit.disliked && !obj.habit.skips)
-    )
-    .sort((a, b) => b.score - a.score)
-    // Limit number of suggestions per album
-    .filter(obj => {
-      const album = obj.track.album;
-      albumSuggestionCount[album] = (albumSuggestionCount[album] || 0) + 1;
-      return albumSuggestionCount[album] <= 2; // max 2 per album
-    });
+  // Score each track
+  const scored = tracks.map(track => {
+    const id = getTrackId(track);
+    const habit = habits[id] || {};
+    let score = 0;
+
+    // Push songs with low play count
+    if ((habit.plays || 0) < 3) score += 4 - (habit.plays || 0);
+
+    // Lifetime likes
+    score += (habit.likeCount || 0) * 2;
+
+    // Weekly likes
+    score += (habit.weeklyLikes || 0) * 3;
+
+    // Recency of last like
+    score += recencyScore(habit);
+
+    // Similarity to liked songs
+    if (seedArtists.has(track.artist)) score += 2;
+    if (seedAlbums.has(track.album)) score += 1;
+    if (seedGenres.has(track.genre)) score += 2;
+
+    // Penalize disliked songs
+    if (habit.disliked || habit.weeklyDislikes > 0) score -= 8;
+
+    // Penalize heavily played songs
+    if ((habit.plays || 0) > 10) score -= 2;
+
+    return { track, score, habit };
+  });
+
+  // Only suggest songs not heavily played or liked this week
+  const filtered = scored.filter(obj =>
+    (obj.habit.plays || 0) < 10 &&
+    !obj.habit.liked &&
+    !obj.habit.disliked
+  );
+
+  // Sort and limit
+  filtered.sort((a, b) => b.score - a.score);
 
   // Debug: Show top 5 suggestions
   console.log("Top Suggestions:");
-  scored.slice(0, 5).forEach(obj => {
+  filtered.slice(0, 5).forEach(obj => {
     console.log(
       `${obj.track.title} (${obj.track.artist}) | Score: ${obj.score}`,
       obj.habit
     );
   });
 
-  return scored.slice(0, limit).map(obj => obj.track);
+  return filtered.slice(0, limit).map(obj => obj.track);
 }
 
 // Debug summary

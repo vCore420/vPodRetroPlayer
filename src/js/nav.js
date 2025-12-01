@@ -6,7 +6,12 @@ function goTo(screenFn, ...args) {
   if (navStack.length > 1) {
     const prev = navStack[navStack.length - 2];
     if (prev.fn === renderAlbumsMenu) {
-      prev.args[1] = args[1] !== undefined ? args[1] : 0;
+      // Use the index being clicked, not currentMenuIndex (which may be 0)
+      if (args[1] !== undefined) {
+        prev.args[1] = args[1];
+      } else {
+        prev.args[1] = currentMenuIndex;
+      }
     }
     if (prev.fn === renderArtistAlbumsMenu) {
       prev.args[2] = args[1] !== undefined ? args[1] : 0;
@@ -24,9 +29,6 @@ function goBack() {
     navStack.pop();
     const { fn, args } = navStack[navStack.length - 1];
     args[0] = 'back'; // Set direction to 'back'
-    if (fn === renderAlbumsMenu) {
-      args[1] = currentMenuIndex;
-    }
     console.log("Going back to:", fn.name, "with args:", args);
     fn(...args);
   }
@@ -111,8 +113,11 @@ document.getElementById('confirmBtn').onclick = () => {
   if (albumCarousel && albumCarousel.children.length) {
     let albumNames = [];
     if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-      const artist = navStack[navStack.length - 1].args[1];
-      albumNames = Object.keys(albums).filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+      const artistKey = navStack[navStack.length - 1].args[1];
+      albumNames = Object.keys(albums).filter(
+        albumName =>
+          (albums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
+      );
     } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist) {
       albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
     } else {
@@ -123,8 +128,8 @@ document.getElementById('confirmBtn').onclick = () => {
       if (window.creatingPlaylist) {
         goTo(renderSongSelectionForPlaylist, album, currentMenuIndex);
       } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-        const artist = navStack[navStack.length - 1].args[1];
-        goTo(renderAlbumSongsMenu, album, currentMenuIndex, artist);
+        const artistKey = navStack[navStack.length - 1].args[1];
+        goTo(renderAlbumSongsMenu, album, currentMenuIndex, artistKey);
       } else {
         goTo(renderAlbumSongsMenu, album, currentMenuIndex);
       }
@@ -158,8 +163,7 @@ document.getElementById('confirmBtn').onclick = () => {
 
   // 6. Colour menu confirm
   if (document.getElementById('colourGrid')) {
-    if (window.onColourMenuScroll) window.onColourMenuScroll(direction);
-    highlightColour(currentMenuIndex);
+    if (window.onColourMenuScroll) window.onColourMenuConfirm();
     return;
   }
 
@@ -271,7 +275,14 @@ function scrollMenu(direction) {
   console.log("Scrolling menu, direction:", direction);
   // Colour menu disk scroll
   if (document.getElementById('colourGrid')) {
-    if (window.onColourMenuScroll) window.onColourMenuScroll(direction);
+    if (window.onColourMenuScroll) {
+      window.onColourMenuScroll(direction);
+      return;
+    }
+  }
+
+  if (typeof window.onRecapScroll === 'function' && document.getElementById('recapSlideShow')) {
+    window.onRecapScroll(direction);
     return;
   }
 
@@ -343,10 +354,20 @@ function scrollMenu(direction) {
   // Carousel logic for albums
   if (menu.id === 'albumCarousel') {
     let albumNames = [];
-    if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-      const artist = navStack[navStack.length - 1].args[1];
-      albumNames = Object.keys(albums).filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
-    } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist) {
+    if (
+      navStack.length > 0 &&
+      navStack[navStack.length - 1].fn === renderArtistAlbumsMenu
+    ) {
+      // Use the same filtered array as in renderArtistAlbumsMenu
+      const artistKey = navStack[navStack.length - 1].args[1];
+      albumNames = Object.keys(albums).filter(
+        albumName =>
+          (albums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
+      );
+    } else if (
+      navStack.length > 0 &&
+      navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist
+    ) {
       albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
     } else {
       albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));

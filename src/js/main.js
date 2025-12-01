@@ -19,6 +19,32 @@ let originalAlbumSongs = null;
 let originalSongIndex = -1;
 let songRatings = JSON.parse(localStorage.getItem('songRatings')) || {}; 
 
+// Try Reset weekly stats on app start
+function maybeResetWeeklyStats() {
+  const now = new Date();
+  const lastReset = getLastStatsReset();
+  const isMonday = now.getDay() === 1;
+  const isEightAM = now.getHours() >= 8;
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1, 8, 0, 0, 0).getTime();
+
+  if (isMonday && isEightAM && lastReset < weekStart) {
+    let userHabits = JSON.parse(localStorage.getItem('userHabits')) || {};
+    // Save last week's stats
+    localStorage.setItem('lastWeekStats', JSON.stringify(userHabits));
+    Object.keys(userHabits).forEach(id => {
+      userHabits[id].plays = 0;
+      userHabits[id].skips = 0;
+      userHabits[id].liked = false;
+      userHabits[id].disliked = false;
+      userHabits[id].weeklyLikes = 0;
+      userHabits[id].weeklyDislikes = 0;
+    });
+    localStorage.setItem('userHabits', JSON.stringify(userHabits));
+    setLastStatsReset(weekStart);
+    console.log("User stats reset for new week:", new Date(weekStart));
+  }
+}
+
 // --- SPLASH & APP START ---
 
 function fadeOutSplashAndStart() {
@@ -41,6 +67,7 @@ function startApp() {
 window.onload = () => {
   const savedColour = localStorage.getItem('vpodColour');
   if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
+  maybeResetWeeklyStats();
   fadeOutSplashAndStart();
 };
 

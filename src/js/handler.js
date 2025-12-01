@@ -91,14 +91,15 @@ function handleFiles(e) {
     audioFiles.forEach(file => {
       window.jsmediatags.read(file, {
         onSuccess: tag => {
-          const { title, artist, album } = tag.tags;
+          const { title, artist, album, genre } = tag.tags;
           console.log("Read tags for:", file.name, tag.tags);
           if (!tracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
             tracks.push({
               file,
               title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
               artist: artist || 'Unknown Artist',
-              album: album || 'Unidentified Album'
+              album: album || 'Unidentified Album',
+              genre: genre || 'Unknown Genre'
             });
           }
           done++;

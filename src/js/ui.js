@@ -1,3 +1,6 @@
+// DEBUG: Set to true to always show Weekly Recap menu
+const DEBUG_RECAP_ALWAYS_ON = false;
+
 const defaultTimeSettings = {
   hourFormat: '24', 
   dateFormat: 'DD/MM/YYYY' 
@@ -124,6 +127,7 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
     document.getElementById('donePlaylistBtn').onclick = onDone;
   }
   // Set currentMenuIndex for scroll wheel navigation
+  setCarouselAlbum(selectedIdx, albumsList);
   currentMenuIndex = selectedIdx;
 }
 
@@ -168,23 +172,36 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
 
 // --- MAIN MENU ---
 
+function isRecapWindow() {
+  if (typeof DEBUG_RECAP_ALWAYS_ON !== 'undefined' && DEBUG_RECAP_ALWAYS_ON) return true;
+  const now = new Date();
+  return now.getDay() === 1 && now.getHours() >= 8 && now.getHours() < 20;
+}
+
 function renderMainMenu(direction = 'forward') {
   const hotBar = document.getElementById('hotBar');
   if (hotBar && hotBar.style.display === 'none') {
     hotBar.style.display = '';
   }
-  currentMenuIndex = 0; // Always highlight first option
+  currentMenuIndex = 0;
+
+  const menuItems = [
+    { label: "Load Music", action: renderLoadMusic },
+    { label: "Now Playing", action: renderNowPlayingScreen },
+    { label: "Playlists", action: renderPlaylistsMenu }, 
+    { label: "Artists", action: renderArtistsMenu },
+    { label: "Albums", action: renderAlbumsMenu },
+    { label: "All Songs", action: renderAllSongsMenu },
+    { label: "Suggested", action: renderSuggestedMenu },
+    { label: "Settings", action: renderSettingsMenu }
+  ];
+
+  if (isRecapWindow()) {
+    menuItems.splice(1, 0, { label: "Weekly Recap", action: renderWeeklyRecapMenu });
+  }
+
   renderMenuList({
-    items: [
-      { label: "Load Music", action: renderLoadMusic },
-      { label: "Now Playing", action: renderNowPlayingScreen },
-      { label: "Playlists", action: renderPlaylistsMenu }, 
-      { label: "Artists", action: renderArtistsMenu },
-      { label: "Albums", action: renderAlbumsMenu },
-      { label: "All Songs", action: renderAllSongsMenu },
-      { label: "Suggested", action: renderSuggestedMenu },
-      { label: "Settings", action: renderSettingsMenu }
-    ],
+    items: menuItems,
     onItemClick: (idx, item) => {
       currentMenuIndex = idx;
       if (item.action === renderAlbumsMenu) {
@@ -195,7 +212,6 @@ function renderMainMenu(direction = 'forward') {
     },
   }, direction);
 
-  // Highlight first menu item
   masterHighlight({
     containerSelector: '#menuList',
     itemsSelector: 'li'
@@ -372,9 +388,12 @@ function renderArtistsMenu(direction = 'forward') {
     if (!artistMap[key]) artistMap[key] = raw;
   });
   // Prepare display names (capitalize each word)
-  const artistNames = Object.values(artistMap)
-    .map(name => name.replace(/\b\w/g, c => c.toUpperCase()))
-    .sort((a, b) => a.localeCompare(b));
+  const artistNames = Object.entries(artistMap)
+    .map(([key, name]) => ({
+      label: name.replace(/\b\w/g, c => c.toUpperCase()),
+      key
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   if (artistNames.length === 0 || tracks.length === 0) {
     renderScreen(
@@ -388,11 +407,11 @@ function renderArtistsMenu(direction = 'forward') {
     );
     return;
   }
-  currentMenuIndex = 0; // Ensure first artist is highlighted
+  currentMenuIndex = 0;
   renderMenuList({
     title: "Artists",
-    items: artistNames.map(name => ({ label: name })),
-    onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(renderArtistAlbumsMenu, item.label); },
+    items: artistNames,
+    onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(renderArtistAlbumsMenu, item.key); },
     onBack: goBack,
     id: "artistsList"
   }, direction);
@@ -404,13 +423,18 @@ function renderArtistsMenu(direction = 'forward') {
   });
 }
 
-function renderArtistAlbumsMenu(direction = 'forward', artist, selectedIdx = 0) {
+function renderArtistAlbumsMenu(direction = 'forward', artistKey, selectedIdx = 0) {
+  // Find all albums where the normalized artist matches
   const artistAlbums = Object.keys(albums)
-    .filter(albumName => (albums[albumName].artist || 'Unknown Artist') === artist);
+    .filter(albumName => (albums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey);
+
+  // Find display name for UI
+  const displayName = tracks.find(t => (t.artist || 'Unknown Artist').trim().toLowerCase() === artistKey)?.artist || artistKey;
+
   renderAlbumCarousel({
     albumsList: artistAlbums,
-    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album, idx, artist); },
-    title: artist,
+    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album, idx, displayName, artistKey); },
+    title: displayName,
     selectedIdx
   }, direction);
 }
@@ -860,7 +884,9 @@ function renderColourMenu(direction = 'forward') {
     { name: "Purple", value: "linear-gradient(160deg, #f3e0ff 0%, #b39ddb 60%, #6a1b9a 100%)" }
     
   ];
-  let selectedIdx = parseInt(localStorage.getItem('vpodColourIdx') || "0", 10);
+  let selectedIdx = parseInt(localStorage.getItem('vpodColourIdx'), 10);
+  if (isNaN(selectedIdx) || selectedIdx < 0 || selectedIdx >= colours.length) selectedIdx = 0;
+  currentMenuIndex = selectedIdx;
 
   renderScreen(
     `<div style="padding:4px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
@@ -878,41 +904,42 @@ function renderColourMenu(direction = 'forward') {
     direction
   );
 
-  // Disk scroll support
+  // Disk control support
   let gridBtns = Array.from(document.querySelectorAll('.colour-btn'));
+
   function highlightColour(idx) {
-    gridBtns.forEach((btn, i) => btn.classList.toggle('active', i === currentMenuIndex));
-    gridBtns.forEach((btn, i) => btn.style.borderColor = i === currentMenuIndex ? '#0074d9' : '#ccc');
-    gridBtns.forEach((btn, i) => btn.innerHTML = i === currentMenuIndex ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : '');
+    gridBtns.forEach((btn, i) => btn.classList.toggle('active', i === idx));
+    gridBtns.forEach((btn, i) => btn.style.borderColor = i === idx ? '#0074d9' : '#ccc');
+    gridBtns.forEach((btn, i) => btn.innerHTML = i === idx ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : '');
   }
-  highlightColour(selectedIdx);
-
-  // Center button selects colour
-  window.onColourMenuConfirm = () => {
-    const idx = currentMenuIndex;
-    document.querySelector('.vpod-container').style.background = colours[idx].value;
-    localStorage.setItem('vpodColour', colours[idx].value);
-    localStorage.setItem('vpodColourIdx', idx);
-    highlightColour(idx);
-  };
-
-  // Disk scroll logic for colour grid
-  window.onColourMenuScroll = (direction) => {
-    selectedIdx += direction;
-    if (selectedIdx < 0) selectedIdx = colours.length - 1;
-    if (selectedIdx >= colours.length) selectedIdx = 0;
-    highlightColour(selectedIdx);
-  };
+  highlightColour(currentMenuIndex);
 
   gridBtns.forEach((btn, idx) => {
     btn.onclick = () => {
       currentMenuIndex = idx;
-      highlightColour(currentMenuIndex);
-      document.querySelector('.vpod-container').style.background = colours[currentMenuIndex].value;
-      localStorage.setItem('vpodColour', colours[currentMenuIndex].value);
-      localStorage.setItem('vpodColourIdx', currentMenuIndex);
+      localStorage.setItem('vpodColourIdx', idx);
+      highlightColour(idx);
+      // Only update colour, do NOT leave the menu
+      localStorage.setItem('vpodColour', colours[idx].value);
+      document.querySelector('.vpod-container').style.background = colours[idx].value;
     };
   });
+
+  window.onColourMenuConfirm = () => {
+    localStorage.setItem('vpodColour', colours[currentMenuIndex].value);
+    localStorage.setItem('vpodColourIdx', currentMenuIndex);
+    document.querySelector('.vpod-container').style.background = colours[currentMenuIndex].value;
+    // Stay on the colour menu, do NOT call renderMainMenu
+    highlightColour(currentMenuIndex);
+  };
+
+  window.onColourMenuScroll = (direction) => {
+    currentMenuIndex += direction;
+    if (currentMenuIndex < 0) currentMenuIndex = gridBtns.length - 1;
+    if (currentMenuIndex >= gridBtns.length) currentMenuIndex = 0;
+    localStorage.setItem('vpodColourIdx', currentMenuIndex);
+    highlightColour(currentMenuIndex);
+  };
 
   // Set colour on load
   const savedColour = localStorage.getItem('vpodColour');
@@ -927,7 +954,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>1.2</b><br>
+        Version: <b>1.3</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -940,38 +967,167 @@ function renderAboutMenu(direction = 'forward') {
 function renderUserStatsMenu(direction = 'forward') {
   // Gather stats from suggestions.js
   const habits = JSON.parse(localStorage.getItem('userHabits')) || {};
-  const totalPlays = Object.values(habits).reduce((sum, h) => sum + (h.plays || 0), 0);
-  const totalSkips = Object.values(habits).reduce((sum, h) => sum + (h.skips || 0), 0);
-  const totalLikes = Object.values(habits).filter(h => h.liked).length;
-  const totalDislikes = Object.values(habits).filter(h => h.disliked).length;
+  const totalLifetimePlays = Object.values(habits).reduce((sum, h) => sum + (h.plays || 0), 0);
+  const totalLifetimeSkips = Object.values(habits).reduce((sum, h) => sum + (h.skips || 0), 0);
+  const totalLifetimeLikes = Object.values(habits).reduce((sum, h) => sum + (h.likeCount || 0), 0);
+  const totalLifetimeDislikes = Object.values(habits).reduce((sum, h) => sum + (h.dislikeCount || 0), 0);
+
+  const uniquePlayed = Object.values(habits).filter(h => h.plays > 0).length;
+  const uniqueLiked = Object.values(habits).filter(h => h.likeCount > 0).length;
+  const uniqueDisliked = Object.values(habits).filter(h => h.dislikeCount > 0).length;
+  const uniqueSkipped = Object.values(habits).filter(h => h.skips > 0).length;
+
   const mostPlayed = Object.entries(habits)
     .sort((a, b) => (b[1].plays || 0) - (a[1].plays || 0))[0];
   const mostLiked = Object.entries(habits)
-    .filter(([id, h]) => h.liked)
-    .sort((a, b) => (b[1].plays || 0) - (a[1].plays || 0))[0];
+    .sort((a, b) => (b[1].likeCount || 0) - (a[1].likeCount || 0))[0];
+  const mostSkipped = Object.entries(habits)
+    .sort((a, b) => (b[1].skips || 0) - (a[1].skips || 0))[0];
+  const mostDisliked = Object.entries(habits)
+    .sort((a, b) => (b[1].dislikeCount || 0) - (a[1].dislikeCount || 0))[0];
 
   renderScreen(
-    `<div style="padding:2px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
-      <div style="font-size:1.1em;font-weight:bold;margin-bottom:8px;margin-top:8px;">User Info</div>
+    `<div style="padding:56px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;position:relative;">
+      <button id="wipeStatsBtn" title="Wipe All User Stats" style="
+        position:absolute;top:12px;right:18px;z-index:10;
+        background:none;border:none;cursor:pointer;font-size:1.5em;color:#d90429;">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+      <div style="font-size:1.1em;font-weight:bold;margin-bottom:6px;margin-top:18px;">User Info</div>
       <div style="padding:10px 18px;">
         <div style="font-size:1em;color:#222;">
           Name: <b>iPod User</b><br>
           Model: <b>vPod Classic</b><br>
           Serial: <b>#${(localStorage.getItem('vpodSerial') || (Math.floor(Math.random()*1e8).toString(16)) )}</b><br>
-          Total Songs Played: <b>${totalPlays}</b><br>
-          Total Songs Skipped: <b>${totalSkips}</b><br>
-          Total Songs Liked: <b>${totalLikes}</b><br>
-          Total Songs Disliked: <b>${totalDislikes}</b><br>
-          ${mostPlayed ? `Most Played Song: <b>${mostPlayed[0].split('|')[0]}</b> (${mostPlayed[1].plays} plays)<br>` : ''}
-          ${mostLiked ? `Most Liked Song: <b>${mostLiked[0].split('|')[0]}</b> (${mostLiked[1].plays} plays)<br>` : ''}
+          <hr style="margin:6px 0;">
+          <b>Lifetime Stats</b><br>
+          Total Songs Played: <b>${totalLifetimePlays}</b><br>
+          Total Songs Skipped: <b>${totalLifetimeSkips}</b><br>
+          Total Songs Liked: <b>${totalLifetimeLikes}</b><br>
+          Total Songs Disliked: <b>${totalLifetimeDislikes}</b><br>
+          Unique Songs Played: <b>${uniquePlayed}</b><br>
+          Unique Songs Liked: <b>${uniqueLiked}</b><br>
+          Unique Songs Disliked: <b>${uniqueDisliked}</b><br>
+          Unique Songs Skipped: <b>${uniqueSkipped}</b><br>
+          ${mostPlayed && mostPlayed[1].plays > 0 ? `Most Played Song: <b>${mostPlayed[0].split('|')[0]}</b> (${mostPlayed[1].plays} plays)<br>` : ''}
+          ${mostLiked && mostLiked[1].likeCount > 0 ? `Most Liked Song: <b>${mostLiked[0].split('|')[0]}</b> (${mostLiked[1].likeCount} likes)<br>` : ''}
+          ${mostSkipped && mostSkipped[1].skips > 0 ? `Most Skipped Song: <b>${mostSkipped[0].split('|')[0]}</b> (${mostSkipped[1].skips} skips)<br>` : ''}
+          ${mostDisliked && mostDisliked[1].dislikeCount > 0 ? `Most Disliked Song: <b>${mostDisliked[0].split('|')[0]}</b> (${mostDisliked[1].dislikeCount} dislikes)<br>` : ''}
         </div>
       </div>
     </div>`,
     direction
   );
+
+  // Trash button handler
+  document.getElementById('wipeStatsBtn').onclick = () => {
+    if (confirm("Are you sure you want to wipe all user stats? This cannot be undone.")) {
+      localStorage.removeItem('userHabits');
+      localStorage.removeItem('lastWeekStats');
+      localStorage.removeItem('userStatsLastReset');
+      // Do NOT remove playlists!
+      renderUserStatsMenu('forward');
+    }
+  };
+
   // Save serial if not set
   if (!localStorage.getItem('vpodSerial')) {
-    localStorage.setItem('vpodSerial', document.querySelector('.background #aboutSerial').textContent);
+    const serial = Math.floor(Math.random() * 1e8).toString(16);
+    localStorage.setItem('vpodSerial', serial);
+  }
+}
+
+// --- WEEKLY RECAP MENU ---
+
+function renderWeeklyRecapMenu(direction = 'forward') {
+  const lastWeek = JSON.parse(localStorage.getItem('lastWeekStats') || '{}');
+  const totalPlays = Object.values(lastWeek).reduce((sum, h) => sum + (h.plays || 0), 0);
+  const totalSkips = Object.values(lastWeek).reduce((sum, h) => sum + (h.skips || 0), 0);
+  const totalLikes = Object.values(lastWeek).reduce((sum, h) => sum + (h.weeklyLikes || 0), 0);
+  const totalDislikes = Object.values(lastWeek).reduce((sum, h) => sum + (h.weeklyDislikes || 0), 0);
+  const mostPlayed = Object.entries(lastWeek)
+    .sort((a, b) => (b[1].plays || 0) - (a[1].plays || 0))[0];
+  const mostLiked = Object.entries(lastWeek)
+    .sort((a, b) => (b[1].weeklyLikes || 0) - (a[1].weeklyLikes || 0))[0];
+
+  // Slides to show
+  const slides = [
+    { title: "Total Songs Played", value: totalPlays, icon: "fa-music" },
+    { title: "Total Likes", value: totalLikes, icon: "fa-thumbs-up" },
+    { title: "Total Skips", value: totalSkips, icon: "fa-forward-step" },
+    { title: "Total Dislikes", value: totalDislikes, icon: "fa-thumbs-down" },
+    {
+    title: "Most Played",
+    value: mostPlayed && mostPlayed[1].plays > 0
+      ? `${mostPlayed[0].split('|')[0]} (${mostPlayed[1].plays} plays)`
+      : "No data for last week",
+    icon: "fa-star"
+  },
+  {
+    title: "Most Liked",
+    value: mostLiked && mostLiked[1].weeklyLikes > 0
+      ? `${mostLiked[0].split('|')[0]} (${mostLiked[1].weeklyLikes} likes)`
+      : "No data for last week",
+    icon: "fa-heart"
+  }
+  ].filter(Boolean);
+
+  let slideIdx = 0;
+
+  function renderSlide(idx) {
+  const slide = slides[idx];
+  renderScreen(
+    `<div id="recapSlideShow" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
+      <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;color:#0074d9;text-shadow:0 2px 8px #4fc3f7;">Your Weekly Recap</div>
+      <div class="recap-slide" style="width:100%;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:transform 0.4s cubic-bezier(.4,1.3,.6,1);">
+        <div style="font-size:2.5em;color:#0074d9;margin-bottom:18px;">
+          <i class="fa-solid ${slide.icon}"></i>
+        </div>
+        <div style="font-size:1.2em;font-weight:bold;color:#222;text-align:center;margin-bottom:12px;">
+          ${slide.title}
+        </div>
+        <div style="font-size:2em;color:#0074d9;font-weight:bold;text-align:center;">
+          ${slide.value}
+        </div>
+      </div>
+      <div style="margin-top:22px;text-align:center;font-size:1em;color:#0074d9;">
+        <i class="fa-solid fa-arrow-left"></i> Use disk wheel to scroll <i class="fa-solid fa-arrow-right"></i>
+      </div>
+    </div>`,
+    direction
+  );
+}
+
+  renderSlide(slideIdx);
+
+  // Disk scroll and mouse wheel logic
+  window.onRecapScroll = function(direction) {
+    const oldIdx = slideIdx;
+    slideIdx += direction;
+    if (slideIdx < 0) slideIdx = 0;
+    if (slideIdx >= slides.length) slideIdx = slides.length - 1;
+    if (slideIdx !== oldIdx) {
+      // Animate slide out/in
+      const recapDiv = document.getElementById('recapSlideShow');
+      if (recapDiv) {
+        recapDiv.querySelector('.recap-slide').style.transform = `translateX(${direction > 0 ? '-100%' : '100%'})`;
+        setTimeout(() => {
+          renderSlide(slideIdx);
+        }, 350);
+      } else {
+        renderSlide(slideIdx);
+      }
+    }
+  };
+
+  // Mouse wheel support
+  const recapDiv = document.getElementById('recapSlideShow');
+  if (recapDiv) {
+    recapDiv.onwheel = (e) => {
+      if (e.deltaY > 0) window.onRecapScroll(1);
+      else if (e.deltaY < 0) window.onRecapScroll(-1);
+      e.preventDefault();
+    };
   }
 }
 
