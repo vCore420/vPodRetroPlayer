@@ -191,7 +191,11 @@ function groupTracksByAlbum() {
     }
 
     albumObj.cover = coverFile
-      ? URL.createObjectURL(coverFile)
+      ? (() => {
+          const url = URL.createObjectURL(coverFile);
+          albumCoverURLs.push(url); // Track this URL
+          return url;
+        })()
       : "src/img/default-cover.png";
     console.log(`Album "${albumName}" assigned cover:`, albumObj.cover);
   });

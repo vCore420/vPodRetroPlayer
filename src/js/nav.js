@@ -1,7 +1,14 @@
 // --- NAVIGATION HELPERS ---
+const NAV_STACK_MAX = 30; 
 
 function goTo(screenFn, ...args) {
   navStack.push({ fn: screenFn, args: ['forward', ...args] });
+
+  // Limit stack size
+  if (navStack.length > NAV_STACK_MAX) {
+    navStack = navStack.slice(navStack.length - NAV_STACK_MAX);
+    console.log("Nav stack trimmed to max size:", NAV_STACK_MAX);
+  }
 
   if (navStack.length > 1) {
     const prev = navStack[navStack.length - 2];

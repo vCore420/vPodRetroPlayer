@@ -14,6 +14,7 @@ let currentTrack = null;
 let currentMenuIndex = 0;
 let currentAlbumSongs = [];
 let currentSongIndex = -1;
+let albumCoverURLs = [];
 let isShuffleOn = false;
 let originalAlbumSongs = null;
 let originalSongIndex = -1;
@@ -62,9 +63,16 @@ function startApp() {
   setEQPreset(savedPreset);
 }
 
+function clearAllAlbumCoverURLs() {
+  albumCoverURLs.forEach(url => URL.revokeObjectURL(url));
+  albumCoverURLs = [];
+  console.log("Cleared all album cover object URLs.");
+}
+
 // --- APP STARTUP ---
 
 window.onload = () => {
+  clearAllAlbumCoverURLs();
   const savedColour = localStorage.getItem('vpodColour');
   if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
   maybeResetWeeklyStats();
