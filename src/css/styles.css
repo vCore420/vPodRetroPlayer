@@ -15,6 +15,29 @@ body, html {
   overscroll-behavior-y: contain;
 }
 
+#vmusic-page-buttons {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1000;
+}
+#vmusic-page-buttons button {
+  background: none;
+  border: none;
+  color: #838383;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.5em;
+}
+
 #fileInput {
   display: block;
   margin: 20px auto 30px auto;
@@ -630,6 +653,18 @@ body::-webkit-scrollbar,
 
 /* --- Responsive vpod for Mobile --- */
 @media (max-width: 600px) {
+  #vmusic-page-buttons {
+    top: 18px;
+    right: 8px;
+    gap: 12px;
+  }
+
+  #vmusic-page-buttons button {
+    width: 18px;
+    height: 18px;
+    font-size: 1.1em;
+  }
+
   .vpod-container {
     width: 85vw;
     height: 80vh;

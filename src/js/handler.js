@@ -8,12 +8,51 @@ function updateLoadingCounter(loaded, total) {
 function handleFiles(e) {
   console.log("Handling files:", e.target.files);
 
+  // Reset all global state
+  tracks = [];
+  albums = {};
+  currentTrack = null;
+  currentAlbumSongs = [];
+  currentSongIndex = -1;
+  albumCoverURLs.forEach(url => URL.revokeObjectURL(url));
+  albumCoverURLs = [];
+
+  // Check for tracks-meta.json first
   const files = Array.from(e.target.files);
+  const metaFile = files.find(f => f.name === 'tracks-meta.json');
   const audioFiles = files.filter(f => f.name.match(/\.(mp3|flac)$/i));
+  
+  if (metaFile) {
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const meta = JSON.parse(ev.target.result);
+    tracks = [];
+    meta.tracks.forEach(metaTrack => {
+      const file = audioFiles.find(f => f.name === metaTrack.fileName);
+      if (file) {
+        tracks.push({
+          ...metaTrack,
+          file
+        });
+      }
+    });
+    albums = meta.albums;
+    if (tracks.length === 0) {
+      alert("No matching audio files found for metadata. Please upload your music files along with tracks-meta.json.");
+      return;
+    }
+    groupTracksByAlbum(true);
+  };
+  reader.readAsText(metaFile);
+  return;
+}
+
+  // No meta file, proceed with normal handling
   const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
   const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
   window.imageFiles = window.imageFiles ? window.imageFiles.concat(imageFiles) : imageFiles;
 
+  // Show loading screen
   renderLoadingScreen("Loading your music...");
 
   console.log("Audio files:", audioFiles);
@@ -22,6 +61,7 @@ function handleFiles(e) {
 
   let processed = 0;
 
+  // Helper to parse CUE files
   function parseCue(text, flacFile) {
     console.log("Parsing CUE file:", flacFile ? flacFile.name : "No FLAC");
     const albumMatch = text.match(/^\s*TITLE\s+"([^"]+)"/m);
@@ -46,6 +86,7 @@ function handleFiles(e) {
     return cueTracks;
   }
 
+  // Process CUE files first
   let cueTracks = [];
   if (cueFiles.length && audioFiles.length) {
     cueFiles.forEach(cueFile => {
@@ -70,6 +111,7 @@ function handleFiles(e) {
     processAudioFiles();
   }
 
+  // Now process audio files
   function processAudioFiles() {
     console.log("Processing audio files...");
     let total = audioFiles.length;
@@ -85,7 +127,6 @@ function handleFiles(e) {
         }
       });
       groupTracksByAlbum();
-      goBack();
       return;
     }
     audioFiles.forEach(file => {
@@ -114,7 +155,6 @@ function handleFiles(e) {
               }
             });
             groupTracksByAlbum();
-            goBack();
           }
         },
         onError: () => {
@@ -139,7 +179,6 @@ function handleFiles(e) {
               }
             });
             groupTracksByAlbum();
-            goBack();
           }
         }
       });
@@ -156,7 +195,7 @@ function getFolderPath(file) {
   return folder;
 }
 
-function groupTracksByAlbum() {
+function groupTracksByAlbum(skipPrompt = false) {
   console.log("Grouping tracks by album...");
   albums = {};
 
@@ -199,5 +238,12 @@ function groupTracksByAlbum() {
       : "src/img/default-cover.png";
     console.log(`Album "${albumName}" assigned cover:`, albumObj.cover);
   });
+  
+  if (skipPrompt) {
+    goBack();
+  } else {
+    renderSaveMetadataPrompt();
+  }
+
   console.log("Albums grouped:", albums);
 }

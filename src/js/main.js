@@ -20,6 +20,55 @@ let originalAlbumSongs = null;
 let originalSongIndex = -1;
 let songRatings = JSON.parse(localStorage.getItem('songRatings')) || {}; 
 
+// --- UI Reset Feature ---
+document.getElementById('resetBtn').onclick = () => {
+  showResetPrompt();
+};
+
+function showResetPrompt() {
+  // Create modal
+  const modal = document.createElement('div');
+  modal.style = `
+    position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:99999;
+    background:rgba(0,0,0,0.38);display:flex;align-items:center;justify-content:center;
+  `;
+  modal.innerHTML = `
+    <div style="background:#fff;padding:32px 28px;border-radius:18px;box-shadow:0 2px 12px #0003;display:flex;flex-direction:column;align-items:center;max-width:320px;">
+      <div style="font-size:1.15em;font-weight:bold;color:#0074d9;margin-bottom:14px;">Reset App UI?</div>
+      <div style="font-size:1em;color:#444;text-align:center;margin-bottom:18px;">
+        This feature is for when the iPod UI acts strange or gets stuck.<br>
+        It will stop playback, clear the navigation, and refresh the menus.<br>
+        <b>Your loaded music will remain.</b>
+      </div>
+      <div style="display:flex;gap:18px;">
+        <button id="resetYesBtn" style="padding:10px 28px;border-radius:8px;border:none;cursor:pointer;background:#0074d9;color:#fff;font-size:1em;">Yes, Reset</button>
+        <button id="resetNoBtn" style="padding:10px 28px;border-radius:8px;border:none;cursor:pointer;background:#eee;color:#444;font-size:1em;">No</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  document.getElementById('resetYesBtn').onclick = () => {
+  audioPlayer.pause();
+  audioPlayer.src = '';
+  // Reset UI state
+  navStack = [];
+  currentTrack = null;
+  currentAlbumSongs = [];
+  currentSongIndex = -1;
+  currentMenuIndex = 0;
+  isShuffleOn = false;
+  originalAlbumSongs = null;
+  originalSongIndex = -1;
+  startApp();
+  modal.remove();
+};
+
+  document.getElementById('resetNoBtn').onclick = () => {
+    modal.remove();
+  };
+}
+
 // Try Reset weekly stats on app start
 function maybeResetWeeklyStats() {
   const now = new Date();
@@ -54,6 +103,7 @@ function fadeOutSplashAndStart() {
   setTimeout(() => {
     splash.style.display = 'none';
     startApp();
+    attachDiskControlListeners();
   }, 1000);
 }
 
@@ -133,6 +183,23 @@ if ('mediaSession' in navigator) {
 // -- Service Worker --
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-  console.log("Service worker registered");
-}  
+  navigator.serviceWorker.register('service-worker.js').then(reg => {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      showUpdateNotification();
+    });
+  });
+} 
+
+function showUpdateNotification() {
+  const notif = document.createElement('div');
+  notif.textContent = "vMusic updated! Refresh for latest features.";
+  notif.style = `
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:#0074d9;color:#fff;padding:12px 28px;border-radius:18px;
+    font-size:1em;box-shadow:0 2px 12px #0003;z-index:9999;
+    transition:opacity 0.4s;
+  `;
+  document.body.appendChild(notif);
+  setTimeout(() => notif.style.opacity = "0", 3500);
+  setTimeout(() => notif.remove(), 4000);
+}

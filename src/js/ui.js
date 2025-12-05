@@ -256,6 +256,43 @@ function renderLoadingScreen(message = "Loading your music...", loaded = 0, tota
   `, 'forward');
 }
 
+function renderSaveMetadataPrompt() {
+  renderScreen(`
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+      <div style="font-size:1.1em;color:#0074d9;font-weight:bold;margin-bottom:12px;">Music loaded!</div>
+      <div style="font-size:1em;color:#444;text-align:center;margin-bottom:16px;">
+        Save your music metadata for faster loading next time.<br>
+        <span style="color:#0074d9;">Please save <b>tracks-meta.json</b> in your music folder.</span>
+      </div>
+      <button id="saveMetaBtn" style="margin-bottom:10px;padding:10px 28px;border-radius:8px;border:none;background:#0074d9;color:#fff;font-size:1em;">Save Metadata</button>
+      <button id="skipMetaBtn" style="padding:10px 28px;border-radius:8px;border:none;background:#eee;color:#444;font-size:1em;">Skip</button>
+    </div>
+  `, 'forward');
+
+  document.getElementById('saveMetaBtn').onclick = () => {
+    exportMetadata();
+    goBack();
+  };
+  document.getElementById('skipMetaBtn').onclick = () => {
+    goBack();
+  };
+}
+
+function exportMetadata() {
+  const metaTracks = tracks.map(t => ({
+    ...t,
+    fileName: t.file?.name || ''
+  }));
+  const meta = { tracks: metaTracks, albums };
+  const blob = new Blob([JSON.stringify(meta)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tracks-meta.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // --- ALBUMS MENU ---
 
 function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
@@ -955,7 +992,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>1.4</b><br>
+        Version: <b>1.5</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
