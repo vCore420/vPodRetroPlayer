@@ -21,36 +21,35 @@ function handleFiles(e) {
   const files = Array.from(e.target.files);
   const metaFile = files.find(f => f.name === 'tracks-meta.json');
   const audioFiles = files.filter(f => f.name.match(/\.(mp3|flac)$/i));
+  const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
+  const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
+  
+  window.imageFiles = window.imageFiles ? window.imageFiles.concat(imageFiles) : imageFiles;
   
   if (metaFile) {
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    const meta = JSON.parse(ev.target.result);
-    tracks = [];
-    meta.tracks.forEach(metaTrack => {
-      const file = audioFiles.find(f => f.name === metaTrack.fileName);
-      if (file) {
-        tracks.push({
-          ...metaTrack,
-          file
-        });
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const meta = JSON.parse(ev.target.result);
+      tracks = [];
+      meta.tracks.forEach(metaTrack => {
+        const file = audioFiles.find(f => f.name === metaTrack.fileName);
+        if (file) {
+          tracks.push({
+            ...metaTrack,
+            file
+          });
+        }
+      });
+      if (tracks.length === 0) {
+        alert("No matching audio files found for metadata. Please upload your music files along with tracks-meta.json.");
+        return;
       }
-    });
-    if (tracks.length === 0) {
-      alert("No matching audio files found for metadata. Please upload your music files along with tracks-meta.json.");
-      return;
-    }
-    groupTracksByAlbum(true);
-  };
-  reader.readAsText(metaFile);
-  return;
-}
-
-  // No meta file, proceed with normal handling
-  const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
-  const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
-  window.imageFiles = window.imageFiles ? window.imageFiles.concat(imageFiles) : imageFiles;
-
+      groupTracksByAlbum(true);
+    };
+    reader.readAsText(metaFile);
+    return;
+  }
+  
   // Show loading screen
   renderLoadingScreen("Loading your music...");
 

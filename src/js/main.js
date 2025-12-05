@@ -182,13 +182,13 @@ if ('mediaSession' in navigator) {
 
 // -- Service Worker --
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js').then(reg => {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      showUpdateNotification();
-    });
-  });
-} 
+// if ('serviceWorker' in navigator) {
+//   navigator.serviceWorker.register('service-worker.js').then(reg => {
+//     navigator.serviceWorker.addEventListener('controllerchange', () => {
+//       showUpdateNotification();
+//     });
+//   });
+// } 
 
 function showUpdateNotification() {
   const notif = document.createElement('div');
