@@ -36,7 +36,6 @@ function handleFiles(e) {
         });
       }
     });
-    albums = meta.albums;
     if (tracks.length === 0) {
       alert("No matching audio files found for metadata. Please upload your music files along with tracks-meta.json.");
       return;
