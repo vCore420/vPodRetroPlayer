@@ -1,8 +1,9 @@
-const CACHE_NAME = "vmusic-cache-v2.0";
+const CACHE_NAME = "vmusic-cache-v2.1";
 const toCache = [
   "./",
   "index.html",
   "manifest.json",
+  "src/js/core.js",
   "src/js/main.js",
   "src/js/nav.js",
   "src/js/handler.js",
