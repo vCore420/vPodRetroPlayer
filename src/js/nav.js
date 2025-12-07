@@ -65,7 +65,6 @@ function runConfirmAction(handler) {
 }
 
 // Disk Touch/Cursor Scroll 
-const diskTouch = document.getElementById('diskTouch');
 let lastAngle = null;
 let scrollAccumulator = 0;
 
