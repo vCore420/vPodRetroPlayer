@@ -51,7 +51,7 @@ function handleFiles(e) {
   }
   
   // Show loading screen
-  renderLoadingScreen("Loading your music...");
+  goTo(goToLoadingScreen);
 
   console.log("Audio files:", audioFiles);
   console.log("Cue files:", cueFiles);
@@ -240,7 +240,7 @@ function groupTracksByAlbum(skipPrompt = false) {
   if (skipPrompt) {
     goBack();
   } else {
-    renderSaveMetadataPrompt();
+    goTo(renderSaveMetadataPrompt);
   }
 
   console.log("Albums grouped:", albums);

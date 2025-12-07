@@ -32,19 +32,23 @@ function masterHighlight({ containerSelector, itemsSelector, tracks, albumArtSel
 
 function renderScreen(content, direction = 'forward') {
   window.updateHighlightedSong = null;
+
   const oldContent = vpodScreen.querySelector('.screen-content');
   if (oldContent) {
     oldContent.classList.remove('screen-active');
     oldContent.classList.add(direction === 'forward' ? 'screen-fade-out' : 'screen-fade-in');
     setTimeout(() => oldContent.remove(), 350);
   }
+
   const div = document.createElement('div');
   div.className = 'screen-content screen-active screen-fade-in';
   div.innerHTML = content;
   vpodScreen.appendChild(div);
+
   if (!content.includes('album-carousel')) {
     resetMenuIndex();
   }
+
   updateHotBarTime();
 }
 
@@ -241,6 +245,10 @@ function renderLoadMusic(direction = 'forward') {
   fileInput.onchange = handleFiles;
 }
 
+function goToLoadingScreen(direction = 'forward') {
+  renderLoadingScreen("Loading your music...", 0, 0);
+}
+
 function renderLoadingScreen(message = "Loading your music...", loaded = 0, total = 0) {
   renderScreen(`
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
@@ -271,10 +279,12 @@ function renderSaveMetadataPrompt() {
 
   document.getElementById('saveMetaBtn').onclick = () => {
     exportMetadata();
-    goBack();
+    renderMainMenu('forward');
+    navStack = [{ fn: renderMainMenu, args: ['forward'] }];
   };
   document.getElementById('skipMetaBtn').onclick = () => {
-    goBack();
+    renderMainMenu('forward');
+    navStack = [{ fn: renderMainMenu, args: ['forward'] }];
   };
 }
 
@@ -992,7 +1002,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>1.8</b><br>
+        Version: <b>1.9</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!

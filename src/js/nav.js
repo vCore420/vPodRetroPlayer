@@ -1,5 +1,7 @@
 // --- NAVIGATION HELPERS ---
 const NAV_STACK_MAX = 30; 
+let lastConfirmTime = 0;
+const CONFIRM_THROTTLE_MS = 450;
 
 function goTo(screenFn, ...args) {
   navStack.push({ fn: screenFn, args: ['forward', ...args] });
@@ -51,172 +53,16 @@ function resetMenuIndex() {
 
 // -- DISK CONTROLS --
 
-// Disk Pad Controls 
-document.getElementById('menuBtn').onclick = () => {
-  console.log("Menu button clicked");
-  if (typeof window.onPlaylistAlbumMenuDone === 'function') {
-    window.onPlaylistAlbumMenuDone();
-    window.onPlaylistAlbumMenuDone = null;
+// Button Locker for Confirm Button
+function runConfirmAction(handler) {
+  const now = Date.now();
+  if (now - lastConfirmTime < CONFIRM_THROTTLE_MS) {
+    console.log("Confirm ignored: UI transition in progress");
     return;
   }
-  goBack();
-};
-
-document.getElementById('playPauseBtn').onclick = () => {
-  if (!audioPlayer.src) return;
-  const icon = playPauseBtn.querySelector('i');
-  if (audioPlayer.paused) {
-    audioPlayer.play();
-    if (icon) icon.className = "fa-solid fa-pause";
-  } else {
-    audioPlayer.pause();
-    if (icon) icon.className = "fa-solid fa-play";
-  }
-};
-
-document.getElementById('nextBtn').onclick = () => {
-  console.log("Next button clicked");
-  if (
-    currentAlbumSongs.length &&
-    currentSongIndex >= 0 &&
-    currentSongIndex < currentAlbumSongs.length - 1
-  ) {
-    // Track skip if not at end
-    if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
-      window.logTrackSkip(currentTrack);
-    }
-    playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
-  }
-};
-
-document.getElementById('prevBtn').onclick = () => {
-  console.log("Prev button clicked");
-  if (
-    currentAlbumSongs.length &&
-    currentSongIndex > 0
-  ) {
-    // Track skip if not at start
-    if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
-      window.logTrackSkip(currentTrack);
-    }
-    playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
-  }
-};
-
-document.getElementById('confirmBtn').onclick = () => {
-  // 1. Playlist song selection mode: check for playlistSongsSelectList FIRST
-  const playlistSongsSelectList = document.getElementById('playlistSongsSelectList');
-  if (playlistSongsSelectList && playlistSongsSelectList.children.length) {
-    let items = Array.from(playlistSongsSelectList.querySelectorAll('.menu-list-song'));
-    if (items.length) {
-      // This will call your toggle handler, NOT play the song
-      items[currentMenuIndex]?.click();
-    }
-    return; // Prevent fallback logic!
-  }
-
-  // 2. Album carousel logic
-  const albumCarousel = document.getElementById('albumCarousel');
-  if (albumCarousel && albumCarousel.children.length) {
-    let albumNames = [];
-    if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-      const artistKey = navStack[navStack.length - 1].args[1];
-      albumNames = Object.keys(albums).filter(
-        albumName =>
-          (albums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
-      );
-    } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist) {
-      albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
-    } else {
-      albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
-    }
-    const album = albumNames[currentMenuIndex];
-    if (album) {
-      if (window.creatingPlaylist) {
-        goTo(renderSongSelectionForPlaylist, album, currentMenuIndex);
-      } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-        const artistKey = navStack[navStack.length - 1].args[1];
-        goTo(renderAlbumSongsMenu, album, currentMenuIndex, artistKey);
-      } else {
-        goTo(renderAlbumSongsMenu, album, currentMenuIndex);
-      }
-      return;
-    }
-  }
-
-  // 3. Artists menu logic
-  const artistsList = document.getElementById('artistsList');
-  if (artistsList && artistsList.children.length) {
-    const selectedArtist = artistsList.children[currentMenuIndex];
-    if (selectedArtist) {
-      selectedArtist.click();
-      return;
-    }
-  }
-
-  // 4. Playlists menu logic
-  const playlistsList = document.getElementById('playlistsList');
-  if (playlistsList && playlistsList.children.length) {
-    playlistsList.children[currentMenuIndex]?.click();
-    return;
-  }
-
-  // 5. Playlist songs menu logic
-  const playlistSongsList = document.getElementById('playlistSongsList');
-  if (playlistSongsList && playlistSongsList.children.length) {
-    playlistSongsList.children[currentMenuIndex]?.click();
-    return;
-  }
-
-  // 6. Colour menu confirm
-  if (document.getElementById('colourGrid')) {
-    if (window.onColourMenuScroll) window.onColourMenuConfirm();
-    return;
-  }
-
-  // 7. Fallback: normal menu logic
-  let menu =
-    document.getElementById('allSongsList') ||
-    document.getElementById('songsList') ||
-    document.querySelector('.album-list-left') ||
-    document.querySelector('.menu-list');
-  if (!menu) return;
-
-  let items = Array.from(menu.querySelectorAll('.menu-list-song'));
-  if (!items.length && menu.classList.contains('menu-list')) {
-    items = Array.from(menu.querySelectorAll('li'));
-  }
-  if (!items.length) return;
-
-  items[currentMenuIndex]?.click();
-};
-
-audioPlayer.addEventListener('ended', () => {
-  console.log("Audio ended, currentSongIndex:", currentSongIndex, "currentAlbumSongs:", currentAlbumSongs);
-  if (
-    currentAlbumSongs.length &&
-    currentSongIndex >= 0 &&
-    currentSongIndex < currentAlbumSongs.length - 1
-  ) {
-    playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
-  } else {
-    const icon = playPauseBtn.querySelector('i');
-    if (icon) icon.className = "fa-solid fa-play";
-    currentTrack = null;
-    currentSongIndex = -1;
-    console.log("Reached end of album or no more songs.");
-  }
-});
-
-audioPlayer.addEventListener('play', () => {
-  const icon = playPauseBtn.querySelector('i');
-  if (icon) icon.className = "fa-solid fa-pause";
-});
-
-audioPlayer.addEventListener('pause', () => {
-  const icon = playPauseBtn.querySelector('i');
-  if (icon) icon.className = "fa-solid fa-play";
-});
+  lastConfirmTime = now;
+  handler();
+}
 
 // Disk Touch/Cursor Scroll 
 const diskTouch = document.getElementById('diskTouch');
@@ -325,91 +171,93 @@ function attachDiskControlListeners() {
   };
 
   document.getElementById('confirmBtn').onclick = () => {
-    // 1. Playlist song selection mode: check for playlistSongsSelectList FIRST
-    const playlistSongsSelectList = document.getElementById('playlistSongsSelectList');
-    if (playlistSongsSelectList && playlistSongsSelectList.children.length) {
-      let items = Array.from(playlistSongsSelectList.querySelectorAll('.menu-list-song'));
-      if (items.length) {
-        // This will call your toggle handler, NOT play the song
-        items[currentMenuIndex]?.click();
-      }
-      return; // Prevent fallback logic!
-    }
-
-    // 2. Album carousel logic
-    const albumCarousel = document.getElementById('albumCarousel');
-    if (albumCarousel && albumCarousel.children.length) {
-      let albumNames = [];
-      if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-        const artistKey = navStack[navStack.length - 1].args[1];
-        albumNames = Object.keys(albums).filter(
-          albumName =>
-            (albums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
-        );
-      } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist) {
-        albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
-      } else {
-        albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
-      }
-      const album = albumNames[currentMenuIndex];
-      if (album) {
-        if (window.creatingPlaylist) {
-          goTo(renderSongSelectionForPlaylist, album, currentMenuIndex);
-        } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-          const artistKey = navStack[navStack.length - 1].args[1];
-          goTo(renderAlbumSongsMenu, album, currentMenuIndex, artistKey);
-        } else {
-          goTo(renderAlbumSongsMenu, album, currentMenuIndex);
+    runConfirmAction(() => {
+      // 1. Playlist song selection mode: check for playlistSongsSelectList FIRST
+      const playlistSongsSelectList = document.getElementById('playlistSongsSelectList');
+      if (playlistSongsSelectList && playlistSongsSelectList.children.length) {
+        let items = Array.from(playlistSongsSelectList.querySelectorAll('.menu-list-song'));
+        if (items.length) {
+          // This will call your toggle handler, NOT play the song
+          items[currentMenuIndex]?.click();
         }
+        return; // Prevent fallback logic!
+      }
+
+      // 2. Album carousel logic
+      const albumCarousel = document.getElementById('albumCarousel');
+      if (albumCarousel && albumCarousel.children.length) {
+        let albumNames = [];
+        if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
+          const artistKey = navStack[navStack.length - 1].args[1];
+          albumNames = Object.keys(albums).filter(
+            albumName =>
+              (albums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
+          );
+        } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist) {
+          albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+        } else {
+          albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+        }
+        const album = albumNames[currentMenuIndex];
+        if (album) {
+          if (window.creatingPlaylist) {
+            goTo(renderSongSelectionForPlaylist, album, currentMenuIndex);
+          } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
+            const artistKey = navStack[navStack.length - 1].args[1];
+            goTo(renderAlbumSongsMenu, album, currentMenuIndex, artistKey);
+          } else {
+            goTo(renderAlbumSongsMenu, album, currentMenuIndex);
+          }
+          return;
+        }
+      }
+
+      // 3. Artists menu logic
+      const artistsList = document.getElementById('artistsList');
+      if (artistsList && artistsList.children.length) {
+        const selectedArtist = artistsList.children[currentMenuIndex];
+        if (selectedArtist) {
+          selectedArtist.click();
+          return;
+        }
+      }
+
+      // 4. Playlists menu logic
+      const playlistsList = document.getElementById('playlistsList');
+      if (playlistsList && playlistsList.children.length) {
+        playlistsList.children[currentMenuIndex]?.click();
         return;
       }
-    }
 
-    // 3. Artists menu logic
-    const artistsList = document.getElementById('artistsList');
-    if (artistsList && artistsList.children.length) {
-      const selectedArtist = artistsList.children[currentMenuIndex];
-      if (selectedArtist) {
-        selectedArtist.click();
+      // 5. Playlist songs menu logic
+      const playlistSongsList = document.getElementById('playlistSongsList');
+      if (playlistSongsList && playlistSongsList.children.length) {
+        playlistSongsList.children[currentMenuIndex]?.click();
         return;
       }
-    }
 
-    // 4. Playlists menu logic
-    const playlistsList = document.getElementById('playlistsList');
-    if (playlistsList && playlistsList.children.length) {
-      playlistsList.children[currentMenuIndex]?.click();
-      return;
-    }
+      // 6. Colour menu confirm
+      if (document.getElementById('colourGrid')) {
+        if (window.onColourMenuScroll) window.onColourMenuConfirm();
+        return;
+      }
 
-    // 5. Playlist songs menu logic
-    const playlistSongsList = document.getElementById('playlistSongsList');
-    if (playlistSongsList && playlistSongsList.children.length) {
-      playlistSongsList.children[currentMenuIndex]?.click();
-      return;
-    }
+      // 7. Fallback: normal menu logic
+      let menu =
+        document.getElementById('allSongsList') ||
+        document.getElementById('songsList') ||
+        document.querySelector('.album-list-left') ||
+        document.querySelector('.menu-list');
+      if (!menu) return;
 
-    // 6. Colour menu confirm
-    if (document.getElementById('colourGrid')) {
-      if (window.onColourMenuScroll) window.onColourMenuConfirm();
-      return;
-    }
+      let items = Array.from(menu.querySelectorAll('.menu-list-song'));
+      if (!items.length && menu.classList.contains('menu-list')) {
+        items = Array.from(menu.querySelectorAll('li'));
+      }
+      if (!items.length) return;
 
-    // 7. Fallback: normal menu logic
-    let menu =
-      document.getElementById('allSongsList') ||
-      document.getElementById('songsList') ||
-      document.querySelector('.album-list-left') ||
-      document.querySelector('.menu-list');
-    if (!menu) return;
-
-    let items = Array.from(menu.querySelectorAll('.menu-list-song'));
-    if (!items.length && menu.classList.contains('menu-list')) {
-      items = Array.from(menu.querySelectorAll('li'));
-    }
-    if (!items.length) return;
-
-    items[currentMenuIndex]?.click();
+      items[currentMenuIndex]?.click();
+    });
   };
 
   // Disk touch/cursor scroll

@@ -182,13 +182,13 @@ if ('mediaSession' in navigator) {
 
 // -- Service Worker --
 
- if ('serviceWorker' in navigator) {
-   navigator.serviceWorker.register('service-worker.js').then(reg => {
-     navigator.serviceWorker.addEventListener('controllerchange', () => {
-       showUpdateNotification();
-     });
-   });
- } 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').then(reg => {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      showUpdateNotification();
+    });
+  });
+} 
 
 function showUpdateNotification() {
   const notif = document.createElement('div');
@@ -202,5 +202,4 @@ function showUpdateNotification() {
   document.body.appendChild(notif);
   setTimeout(() => notif.style.opacity = "0", 3500);
   setTimeout(() => notif.remove(), 4000);
-
 }

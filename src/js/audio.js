@@ -41,6 +41,35 @@ function formatTime(sec) {
   return `${min}:${s.toString().padStart(2, '0')}`;
 }
 
+// Play, Pause, Ended interactions 
+audioPlayer.addEventListener('play', () => {
+  const icon = playPauseBtn.querySelector('i');
+  if (icon) icon.className = "fa-solid fa-pause";
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+});
+
+audioPlayer.addEventListener('pause', () => {
+  const icon = playPauseBtn.querySelector('i');
+  if (icon) icon.className = "fa-solid fa-play";
+});
+
+audioPlayer.addEventListener('ended', () => {
+  console.log("Audio ended, currentSongIndex:", currentSongIndex, "currentAlbumSongs:", currentAlbumSongs);
+  if (
+    currentAlbumSongs.length &&
+    currentSongIndex >= 0 &&
+    currentSongIndex < currentAlbumSongs.length - 1
+  ) {
+    playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
+  } else {
+    const icon = playPauseBtn.querySelector('i');
+    if (icon) icon.className = "fa-solid fa-play";
+    currentTrack = null;
+    currentSongIndex = -1;
+    console.log("Reached end of album or no more songs.");
+  }
+});
+
 // --- AUDIO CONTEXT & EQ SETUP ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const audioSource = audioCtx.createMediaElementSource(audioPlayer);
@@ -61,11 +90,6 @@ trebleEQ.frequency.value = 3000;
 
 // Connect the filters in series
 audioSource.connect(bassEQ).connect(midEQ).connect(trebleEQ).connect(audioCtx.destination);
-
-// Resume context on user interaction 
-audioPlayer.addEventListener('play', () => {
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-});
 
 // --- EQUALIZER PRESET MANAGEMENT ---
 function setEQPreset(preset) {
