@@ -1,7 +1,9 @@
 // --- All SONGS MENU ---
 
 function renderAllSongsMenu(direction = 'forward') {
-  if (!tracks.length) {
+  const allTracks = app.state.tracks;
+
+  if (!allTracks.length) {
     renderScreen(
       `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
         <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">No music loaded</div>
@@ -13,14 +15,15 @@ function renderAllSongsMenu(direction = 'forward') {
     );
     return;
   }
-  // Get sort order from localStorage or default to title
+
   const sortOrder = localStorage.getItem('allSongsSortOrder') || 'title';
   let currentSortOrder = sortOrder;
-  let sortedTracks = tracks.slice();
+  let sortedTracks = allTracks.slice();
+
   function sortTracks(order) {
     currentSortOrder = order;
     localStorage.setItem('allSongsSortOrder', order);
-    sortedTracks = tracks.slice();
+    sortedTracks = allTracks.slice();
     if (order === 'title') {
       sortedTracks.sort((a, b) => a.title.localeCompare(b.title));
     } else if (order === 'artist') {
@@ -64,24 +67,24 @@ function renderAllSongsMenu(direction = 'forward') {
       div.className = 'menu-list-song';
       div.innerHTML = `<span>${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
       div.onclick = () => {
-        currentMenuIndex = idx;
+        app.state.currentMenuIndex = idx;
         playTrackFromAlbum(track, filteredTracks);
         window.updateHighlightedSong();
       };
       songsList.appendChild(div);
     });
 
-    window.updateHighlightedSong = () => masterHighlight({
-      containerSelector: '#allSongsList',
-      itemsSelector: '.menu-list-song',
-      tracks: filteredTracks,
-      albumArtSelector: '#allSongsArt'
-    });
+    window.updateHighlightedSong = () =>
+      masterHighlight({
+        containerSelector: '#allSongsList',
+        itemsSelector: '.menu-list-song',
+        tracks: filteredTracks,
+        albumArtSelector: '#allSongsArt'
+      });
   }
 
   renderList(sortedTracks);
 
-  // Search functionality
   document.getElementById('songSearchInput').oninput = (e) => {
     const query = e.target.value.toLowerCase();
     const filtered = sortedTracks.filter(track =>
@@ -92,10 +95,9 @@ function renderAllSongsMenu(direction = 'forward') {
     renderList(filtered);
   };
 
-  // Sorting popup
   document.getElementById('sortSongsBtn').onclick = () => {
     showSortSongsModal(order => {
-      sortTracks(order); 
+      sortTracks(order);
     });
   };
 }

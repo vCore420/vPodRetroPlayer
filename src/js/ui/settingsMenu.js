@@ -24,7 +24,10 @@ function renderSettingsMenu(direction = 'forward') {
       { label: "About", action: renderAboutMenu }
       // Add more settings here 
     ],
-    onItemClick: (idx, item) => { currentMenuIndex = idx; goTo(item.action); },
+    onItemClick: (idx, item) => { 
+      app.state.currentMenuIndex = idx; 
+      goTo(item.action); 
+    },
     onBack: goBack,
     id: "settingsList",
   }, direction);
@@ -54,7 +57,7 @@ function renderEqualizerMenu(direction = 'forward', selectedIdx = null) {
   if (selectedIdx === null) {
     selectedIdx = presets.findIndex(label => label === currentPreset);
   }
-  currentMenuIndex = selectedIdx;
+  app.state.currentMenuIndex = selectedIdx;
 
   renderMenuList({
     title: "Equalizer Presets",
@@ -63,15 +66,15 @@ function renderEqualizerMenu(direction = 'forward', selectedIdx = null) {
       rawLabel: label
     })),
     onItemClick: (idx, item) => {
-        setEQPreset(item.rawLabel);
+        player.setEQPreset(item.rawLabel);
 
         const eqList = document.getElementById('eqList');
         if (eqList) {
             Array.from(eqList.children).forEach((li, i) => {
-            li.innerHTML = presets[i] + (i === idx ? ' <span style="color:#0074d9;font-size:1.2em;">•</span>' : '');
+              li.innerHTML = presets[i] + (i === idx ? ' <span style="color:#0074d9;font-size:1.2em;">•</span>' : '');
             });
         }
-        currentMenuIndex = idx;
+        app.state.currentMenuIndex = idx;
     },
     onBack: goBack,
     id: "eqList"
@@ -191,7 +194,7 @@ function renderColourMenu(direction = 'forward') {
   ];
   let selectedIdx = parseInt(localStorage.getItem('vpodColourIdx'), 10);
   if (isNaN(selectedIdx) || selectedIdx < 0 || selectedIdx >= colours.length) selectedIdx = 0;
-  currentMenuIndex = selectedIdx;
+  app.state.currentMenuIndex = selectedIdx;
 
   renderScreen(
     `<div style="padding:4px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
@@ -217,33 +220,34 @@ function renderColourMenu(direction = 'forward') {
     gridBtns.forEach((btn, i) => btn.style.borderColor = i === idx ? '#0074d9' : '#ccc');
     gridBtns.forEach((btn, i) => btn.innerHTML = i === idx ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : '');
   }
-  highlightColour(currentMenuIndex);
+  highlightColour(app.state.currentMenuIndex);
 
   gridBtns.forEach((btn, idx) => {
     btn.onclick = () => {
-      currentMenuIndex = idx;
+      app.state.currentMenuIndex = idx;
       localStorage.setItem('vpodColourIdx', idx);
       highlightColour(idx);
-      // Only update colour, do NOT leave the menu
       localStorage.setItem('vpodColour', colours[idx].value);
       document.querySelector('.vpod-container').style.background = colours[idx].value;
     };
   });
 
   window.onColourMenuConfirm = () => {
-    localStorage.setItem('vpodColour', colours[currentMenuIndex].value);
-    localStorage.setItem('vpodColourIdx', currentMenuIndex);
-    document.querySelector('.vpod-container').style.background = colours[currentMenuIndex].value;
-    // Stay on the colour menu, do NOT call renderMainMenu
-    highlightColour(currentMenuIndex);
+    const idx = app.state.currentMenuIndex;
+    localStorage.setItem('vpodColour', colours[idx].value);
+    localStorage.setItem('vpodColourIdx', idx);
+    document.querySelector('.vpod-container').style.background = colours[idx].value;
+    highlightColour(idx);
   };
 
   window.onColourMenuScroll = (direction) => {
-    currentMenuIndex += direction;
-    if (currentMenuIndex < 0) currentMenuIndex = gridBtns.length - 1;
-    if (currentMenuIndex >= gridBtns.length) currentMenuIndex = 0;
-    localStorage.setItem('vpodColourIdx', currentMenuIndex);
-    highlightColour(currentMenuIndex);
+    let idx = app.state.currentMenuIndex;
+    idx += direction;
+    if (idx < 0) idx = gridBtns.length - 1;
+    if (idx >= gridBtns.length) idx = 0;
+    app.state.currentMenuIndex = idx;
+    localStorage.setItem('vpodColourIdx', idx);
+    highlightColour(idx);
   };
 
   // Set colour on load
@@ -259,7 +263,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.0</b><br>
+        Version: <b>2.1</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!

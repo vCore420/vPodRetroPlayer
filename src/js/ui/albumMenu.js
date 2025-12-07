@@ -1,7 +1,9 @@
 // --- ALBUMS MENU ---
 
 function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
-  const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+  const allAlbums = app.state.albums;
+  const albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
+
   if (albumNames.length === 0) {
     renderScreen(
       `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
@@ -14,21 +16,31 @@ function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
     );
     return;
   }
-  currentMenuIndex = selectedIdx;
+
+  app.state.currentMenuIndex = selectedIdx;
+
   renderAlbumCarousel({
     albumsList: albumNames,
-    onAlbumClick: (album, idx) => { currentMenuIndex = idx; goTo(renderAlbumSongsMenu, album, idx); },
-    selectedIdx: currentMenuIndex
+    onAlbumClick: (album, idx) => {
+      app.state.currentMenuIndex = idx;
+      goTo(renderAlbumSongsMenu, album, idx);
+    },
+    selectedIdx: app.state.currentMenuIndex
   }, direction);
 }
 
 function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist = null) {
-  const albumObj = albums[album];
-  currentMenuIndex = 0; // Ensure first song is highlighted
+  const allAlbums = app.state.albums;
+  const albumObj = allAlbums[album];
+  app.state.currentMenuIndex = 0;
+
   renderSongList({
     songs: albumObj.songs,
-    albumCover: albumObj.cover, 
-    onSongClick: (track, idx) => { currentMenuIndex = idx; playTrackFromAlbum(track, albumObj.songs); },
+    albumCover: albumObj.cover,
+    onSongClick: (track, idx) => {
+      app.state.currentMenuIndex = idx;
+      player.playTrackFromAlbum(track, albumObj.songs);
+    },
     showBack: true,
     onBack: () => {
       if (artist) {
@@ -39,7 +51,6 @@ function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist
     }
   }, direction);
 
-  // Highlight first song
   masterHighlight({
     containerSelector: '#songsList',
     itemsSelector: '.menu-list-song',

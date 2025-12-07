@@ -1,6 +1,10 @@
 // --- PLAYLISTS MENU & CREATION ---
 
 function renderPlaylistsMenu(direction = 'forward') {
+  const allPlaylists = app.state.playlists;
+
+  app.state.currentMenuIndex = 0;
+
   renderScreen(
     `<div style="display:flex;flex-direction:column;height:100%;">
       <div style="position:relative;display:flex;align-items:center;justify-content:center;height:38px;">
@@ -12,7 +16,7 @@ function renderPlaylistsMenu(direction = 'forward') {
       </div>
       <ul class="menu-list" id="playlistsList" style="margin-top:18px;">
         <li data-liked="true" style="color:#0074d9;font-weight:bold;"><i class="fa-solid fa-heart"></i> Liked Songs</li>
-        ${playlists.length === 0 ? '' : playlists.map((pl, idx) =>
+        ${allPlaylists.length === 0 ? '' : allPlaylists.map((pl, idx) =>
           `<li data-idx="${idx}">${pl.name}</li>`
         ).join('')}
       </ul>
@@ -31,12 +35,14 @@ function renderPlaylistsMenu(direction = 'forward') {
 
   document.getElementById('addPlaylistBtn').onclick = () => showPlaylistNameModal();
 
-  // Liked playlist click
-  document.querySelector('#playlistsList li[data-liked="true"]').onclick = () => renderPlaylistSongsMenu('forward', 'liked');
+  document.querySelector('#playlistsList li[data-liked="true"]').onclick =
+    () => renderPlaylistSongsMenu('forward', 'liked');
 
   // User playlists click
-  playlists.forEach((pl, idx) => {
-    document.querySelector(`#playlistsList li[data-idx="${idx}"]`).onclick = () => renderPlaylistSongsMenu('forward', idx);
+  allPlaylists.forEach((pl, idx) => {
+    document
+      .querySelector(`#playlistsList li[data-idx="${idx}"]`)
+      .onclick = () => renderPlaylistSongsMenu('forward', idx);
   });
 
   masterHighlight({
@@ -46,7 +52,8 @@ function renderPlaylistsMenu(direction = 'forward') {
 }
 
 function getLikedTracks() {
-  return tracks.filter(track => {
+  const allTracks = app.state.tracks;
+  return allTracks.filter(track => {
     const trackId = getTrackId(track);
     const habit = userHabits[trackId];
     return habit && habit.likeCount > 0;
@@ -76,9 +83,11 @@ function showPlaylistNameModal() {
       return;
     }
     closeModal();
-    playlists.push({ name, tracks: [] });
+    const allPlaylists = app.state.playlists;
+    allPlaylists.push({ name, tracks: [] });
+    app.state.playlists = allPlaylists;
     savePlaylists();
-    window.creatingPlaylist = playlists[playlists.length - 1];
+    window.creatingPlaylist = allPlaylists[allPlaylists.length - 1];
     goTo(renderAlbumSelectionForPlaylist);
   };
 
@@ -89,7 +98,9 @@ function showPlaylistNameModal() {
 }
 
 function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0) {
-  const albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+  const allAlbums = app.state.albums;
+  const albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
+
   renderScreen(`
     <div class="album-carousel-container">
       <div style="position:absolute;bottom:8px;right:16px;z-index:20;">
@@ -117,7 +128,7 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
   const carousel = document.getElementById('albumCarousel');
   carousel.innerHTML = '';
   albumNames.forEach((album, idx) => {
-    const albumObj = albums[album];
+    const albumObj = allAlbums[album];
     const div = document.createElement('div');
     div.className = 'carousel-album';
     div.innerHTML = `
@@ -132,9 +143,9 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
     };
     carousel.appendChild(div);
   });
+  
   setCarouselAlbum(selectedIdx, albumNames);
 
-  // Done button handler
   document.getElementById('donePlaylistBtn').onclick = () => {
     if (!window.creatingPlaylist.tracks.length) {
       alert("Please add at least one song to your playlist.");
@@ -145,18 +156,18 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
     goBack();
   };
 
-  currentMenuIndex = selectedIdx;
+  app.state.currentMenuIndex = selectedIdx;
 
-  // Register menu button as done
   window.onPlaylistAlbumMenuDone = () => {
     document.getElementById('donePlaylistBtn').click();
   };
-
 }
 
 function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx = 0) {
   window.onPlaylistAlbumMenuDone = null;
-  const albumObj = albums[album];
+  const allAlbums = app.state.albums;
+  const albumObj = allAlbums[album];
+
   renderScreen(
     `<div class="album-list">
       <div class="album-list-left" id="playlistSongsSelectContainer" data-playlist-select="true">
@@ -212,12 +223,14 @@ function toggleTrackInCreatingPlaylist(track) {
 }
 
 function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
+  const allPlaylists = app.state.playlists;
+
   let playlist, tracksToShow;
   if (playlistIdx === 'liked') {
     playlist = { name: "Liked Songs", tracks: getLikedTracks() };
     tracksToShow = playlist.tracks;
   } else {
-    playlist = playlists[playlistIdx];
+    playlist = allPlaylists[playlistIdx];
     tracksToShow = playlist.tracks;
   }
   renderScreen(
@@ -244,7 +257,8 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
 
     document.getElementById('deletePlaylistBtn').onclick = () => {
       if (confirm(`Delete playlist "${playlist.name}"?`)) {
-        playlists.splice(playlistIdx, 1);
+        allPlaylists.splice(playlistIdx, 1);
+        app.state.playlists = allPlaylists;
         savePlaylists();
         renderPlaylistsMenu('back');
       }
@@ -265,21 +279,22 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
 }
 
 function playPlaylistTrack(playlist, idx) {
+  const allTracks = app.state.tracks;
   const trackData = playlist.tracks[idx];
-  // Try to find the track in the global tracks array
-  const match = tracks.find(t =>
+
+  const match = allTracks.find(t =>
     (t.file?.webkitRelativePath && t.file.webkitRelativePath === trackData.relativePath) ||
     (t.file?.name === trackData.fileName &&
      t.album === trackData.album &&
      t.artist === trackData.artist) ||
-    // Fallback: match by title, artist, album
     (t.title === trackData.title &&
      t.artist === trackData.artist &&
      t.album === trackData.album)
   );
+
   if (match) {
-    currentAlbumSongs = playlist.tracks.map(plTrack =>
-      tracks.find(t =>
+    const mapped = playlist.tracks.map(plTrack =>
+      allTracks.find(t =>
         (t.file?.webkitRelativePath && t.file.webkitRelativePath === plTrack.relativePath) ||
         (t.file?.name === plTrack.fileName &&
          t.album === plTrack.album &&
@@ -289,7 +304,9 @@ function playPlaylistTrack(playlist, idx) {
          t.album === plTrack.album)
       )
     ).filter(Boolean);
-    currentSongIndex = currentAlbumSongs.findIndex(t =>
+
+    app.state.currentAlbumSongs = mapped;
+    app.state.currentSongIndex = app.state.currentAlbumSongs.findIndex(t =>
       (t.file?.webkitRelativePath && t.file.webkitRelativePath === trackData.relativePath) ||
       (t.file?.name === trackData.fileName &&
        t.album === trackData.album &&
@@ -298,7 +315,8 @@ function playPlaylistTrack(playlist, idx) {
        t.artist === trackData.artist &&
        t.album === trackData.album)
     );
-    playTrackFromAlbum(match, currentAlbumSongs);
+
+    playTrackFromAlbum(match, app.state.currentAlbumSongs);
   } else {
     alert("This song is not loaded.");
   }
@@ -307,5 +325,6 @@ function playPlaylistTrack(playlist, idx) {
 // --- PLAYLIST STORAGE ---
 
 function savePlaylists() {
+  const playlists = app.state.playlists;
   localStorage.setItem('playlists', JSON.stringify(playlists));
 }

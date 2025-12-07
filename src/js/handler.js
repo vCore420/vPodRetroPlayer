@@ -9,13 +9,17 @@ function handleFiles(e) {
   console.log("Handling files:", e.target.files);
 
   // Reset all global state
-  tracks = [];
-  albums = {};
-  currentTrack = null;
-  currentAlbumSongs = [];
-  currentSongIndex = -1;
-  albumCoverURLs.forEach(url => URL.revokeObjectURL(url));
-  albumCoverURLs = [];
+  app.state.tracks = [];
+  app.state.albums = {};
+  app.state.currentTrack = null;
+  app.state.currentAlbumSongs = [];
+  app.state.currentSongIndex = -1;
+
+  currentAlbumSongs = app.state.currentAlbumSongs;
+  currentSongIndex = app.state.currentSongIndex;
+
+  app.state.albumCoverURLs.forEach(url => URL.revokeObjectURL(url));
+  app.state.albumCoverURLs = [];
 
   // Check for tracks-meta.json first
   const files = Array.from(e.target.files);
@@ -25,26 +29,50 @@ function handleFiles(e) {
   const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
   
   window.imageFiles = window.imageFiles ? window.imageFiles.concat(imageFiles) : imageFiles;
-  
+
+  // NEW: build folder -> cover URL map
+  const folderCovers = {};
+  imageFiles.forEach(imgFile => {
+    const folder = getFolderPath(imgFile);
+    if (!folderCovers[folder]) {
+      const url = URL.createObjectURL(imgFile);
+      app.state.albumCoverURLs.push(url);
+      folderCovers[folder] = url;
+    }
+  });
+
   if (metaFile) {
     const reader = new FileReader();
     reader.onload = function(ev) {
       const meta = JSON.parse(ev.target.result);
-      tracks = [];
+
+      app.state.tracks = [];
+      const stateTracks = app.state.tracks;
+
+      const total = meta.tracks.length || 0;
+      let loaded = 0;
+
       meta.tracks.forEach(metaTrack => {
         const file = audioFiles.find(f => f.name === metaTrack.fileName);
         if (file) {
-          tracks.push({
-            ...metaTrack,
-            file
-          });
+          stateTracks.push({ ...metaTrack, file });
         }
+        loaded++;
+        updateLoadingCounter(loaded, total);
       });
-      if (tracks.length === 0) {
+
+      if (stateTracks.length === 0) {
         alert("No matching audio files found for metadata. Please upload your music files along with tracks-meta.json.");
+        renderMainMenu('forward');
+        app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
         return;
       }
-      groupTracksByAlbum(true);
+
+      // Build albums (no nav here)
+      groupTracksByAlbum(true, folderCovers);
+
+      renderMainMenu('forward');
+      app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
     };
     reader.readAsText(metaFile);
     return;
@@ -114,26 +142,29 @@ function handleFiles(e) {
     console.log("Processing audio files...");
     let total = audioFiles.length;
     let done = 0;
+    const stateTracks = app.state.tracks;
+
     if (total === 0) {
       console.log("No audio files, only cue tracks:", cueTracks);
       cueTracks.forEach(ct => {
-        if (!tracks.some(t =>
+        if (!stateTracks.some(t =>
           t.file.name === ct.file.name &&
           t.file.size === ct.file.size
         )) {
-          tracks.push(ct);
+          stateTracks.push(ct);
         }
       });
-      groupTracksByAlbum();
+      groupTracksByAlbum(false, folderCovers);
       return;
     }
+
     audioFiles.forEach(file => {
       window.jsmediatags.read(file, {
         onSuccess: tag => {
           const { title, artist, album, genre } = tag.tags;
           console.log("Read tags for:", file.name, tag.tags);
-          if (!tracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
-            tracks.push({
+          if (!stateTracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
+            stateTracks.push({
               file,
               title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
               artist: artist || 'Unknown Artist',
@@ -145,20 +176,20 @@ function handleFiles(e) {
           updateLoadingCounter(done, total);
           if (done === total) {
             cueTracks.forEach(ct => {
-              if (!tracks.some(t =>
+              if (!stateTracks.some(t =>
                 t.file.name === ct.file.name &&
                 t.file.size === ct.file.size
               )) {
-                tracks.push(ct);
+                stateTracks.push(ct);
               }
             });
-            groupTracksByAlbum();
+            groupTracksByAlbum(false, folderCovers);
           }
         },
         onError: () => {
           console.log("Error reading tags for:", file.name);
-          if (!tracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
-            tracks.push({
+          if (!stateTracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
+            stateTracks.push({
               file,
               title: file.name.replace(/\.(mp3|flac)$/i, ''),
               artist: 'Unknown Artist',
@@ -169,14 +200,14 @@ function handleFiles(e) {
           updateLoadingCounter(done, total);
           if (done === total) {
             cueTracks.forEach(ct => {
-              if (!tracks.some(t =>
+              if (!stateTracks.some(t =>
                 t.file.name === ct.file.name &&
                 t.file.size === ct.file.size
               )) {
-                tracks.push(ct);
+                stateTracks.push(ct);
               }
             });
-            groupTracksByAlbum();
+            groupTracksByAlbum(false, folderCovers);
           }
         }
       });
@@ -193,55 +224,57 @@ function getFolderPath(file) {
   return folder;
 }
 
-function groupTracksByAlbum(skipPrompt = false) {
+function groupTracksByAlbum(skipPrompt = false, folderCovers = {}) {
   console.log("Grouping tracks by album...");
-  albums = {};
 
-  const folderImages = {};
-  if (window.imageFiles && window.imageFiles.length) {
-    window.imageFiles.forEach(img => {
-      const folder = getFolderPath(img);
-      if (!folderImages[folder]) folderImages[folder] = img;
-    });
-    console.log("Folder images map:", folderImages);
-  }
+  const allTracks = app.state.tracks;
 
-  tracks.forEach(track => {
-    const album = track.album || 'Unidentified Album';
-    if (!albums[album]) {
-      albums[album] = { artist: track.artist, cover: null, songs: [], folder: getFolderPath(track.file) };
+  app.state.albums = {};
+  const allAlbums = app.state.albums;
+
+  allTracks.forEach(track => {
+    const albumName = track.album || 'Unknown Album';
+    if (!allAlbums[albumName]) {
+      const trackFolder = track.file ? getFolderPath(track.file) : '';
+      const coverUrl = folderCovers[trackFolder] || track.cover || 'src/img/default-cover.png';
+
+      allAlbums[albumName] = {
+        name: albumName,
+        artist: track.artist || 'Unknown Artist',
+        cover: coverUrl,
+        songs: []
+      };
     }
-    albums[album].songs.push(track);
+    allAlbums[albumName].songs.push(track);
   });
 
-  Object.keys(albums).forEach(albumName => {
-    const albumObj = albums[albumName];
-    const folder = albumObj.folder;
-    let coverFile = null;
+  console.log("Albums grouped:", allAlbums);
 
-    if (folderImages[folder]) {
-      coverFile = folderImages[folder];
-    }
-
-    if (albumObj.cover && albumObj.cover.startsWith("blob:")) {
-      URL.revokeObjectURL(albumObj.cover);
-    }
-
-    albumObj.cover = coverFile
-      ? (() => {
-          const url = URL.createObjectURL(coverFile);
-          albumCoverURLs.push(url); // Track this URL
-          return url;
-        })()
-      : "src/img/default-cover.png";
-    console.log(`Album "${albumName}" assigned cover:`, albumObj.cover);
-  });
-  
-  if (skipPrompt) {
-    goBack();
-  } else {
+  if (!skipPrompt) {
     goTo(renderSaveMetadataPrompt);
   }
+}
 
-  console.log("Albums grouped:", albums);
+function exportMetadata() {
+  const allTracks = app.state.tracks;
+  const data = {
+    tracks: allTracks.map(t => ({
+      fileName: t.file?.name,
+      title: t.title,
+      artist: t.artist,
+      album: t.album,
+      trackNumber: t.trackNumber,
+      duration: t.duration
+    }))
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tracks-meta.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

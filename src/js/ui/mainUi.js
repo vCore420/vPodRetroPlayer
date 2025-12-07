@@ -5,11 +5,15 @@ function masterHighlight({ containerSelector, itemsSelector, tracks, albumArtSel
   const container = document.querySelector(containerSelector);
   if (!container) return;
   const items = Array.from(container.querySelectorAll(itemsSelector));
+  const idx = app.state.currentMenuIndex;
+
   items.forEach((el, i) => {
-    el.classList.toggle('active', i === currentMenuIndex);
+    el.classList.toggle('active', i === idx);
   });
-  if (albumArtSelector && tracks && tracks[currentMenuIndex]) {
-    const albumObj = albums[tracks[currentMenuIndex].album] || {};
+
+  if (albumArtSelector && tracks && tracks[idx]) {
+    const allAlbums = app.state.albums;
+    const albumObj = allAlbums[tracks[idx].album] || {};
     const artImg = document.querySelector(albumArtSelector);
     if (artImg) artImg.src = albumObj.cover || "src/img/default-cover.png";
   }
@@ -33,10 +37,6 @@ function renderScreen(content, direction = 'forward') {
   div.innerHTML = content;
   vpodScreen.appendChild(div);
 
-  if (!content.includes('album-carousel')) {
-    resetMenuIndex();
-  }
-
   updateHotBarTime();
 }
 
@@ -54,7 +54,7 @@ function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "men
 
   items.forEach((item, idx) => {
     document.querySelector(`#${id} li[data-idx="${idx}"]`).onclick = () => {
-      currentMenuIndex = idx;
+      app.state.currentMenuIndex = idx;
       masterHighlight({
         containerSelector: `#${id}`,
         itemsSelector: 'li'
@@ -88,6 +88,8 @@ setInterval(updateHotBarTime, 1000);
 
 // Render Album Carousel Screen
 function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone, selectedIdx = 0 }, direction = 'forward') {
+  const allAlbums = app.state.albums;
+
   renderScreen(`
     <div class="album-carousel-container">
       <div class="album-carousel" id="albumCarousel"></div>
@@ -99,7 +101,7 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
   const carousel = document.getElementById('albumCarousel');
   carousel.innerHTML = '';
   albumsList.forEach((album, idx) => {
-    const albumObj = albums[album];
+    const albumObj = allAlbums[album];
     const div = document.createElement('div');
     div.className = 'carousel-album';
     div.innerHTML = `
@@ -109,30 +111,30 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
       </div>
     `;
     div.onclick = () => {
-      currentMenuIndex = idx;
-      onAlbumClick(album, currentMenuIndex);
+      app.state.currentMenuIndex = idx;
+      onAlbumClick(album, app.state.currentMenuIndex);
     };
     carousel.appendChild(div);
   });
   setCarouselAlbum(selectedIdx, albumsList);
-
   if (showDone && onDone) {
     document.getElementById('donePlaylistBtn').onclick = onDone;
   }
-  // Set currentMenuIndex for scroll wheel navigation
   setCarouselAlbum(selectedIdx, albumsList);
-  currentMenuIndex = selectedIdx;
+  app.state.currentMenuIndex = selectedIdx;
 }
 
 // Render Song List Screen
 function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false, albumCover }, direction = 'forward') {
+  const allAlbums = app.state.albums;
+
   renderScreen(
     `<div class="album-list">
       <div class="album-list-left" id="songsListContainer" ${selectMode ? 'data-playlist-select="true"' : ''}>
         <div id="songsList"></div>
       </div>
       <div class="album-list-right">
-        <img src="${albumCover || albums[songs[0]?.album]?.cover || 'src/img/default-cover.png'}" class="album-cover" alt="Album Cover">
+        <img src="${albumCover || allAlbums[songs[0]?.album]?.cover || 'src/img/default-cover.png'}" class="album-cover" alt="Album Cover">
         ${selectMode ? `<div style="margin-top:18px;text-align:center;width:100%;"><span style="font-size:1em;color:#0074d9;word-break:break-word;">Tap songs to add/remove from playlist</span></div>` : ''}
       </div>
     </div>
@@ -218,19 +220,19 @@ function showResetPrompt() {
   document.body.appendChild(modal);
 
   document.getElementById('resetYesBtn').onclick = () => {
-  audioPlayer.pause();
-  audioPlayer.src = '';
-  navStack = [];
-  currentTrack = null;
-  currentAlbumSongs = [];
-  currentSongIndex = -1;
-  currentMenuIndex = 0;
-  isShuffleOn = false;
-  originalAlbumSongs = null;
-  originalSongIndex = -1;
-  startApp();
-  modal.remove();
-};
+    audioPlayer.pause();
+    audioPlayer.src = '';
+    app.state.navStack = [];
+    app.state.currentTrack = null;
+    app.state.currentAlbumSongs = [];
+    app.state.currentSongIndex = -1;
+    app.state.currentMenuIndex = 0;
+    app.state.isShuffleOn = false;
+    app.state.originalAlbumSongs = null;
+    app.state.originalSongIndex = -1;
+    startApp();
+    modal.remove();
+  };
 
   document.getElementById('resetNoBtn').onclick = () => {
     modal.remove();

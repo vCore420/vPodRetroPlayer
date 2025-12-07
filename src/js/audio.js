@@ -2,34 +2,34 @@
 
 audioPlayer.addEventListener('timeupdate', updateNowPlayingProgress);
 audioPlayer.addEventListener('loadedmetadata', updateNowPlayingProgress);
-audioPlayer.addEventListener('play', updateNowPlayingProgress);
-audioPlayer.addEventListener('pause', updateNowPlayingProgress);
 
 function playTrackFromAlbum(track, albumSongs) {
-  if (albumSongs !== currentAlbumSongs) {
-    isShuffleOn = false;
-    originalAlbumSongs = null;
-    originalSongIndex = -1;
+  const state = app.state;
+
+  if (albumSongs !== state.currentAlbumSongs) {
+    state.isShuffleOn = false;
+    state.originalAlbumSongs = null;
+    state.originalSongIndex = -1;
   }
 
-  currentAlbumSongs = albumSongs || [track];
-  currentSongIndex = currentAlbumSongs.findIndex(t => t.file === track.file);
-  currentTrack = track;
-  currentMenuIndex = currentSongIndex;
-  
+  state.currentAlbumSongs = albumSongs || [track];
+  state.currentSongIndex = state.currentAlbumSongs.findIndex(t => t.file === track.file);
+  state.currentTrack = track;
+  state.currentMenuIndex = state.currentSongIndex;
+
   // Track play for suggestions
   if (window.logTrackPlay) window.logTrackPlay(track);
 
   const url = URL.createObjectURL(track.file);
   audioPlayer.src = url;
   audioPlayer.play();
-  setScrollingSong(currentMenuIndex);
+  setScrollingSong(state.currentMenuIndex);
 
   if (window.updateMediaSessionMetadata) window.updateMediaSessionMetadata();
-  
+
   const activeScreen = document.querySelector('.screen-content.screen-active');
   if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
-    renderNowPlayingScreen(); // Remove 'forward' argument for a neutral transition
+    renderNowPlayingScreen();
     console.log("Re-rendering Now Playing screen for new track:", track.title);
   }
 }
@@ -46,26 +46,30 @@ audioPlayer.addEventListener('play', () => {
   const icon = playPauseBtn.querySelector('i');
   if (icon) icon.className = "fa-solid fa-pause";
   if (audioCtx.state === 'suspended') audioCtx.resume();
+  updateMediaSessionMetadata();
+  updateNowPlayingProgress();
 });
 
 audioPlayer.addEventListener('pause', () => {
   const icon = playPauseBtn.querySelector('i');
   if (icon) icon.className = "fa-solid fa-play";
+  updateNowPlayingProgress();
 });
 
 audioPlayer.addEventListener('ended', () => {
-  console.log("Audio ended, currentSongIndex:", currentSongIndex, "currentAlbumSongs:", currentAlbumSongs);
+  const state = app.state;
+  console.log("Audio ended, currentSongIndex:", state.currentSongIndex, "currentAlbumSongs:", state.currentAlbumSongs);
   if (
-    currentAlbumSongs.length &&
-    currentSongIndex >= 0 &&
-    currentSongIndex < currentAlbumSongs.length - 1
+    state.currentAlbumSongs.length &&
+    state.currentSongIndex >= 0 &&
+    state.currentSongIndex < state.currentAlbumSongs.length - 1
   ) {
-    playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
+    playTrackFromAlbum(state.currentAlbumSongs[state.currentSongIndex + 1], state.currentAlbumSongs);
   } else {
     const icon = playPauseBtn.querySelector('i');
     if (icon) icon.className = "fa-solid fa-play";
-    currentTrack = null;
-    currentSongIndex = -1;
+    state.currentTrack = null;
+    state.currentSongIndex = -1;
     console.log("Reached end of album or no more songs.");
   }
 });
@@ -129,34 +133,42 @@ function setEQPreset(preset) {
 }
 
 function toggleShuffle() {
-  if (!isShuffleOn) {
-    isShuffleOn = true;
-    if (!originalAlbumSongs) {
-      originalAlbumSongs = currentAlbumSongs.slice();
-      originalSongIndex = currentSongIndex;
+  const state = app.state;
+
+  if (!state.isShuffleOn) {
+    state.isShuffleOn = true;
+    if (!state.originalAlbumSongs) {
+      state.originalAlbumSongs = state.currentAlbumSongs.slice();
+      state.originalSongIndex = state.currentSongIndex;
     }
-    let shuffled = currentAlbumSongs.slice();
-    let currentSong = shuffled.splice(currentSongIndex, 1)[0];
+    let shuffled = state.currentAlbumSongs.slice();
+    let currentSong = shuffled.splice(state.currentSongIndex, 1)[0];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    currentAlbumSongs = [currentSong, ...shuffled];
-    currentSongIndex = 0;
+    state.currentAlbumSongs = [currentSong, ...shuffled];
+    state.currentSongIndex = 0;
   } else {
-    isShuffleOn = false;
-    if (originalAlbumSongs) {
-      const currentSong = currentAlbumSongs[currentSongIndex];
-      currentAlbumSongs = originalAlbumSongs.slice();
-      currentSongIndex = currentAlbumSongs.findIndex(
+    state.isShuffleOn = false;
+    if (state.originalAlbumSongs) {
+      const currentSong = state.currentAlbumSongs[state.currentSongIndex];
+      state.currentAlbumSongs = state.originalAlbumSongs.slice();
+      state.currentSongIndex = state.currentAlbumSongs.findIndex(
         t => t.file === currentSong.file
       );
-      if (currentSongIndex === -1) currentSongIndex = originalSongIndex;
-      originalAlbumSongs = null;
-      originalSongIndex = -1;
+      if (state.currentSongIndex === -1) state.currentSongIndex = state.originalSongIndex;
+      state.originalAlbumSongs = null;
+      state.originalSongIndex = -1;
     }
   }
 
   const shuffleBtn = document.getElementById('shuffleBtn');
-  if (shuffleBtn) shuffleBtn.classList.toggle('shuffle-on', isShuffleOn);
+  if (shuffleBtn) shuffleBtn.classList.toggle('shuffle-on', state.isShuffleOn);
 }
+
+window.player = {
+  playTrackFromAlbum,
+  toggleShuffle,
+  setEQPreset
+};

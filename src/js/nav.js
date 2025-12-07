@@ -4,24 +4,24 @@ let lastConfirmTime = 0;
 const CONFIRM_THROTTLE_MS = 450;
 
 function goTo(screenFn, ...args) {
-  navStack.push({ fn: screenFn, args: ['forward', ...args] });
+  const stack = app.state.navStack;
+  stack.push({ fn: screenFn, args: ['forward', ...args] });
 
   // Limit stack size
-  if (navStack.length > NAV_STACK_MAX) {
-    navStack = navStack.slice(navStack.length - NAV_STACK_MAX);
+  if (stack.length > NAV_STACK_MAX) {
+    app.state.navStack = stack.slice(stack.length - NAV_STACK_MAX);
     console.log("Nav stack trimmed to max size:", NAV_STACK_MAX);
   }
 
-  if (navStack.length > 1) {
-    const prev = navStack[navStack.length - 2];
-    if (prev.fn === renderAlbumsMenu) {
-      // Use the index being clicked, not currentMenuIndex (which may be 0)
-      if (args[1] !== undefined) {
-        prev.args[1] = args[1];
-      } else {
-        prev.args[1] = currentMenuIndex;
-      }
+  if (stack.length > 1) {
+    const prev = stack[stack.length - 2];
+  if (prev.fn === renderAlbumsMenu) {
+    if (args[1] !== undefined) {
+      prev.args[1] = args[1];
+    } else {
+      prev.args[1] = app.state.currentMenuIndex;
     }
+  }
     if (prev.fn === renderArtistAlbumsMenu) {
       prev.args[2] = args[1] !== undefined ? args[1] : 0;
     }
@@ -30,24 +30,18 @@ function goTo(screenFn, ...args) {
     }
   }
 
-  screenFn(...navStack[navStack.length - 1].args);
+  const top = app.state.navStack[app.state.navStack.length - 1];
+  screenFn(...top.args);
 }
 
 function goBack() {
-  if (navStack.length > 1) {
-    navStack.pop();
-    const { fn, args } = navStack[navStack.length - 1];
+  const stack = app.state.navStack;
+  if (stack.length > 1) {
+    stack.pop();
+    const { fn, args } = stack[stack.length - 1];
     args[0] = 'back'; // Set direction to 'back'
     console.log("Going back to:", fn.name, "with args:", args);
     fn(...args);
-  }
-}
-
-function resetMenuIndex() {
-  const albumCarousel = document.getElementById('albumCarousel');
-  if (!albumCarousel) {
-    currentMenuIndex = 0;
-    setTimeout(() => scrollMenu(0), 10);
   }
 }
 
@@ -142,30 +136,30 @@ function attachDiskControlListeners() {
 
   document.getElementById('nextBtn').onclick = () => {
     console.log("Next button clicked");
+    const state = app.state;
     if (
-      currentAlbumSongs.length &&
-      currentSongIndex >= 0 &&
-      currentSongIndex < currentAlbumSongs.length - 1
+      state.currentAlbumSongs.length &&
+      state.currentSongIndex >= 0 &&
+      state.currentSongIndex < state.currentAlbumSongs.length - 1
     ) {
-      // Track skip if not at end
-      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
-        window.logTrackSkip(currentTrack);
+      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && state.currentTrack) {
+        window.logTrackSkip(state.currentTrack);
       }
-      playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
+      playTrackFromAlbum(state.currentAlbumSongs[state.currentSongIndex + 1], state.currentAlbumSongs);
     }
   };
 
   document.getElementById('prevBtn').onclick = () => {
     console.log("Prev button clicked");
+    const state = app.state;
     if (
-      currentAlbumSongs.length &&
-      currentSongIndex > 0
+      state.currentAlbumSongs.length &&
+      state.currentSongIndex > 0
     ) {
-      // Track skip if not at start
-      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
-        window.logTrackSkip(currentTrack);
+      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && state.currentTrack) {
+        window.logTrackSkip(state.currentTrack);
       }
-      playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
+      playTrackFromAlbum(state.currentAlbumSongs[state.currentSongIndex - 1], state.currentAlbumSongs);
     }
   };
 
@@ -176,36 +170,41 @@ function attachDiskControlListeners() {
       if (playlistSongsSelectList && playlistSongsSelectList.children.length) {
         let items = Array.from(playlistSongsSelectList.querySelectorAll('.menu-list-song'));
         if (items.length) {
-          // This will call your toggle handler, NOT play the song
-          items[currentMenuIndex]?.click();
+          const idx = app.state.currentMenuIndex;
+          items[idx]?.click();
         }
-        return; // Prevent fallback logic!
+        return;
       }
 
       // 2. Album carousel logic
       const albumCarousel = document.getElementById('albumCarousel');
       if (albumCarousel && albumCarousel.children.length) {
         let albumNames = [];
-        if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-          const artistKey = navStack[navStack.length - 1].args[1];
-          albumNames = Object.keys(albums).filter(
+        const allAlbums = app.state.albums;
+        const stack = app.state.navStack;
+
+        if (stack.length > 0 && stack[stack.length - 1].fn === renderArtistAlbumsMenu) {
+          const artistKey = stack[stack.length - 1].args[1];
+          albumNames = Object.keys(allAlbums).filter(
             albumName =>
-              (albums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
+              (allAlbums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
           );
-        } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist) {
-          albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+        } else if (stack.length > 0 && stack[stack.length - 1].fn === renderAlbumSelectionForPlaylist) {
+          albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
         } else {
-          albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+          albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
         }
-        const album = albumNames[currentMenuIndex];
+
+        const idx = app.state.currentMenuIndex;
+        const album = albumNames[idx];
         if (album) {
           if (window.creatingPlaylist) {
-            goTo(renderSongSelectionForPlaylist, album, currentMenuIndex);
-          } else if (navStack.length > 0 && navStack[navStack.length - 1].fn === renderArtistAlbumsMenu) {
-            const artistKey = navStack[navStack.length - 1].args[1];
-            goTo(renderAlbumSongsMenu, album, currentMenuIndex, artistKey);
+            goTo(renderSongSelectionForPlaylist, album, idx);
+          } else if (stack.length > 0 && stack[stack.length - 1].fn === renderArtistAlbumsMenu) {
+            const artistKey = stack[stack.length - 1].args[1];
+            goTo(renderAlbumSongsMenu, album, idx, artistKey);
           } else {
-            goTo(renderAlbumSongsMenu, album, currentMenuIndex);
+            goTo(renderAlbumSongsMenu, album, idx);
           }
           return;
         }
@@ -214,7 +213,8 @@ function attachDiskControlListeners() {
       // 3. Artists menu logic
       const artistsList = document.getElementById('artistsList');
       if (artistsList && artistsList.children.length) {
-        const selectedArtist = artistsList.children[currentMenuIndex];
+        const idx = app.state.currentMenuIndex;
+        const selectedArtist = artistsList.children[idx];
         if (selectedArtist) {
           selectedArtist.click();
           return;
@@ -224,14 +224,16 @@ function attachDiskControlListeners() {
       // 4. Playlists menu logic
       const playlistsList = document.getElementById('playlistsList');
       if (playlistsList && playlistsList.children.length) {
-        playlistsList.children[currentMenuIndex]?.click();
+        const idx = app.state.currentMenuIndex;
+        playlistsList.children[idx]?.click();
         return;
       }
 
       // 5. Playlist songs menu logic
       const playlistSongsList = document.getElementById('playlistSongsList');
       if (playlistSongsList && playlistSongsList.children.length) {
-        playlistSongsList.children[currentMenuIndex]?.click();
+        const idx = app.state.currentMenuIndex;
+        playlistSongsList.children[idx]?.click();
         return;
       }
 
@@ -255,7 +257,8 @@ function attachDiskControlListeners() {
       }
       if (!items.length) return;
 
-      items[currentMenuIndex]?.click();
+      const idx = app.state.currentMenuIndex;
+      items[idx]?.click();
     });
   };
 
@@ -289,12 +292,14 @@ function scrollMenu(direction) {
     let items = Array.from(playlistSongsSelectList.querySelectorAll('.menu-list-song'));
     if (!items.length) return;
 
-    items[currentMenuIndex]?.classList.remove('active');
-    currentMenuIndex += direction;
-    if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
-    if (currentMenuIndex >= items.length) currentMenuIndex = 0;
-    items[currentMenuIndex].classList.add('active');
-    items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
+    let idx = app.state.currentMenuIndex;
+    items[idx]?.classList.remove('active');
+    idx += direction;
+    if (idx < 0) idx = items.length - 1;
+    if (idx >= items.length) idx = 0;
+    app.state.currentMenuIndex = idx;
+    items[idx].classList.add('active');
+    items[idx].scrollIntoView({ block: 'nearest' });
     return;
   }
   // Normal menu logic
@@ -327,13 +332,15 @@ function scrollMenu(direction) {
   items.forEach(el => el.classList.remove('active'));
 
   // Update index
-  currentMenuIndex += direction;
-  if (currentMenuIndex < 0) currentMenuIndex = items.length - 1;
-  if (currentMenuIndex >= items.length) currentMenuIndex = 0;
+  let idx = app.state.currentMenuIndex;
+  idx += direction;
+  if (idx < 0) idx = items.length - 1;
+  if (idx >= items.length) idx = 0;
+  app.state.currentMenuIndex = idx;
 
   // Highlight the new item
-  items[currentMenuIndex].classList.add('active');
-  items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
+  items[idx].classList.add('active');
+  items[idx].scrollIntoView({ block: 'nearest' });
 
   // Call master highlight function if available
   if (typeof window.updateHighlightedSong === 'function' && menu.id !== 'colourGrid') {
@@ -342,45 +349,53 @@ function scrollMenu(direction) {
 
   // Update album art for All Songs menu
   if (menu.id === 'allSongsList') {
-    const trackTitle = items[currentMenuIndex].textContent.split(' - ')[0];
-    const track = tracks.find(t => t.title === trackTitle);
-    const albumObj = track ? (albums[track.album] || {}) : {};
-    document.getElementById('allSongsArt').src = albumObj.cover || "src/img/default-cover.png";
+    const allTracks = app.state.tracks;
+    const allAlbums = app.state.albums;
+
+    const trackTitle = items[idx].textContent.split(' - ')[0];
+    const track = allTracks.find(t => t.title === trackTitle);
+    const albumObj = track ? (allAlbums[track.album] || {}) : {};
+    document.getElementById('allSongsArt').src =
+      albumObj.cover || "src/img/default-cover.png";
   }
 
   // Carousel logic for albums
   if (menu.id === 'albumCarousel') {
     let albumNames = [];
+    const allAlbums = app.state.albums;
+    const stack = app.state.navStack;
+
     if (
-      navStack.length > 0 &&
-      navStack[navStack.length - 1].fn === renderArtistAlbumsMenu
+      stack.length > 0 &&
+      stack[stack.length - 1].fn === renderArtistAlbumsMenu
     ) {
-      // Use the same filtered array as in renderArtistAlbumsMenu
-      const artistKey = navStack[navStack.length - 1].args[1];
-      albumNames = Object.keys(albums).filter(
+      const artistKey = stack[stack.length - 1].args[1];
+      albumNames = Object.keys(allAlbums).filter(
         albumName =>
-          (albums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
+          (allAlbums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
       );
     } else if (
-      navStack.length > 0 &&
-      navStack[navStack.length - 1].fn === renderAlbumSelectionForPlaylist
+      stack.length > 0 &&
+      stack[stack.length - 1].fn === renderAlbumSelectionForPlaylist
     ) {
-      albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+      albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
     } else {
-      albumNames = Object.keys(albums).sort((a, b) => a.localeCompare(b));
+      albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
     }
-    setCarouselAlbum(currentMenuIndex, albumNames);
+
+    setCarouselAlbum(app.state.currentMenuIndex, albumNames);
     return;
   }
 
   // Artists menu logic
   if (menu.id === 'artistsList') {
-    items[currentMenuIndex].classList.add('active');
-    items[currentMenuIndex].scrollIntoView({ block: 'nearest' });
+    const idx = app.state.currentMenuIndex;
+    items[idx].classList.add('active');
+    items[idx].scrollIntoView({ block: 'nearest' });
     return;
   }
 
-  console.log("Menu scrolled to index:", currentMenuIndex);
+  console.log("Menu scrolled to index:", app.state.currentMenuIndex);
 }
 
 window.attachDiskControlListeners = attachDiskControlListeners;

@@ -7,32 +7,40 @@ function attachNowPlayingButtonListeners() {
 
   if (likeBtn) {
     likeBtn.onclick = () => {
-      if (!currentTrack) return;
-      const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-      songRatings[trackId] = songRatings[trackId] === 'like' ? null : 'like';
-      localStorage.setItem('songRatings', JSON.stringify(songRatings));
-      if (window.setTrackRating) window.setTrackRating(currentTrack, 'like');
-      // Update button color directly instead of re-rendering
-      likeBtn.style.color = songRatings[trackId] === 'like' ? '#0074d9' : '#888';
-      dislikeBtn.style.color = songRatings[trackId] === 'dislike' ? '#d90429' : '#888';
+      const track = app.state.currentTrack;
+      if (!track) return;
+      const ratings = app.state.songRatings;
+
+      const trackId = `${track.title}|${track.artist}|${track.album}`;
+      ratings[trackId] = ratings[trackId] === 'like' ? null : 'like';
+      localStorage.setItem('songRatings', JSON.stringify(ratings));
+      if (window.setTrackRating) window.setTrackRating(track, 'like');
+
+      likeBtn.style.color = ratings[trackId] === 'like' ? '#0074d9' : '#888';
+      dislikeBtn.style.color = ratings[trackId] === 'dislike' ? '#d90429' : '#888';
     };
   }
+  
   if (dislikeBtn) {
     dislikeBtn.onclick = () => {
-      if (!currentTrack) return;
-      const trackId = `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}`;
-      songRatings[trackId] = songRatings[trackId] === 'dislike' ? null : 'dislike';
-      localStorage.setItem('songRatings', JSON.stringify(songRatings));
-      if (window.setTrackRating) window.setTrackRating(currentTrack, 'dislike');
-      // Update button color directly instead of re-rendering
-      likeBtn.style.color = songRatings[trackId] === 'like' ? '#0074d9' : '#888';
-      dislikeBtn.style.color = songRatings[trackId] === 'dislike' ? '#d90429' : '#888';
+      const track = app.state.currentTrack;
+      if (!track) return;
+      const ratings = app.state.songRatings;
+
+      const trackId = `${track.title}|${track.artist}|${track.album}`;
+      ratings[trackId] = ratings[trackId] === 'dislike' ? null : 'dislike';
+      localStorage.setItem('songRatings', JSON.stringify(ratings));
+      if (window.setTrackRating) window.setTrackRating(track, 'dislike');
+
+      likeBtn.style.color = ratings[trackId] === 'like' ? '#0074d9' : '#888';
+      dislikeBtn.style.color = ratings[trackId] === 'dislike' ? '#d90429' : '#888';
     };
   }
+
   if (shuffleBtn) {
     shuffleBtn.onclick = () => {
       toggleShuffle();
-      shuffleBtn.classList.toggle('shuffle-on', isShuffleOn);
+      shuffleBtn.classList.toggle('shuffle-on', app.state.isShuffleOn);
     };
   }
 }
@@ -40,8 +48,11 @@ function attachNowPlayingButtonListeners() {
 window.attachNowPlayingButtonListeners = attachNowPlayingButtonListeners;
 
 function renderNowPlayingScreen(direction = 'forward') {
-  const trackId = currentTrack ? `${currentTrack.title}|${currentTrack.artist}|${currentTrack.album}` : '';
-  const rating = songRatings[trackId];
+  const track = app.state.currentTrack;
+  const ratings = app.state.songRatings;
+  const trackId = track ? `${track.title}|${track.artist}|${track.album}` : '';
+  const rating = ratings[trackId];
+
   renderScreen(
     `<div class="nowplaying-container">
       <div class="nowplaying-info">
@@ -49,9 +60,9 @@ function renderNowPlayingScreen(direction = 'forward') {
           <img id="nowplayingCover" src="${getCurrentCover()}" alt="Album Cover">
         </div>
         <div class="nowplaying-meta">
-          <div class="nowplaying-title">${currentTrack ? currentTrack.title : 'No song playing'}</div>
-          <div class="nowplaying-artist">${currentTrack ? currentTrack.artist : ''}</div>
-          <div class="nowplaying-album">${currentTrack ? currentTrack.album : ''}</div>
+          <div class="nowplaying-title">${track ? track.title : 'No song playing'}</div>
+          <div class="nowplaying-artist">${track ? track.artist : ''}</div>
+          <div class="nowplaying-album">${track ? track.album : ''}</div>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -63,7 +74,7 @@ function renderNowPlayingScreen(direction = 'forward') {
             <i class="fa-solid fa-thumbs-down"></i>
           </button>
         </div>
-        <button id="shuffleBtn" class="shuffle-btn${isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle">
+        <button id="shuffleBtn" class="shuffle-btn${app.state.isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle">
           <i class="fa-solid fa-shuffle"></i>
         </button>
       </div>
@@ -82,8 +93,11 @@ function renderNowPlayingScreen(direction = 'forward') {
 }
 
 function getCurrentCover() {
-  if (!currentTrack) return "src/img/default-cover.png";
-  const albumObj = albums[currentTrack.album] || {};
+  const track = app.state.currentTrack;
+  if (!track) return "src/img/default-cover.png";
+
+  const allAlbums = app.state.albums;
+  const albumObj = allAlbums[track.album] || {};
   return albumObj.cover || "src/img/default-cover.png";
 }
 
@@ -91,7 +105,7 @@ function updateNowPlayingProgress() {
   const elapsedSpan = document.getElementById('nowplayingElapsed');
   const remainingSpan = document.getElementById('nowplayingRemaining');
   const bar = document.getElementById('nowplayingBar');
-  if (!audioPlayer || !currentTrack) return;
+  if (!audioPlayer || !app.state.currentTrack) return;
 
   const duration = audioPlayer.duration || 0;
   const current = audioPlayer.currentTime || 0;

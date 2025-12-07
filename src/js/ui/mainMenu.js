@@ -11,7 +11,8 @@ function renderMainMenu(direction = 'forward') {
   if (hotBar && hotBar.style.display === 'none') {
     hotBar.style.display = '';
   }
-  currentMenuIndex = 0;
+  
+  app.state.currentMenuIndex = 0;
 
   const menuItems = [
     { label: "Load Music", action: renderLoadMusic },
@@ -31,7 +32,7 @@ function renderMainMenu(direction = 'forward') {
   renderMenuList({
     items: menuItems,
     onItemClick: (idx, item) => {
-      currentMenuIndex = idx;
+      app.state.currentMenuIndex = idx;
       if (item.action === renderAlbumsMenu) {
         goTo(renderAlbumsMenu, 0);
       } else {

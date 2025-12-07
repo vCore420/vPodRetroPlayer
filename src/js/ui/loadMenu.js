@@ -53,25 +53,10 @@ function renderSaveMetadataPrompt() {
   document.getElementById('saveMetaBtn').onclick = () => {
     exportMetadata();
     renderMainMenu('forward');
-    navStack = [{ fn: renderMainMenu, args: ['forward'] }];
+    app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
   };
   document.getElementById('skipMetaBtn').onclick = () => {
     renderMainMenu('forward');
-    navStack = [{ fn: renderMainMenu, args: ['forward'] }];
+    app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
   };
-}
-
-function exportMetadata() {
-  const metaTracks = tracks.map(t => ({
-    ...t,
-    fileName: t.file?.name || ''
-  }));
-  const meta = { tracks: metaTracks, albums };
-  const blob = new Blob([JSON.stringify(meta)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'tracks-meta.json';
-  a.click();
-  URL.revokeObjectURL(url);
 }

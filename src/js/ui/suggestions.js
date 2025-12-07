@@ -198,7 +198,13 @@ window.getSuggestedTracks = getSuggestedTracks;
 // -- SUGGESTED SONGS MENU ---
 
 function renderSuggestedMenu(direction = 'forward') {
-  const suggested = window.getSuggestedTracks ? window.getSuggestedTracks(tracks, 20) : [];
+  const allTracks = app.state.tracks;   // fallback to global for safety
+  const allAlbums = app.state.albums;
+
+  const suggested = window.getSuggestedTracks
+    ? window.getSuggestedTracks(allTracks, 20)
+    : [];
+
   if (!suggested.length) {
     renderScreen(
       `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
@@ -212,9 +218,13 @@ function renderSuggestedMenu(direction = 'forward') {
     );
     return;
   }
+
   renderSongList({
     songs: suggested,
-    onSongClick: (track, idx) => { currentMenuIndex = idx; playTrackFromAlbum(track, suggested); },
-    albumCover: albums[suggested[0]?.album]?.cover
+    onSongClick: (track, idx) => {
+      app.state.currentMenuIndex = idx;
+      playTrackFromAlbum(track, suggested);
+    },
+    albumCover: allAlbums[suggested[0]?.album]?.cover
   }, direction);
 }

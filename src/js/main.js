@@ -1,24 +1,10 @@
 // --- GLOBAL VARIABLES ---
-const vpodScreen = document.getElementById('vpodScreen');
-const audioPlayer = document.getElementById('audioPlayer');
-const playPauseBtn = document.getElementById('playPauseBtn');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
-const savedPreset = localStorage.getItem('eqPreset') || "Flat";
-
-let tracks = [];
-let albums = {};
-let playlists = JSON.parse(localStorage.getItem('playlists')) || [];
-let navStack = [];
-let currentTrack = null;
-let currentMenuIndex = 0;
-let currentAlbumSongs = [];
-let currentSongIndex = -1;
-let albumCoverURLs = [];
-let isShuffleOn = false;
-let originalAlbumSongs = null;
-let originalSongIndex = -1;
-let songRatings = JSON.parse(localStorage.getItem('songRatings')) || {}; 
+const vpodScreen = app.dom.vpodScreen;
+const audioPlayer = app.dom.audioPlayer;
+const playPauseBtn = app.dom.playPauseBtn;
+const prevBtn = app.dom.prevBtn;
+const nextBtn = app.dom.nextBtn;
+const savedPreset = app.config.savedEqPreset;
 
 // --- Intro Splash & App Start ---
 
@@ -34,13 +20,14 @@ function fadeOutSplashAndStart() {
 
 function startApp() {
   renderMainMenu();
-  navStack = [{ fn: renderMainMenu, args: [] }];
+  app.state.navStack = [{ fn: renderMainMenu, args: [] }];
   setEQPreset(savedPreset);
 }
 
 function clearAllAlbumCoverURLs() {
-  albumCoverURLs.forEach(url => URL.revokeObjectURL(url));
-  albumCoverURLs = [];
+  const urls = app.state.albumCoverURLs;
+  urls.forEach(url => URL.revokeObjectURL(url));
+  app.state.albumCoverURLs = [];
   console.log("Cleared all album cover object URLs.");
 }
 
@@ -58,41 +45,49 @@ window.onload = () => {
 
 if ('mediaSession' in navigator) {
   function updateMediaSessionMetadata() {
-    if (!currentTrack) return;
+    const track = app.state.currentTrack;
+    if (!track) return;
+    const allAlbums = app.state.albums;
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentTrack.title,
-      artist: currentTrack.artist,
-      album: currentTrack.album,
+      title: track.title,
+      artist: track.artist,
+      album: track.album,
       artwork: [
-        { src: (albums[currentTrack.album]?.cover || 'src/img/default-cover.png'), sizes: '512x512', type: 'image/png' }
+        { src: (allAlbums[track.album]?.cover || 'src/img/default-cover.png'), sizes: '512x512', type: 'image/png' }
       ]
     });
   }
   window.updateMediaSessionMetadata = updateMediaSessionMetadata;
 
-  audioPlayer.addEventListener('play', updateMediaSessionMetadata);
-
   navigator.mediaSession.setActionHandler('play', () => {
     audioPlayer.play();
   });
+
   navigator.mediaSession.setActionHandler('pause', () => {
     audioPlayer.pause();
   });
+
   navigator.mediaSession.setActionHandler('previoustrack', () => {
-    if (currentAlbumSongs.length && currentSongIndex > 0) {
-      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
-        window.logTrackSkip(currentTrack);
+    const songs = app.state.currentAlbumSongs;
+    let idx = app.state.currentSongIndex;
+    const track = app.state.currentTrack;
+    if (songs.length && idx > 0) {
+      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
+        window.logTrackSkip(track);
       }
-      playTrackFromAlbum(currentAlbumSongs[currentSongIndex - 1], currentAlbumSongs);
+      player.playTrackFromAlbum(songs[idx - 1], songs);
     }
   });
 
   navigator.mediaSession.setActionHandler('nexttrack', () => {
-    if (currentAlbumSongs.length && currentSongIndex < currentAlbumSongs.length - 1) {
-      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip) {
-        window.logTrackSkip(currentTrack);
+    const songs = app.state.currentAlbumSongs;
+    let idx = app.state.currentSongIndex;
+    const track = app.state.currentTrack;
+    if (songs.length && idx < songs.length - 1) {
+      if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
+        window.logTrackSkip(track);
       }
-      playTrackFromAlbum(currentAlbumSongs[currentSongIndex + 1], currentAlbumSongs);
+      player.playTrackFromAlbum(songs[idx + 1], songs);
     }
   });
 
