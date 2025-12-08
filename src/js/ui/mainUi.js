@@ -25,6 +25,10 @@ function masterHighlight({ containerSelector, itemsSelector, tracks, albumArtSel
 function renderScreen(content, direction = 'forward') {
   window.updateHighlightedSong = null;
 
+  if (typeof window.onRecapScroll === 'function') {
+    window.onRecapScroll = null;
+  }
+  
   const oldContent = vpodScreen.querySelector('.screen-content');
   if (oldContent) {
     oldContent.classList.remove('screen-active');

@@ -56,24 +56,34 @@ function logTrackSkip(track) {
 // Log when a song is liked/disliked
 function setTrackRating(track, rating) {
   const id = getTrackId(track);
-  if (!userHabits[id]) userHabits[id] = { plays: 0, lastPlayed: 0, skips: 0, liked: false, disliked: false, likeCount: 0, dislikeCount: 0, weeklyLikes: 0, weeklyDislikes: 0, lastLiked: 0 };
+  if (!userHabits[id]) {
+    userHabits[id] = {
+      plays: 0,
+      lastPlayed: 0,
+      skips: 0,
+      liked: false,         // kept for compatibility, but not used as a lock
+      disliked: false,
+      likeCount: 0,
+      dislikeCount: 0,
+      weeklyLikes: 0,
+      weeklyDislikes: 0,
+      lastLiked: 0
+    };
+  }
 
   if (rating === 'like') {
-    if (!userHabits[id].liked) {
-      userHabits[id].liked = true;
-      userHabits[id].likeCount = (userHabits[id].likeCount || 0) + 1;
-      userHabits[id].weeklyLikes = (userHabits[id].weeklyLikes || 0) + 1;
-      userHabits[id].lastLiked = Date.now();
-      userHabits[id].disliked = false;
-    }
+    userHabits[id].likeCount = (userHabits[id].likeCount || 0) + 1;
+    userHabits[id].weeklyLikes = (userHabits[id].weeklyLikes || 0) + 1;
+    userHabits[id].lastLiked = Date.now();
+    userHabits[id].liked = true;      // still mark last action for filters
+    userHabits[id].disliked = false;
   } else if (rating === 'dislike') {
-    if (!userHabits[id].disliked) {
-      userHabits[id].disliked = true;
-      userHabits[id].dislikeCount = (userHabits[id].dislikeCount || 0) + 1;
-      userHabits[id].weeklyDislikes = (userHabits[id].weeklyDislikes || 0) + 1;
-      userHabits[id].liked = false;
-    }
+    userHabits[id].dislikeCount = (userHabits[id].dislikeCount || 0) + 1;
+    userHabits[id].weeklyDislikes = (userHabits[id].weeklyDislikes || 0) + 1;
+    userHabits[id].disliked = true;
+    userHabits[id].liked = false;
   } else {
+    // neutral / clear (if you want to support it)
     userHabits[id].liked = false;
     userHabits[id].disliked = false;
   }

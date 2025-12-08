@@ -4,20 +4,26 @@ function attachNowPlayingButtonListeners() {
   const likeBtn = document.getElementById('likeBtn');
   const dislikeBtn = document.getElementById('dislikeBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
+  const likeLabel = document.getElementById('likeCountLabel');
+  const dislikeLabel = document.getElementById('dislikeCountLabel');
 
   if (likeBtn) {
     likeBtn.onclick = () => {
       const track = app.state.currentTrack;
       if (!track) return;
-      const ratings = app.state.songRatings;
 
-      const trackId = `${track.title}|${track.artist}|${track.album}`;
-      ratings[trackId] = ratings[trackId] === 'like' ? null : 'like';
-      localStorage.setItem('songRatings', JSON.stringify(ratings));
+      // Increment UI counter
+      const current = parseInt(likeLabel?.textContent || '0', 10) || 0;
+      if (likeLabel) likeLabel.textContent = String(current + 1);
+
+      // Flash color
+      const originalColor = likeBtn.style.color || '#888';
+      likeBtn.style.color = '#0074d9';
+      setTimeout(() => {
+        likeBtn.style.color = originalColor;
+      }, 200);
+
       if (window.setTrackRating) window.setTrackRating(track, 'like');
-
-      likeBtn.style.color = ratings[trackId] === 'like' ? '#0074d9' : '#888';
-      dislikeBtn.style.color = ratings[trackId] === 'dislike' ? '#d90429' : '#888';
     };
   }
   
@@ -25,15 +31,19 @@ function attachNowPlayingButtonListeners() {
     dislikeBtn.onclick = () => {
       const track = app.state.currentTrack;
       if (!track) return;
-      const ratings = app.state.songRatings;
 
-      const trackId = `${track.title}|${track.artist}|${track.album}`;
-      ratings[trackId] = ratings[trackId] === 'dislike' ? null : 'dislike';
-      localStorage.setItem('songRatings', JSON.stringify(ratings));
+      // Increment UI counter
+      const current = parseInt(dislikeLabel?.textContent || '0', 10) || 0;
+      if (dislikeLabel) dislikeLabel.textContent = String(current + 1);
+
+      // Flash color
+      const originalColor = dislikeBtn.style.color || '#888';
+      dislikeBtn.style.color = '#d90429';
+      setTimeout(() => {
+        dislikeBtn.style.color = originalColor;
+      }, 200);
+
       if (window.setTrackRating) window.setTrackRating(track, 'dislike');
-
-      likeBtn.style.color = ratings[trackId] === 'like' ? '#0074d9' : '#888';
-      dislikeBtn.style.color = ratings[trackId] === 'dislike' ? '#d90429' : '#888';
     };
   }
 
@@ -49,9 +59,11 @@ window.attachNowPlayingButtonListeners = attachNowPlayingButtonListeners;
 
 function renderNowPlayingScreen(direction = 'forward') {
   const track = app.state.currentTrack;
-  const ratings = app.state.songRatings;
+  const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
   const trackId = track ? `${track.title}|${track.artist}|${track.album}` : '';
-  const rating = ratings[trackId];
+  const habit = track ? habits[trackId] || {} : {};
+  const likeCount = habit.likeCount || 0;
+  const dislikeCount = habit.dislikeCount || 0;
 
   renderScreen(
     `<div class="nowplaying-container">
@@ -67,11 +79,15 @@ function renderNowPlayingScreen(direction = 'forward') {
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
-          <button id="likeBtn" class="like-btn" title="Like" style="font-size:1.6em;color:${rating === 'like' ? '#0074d9' : '#888'};background:none;border:none;cursor:pointer;margin-left:20px;">
+          <button id="likeBtn" class="like-btn" title="Like"
+            style="font-size:1.6em;color:#888;background:none;border:none;cursor:pointer;margin-left:20px;display:inline-flex;align-items:center;gap:4px;">
             <i class="fa-solid fa-thumbs-up"></i>
+            <span id="likeCountLabel" style="font-size:0.8em;color:#444;">${likeCount}</span>
           </button>
-          <button id="dislikeBtn" class="dislike-btn" title="Dislike" style="font-size:1.6em;color:${rating === 'dislike' ? '#d90429' : '#888'};background:none;border:none;cursor:pointer;margin-left:10px;">
+          <button id="dislikeBtn" class="dislike-btn" title="Dislike"
+            style="font-size:1.6em;color:#888;background:none;border:none;cursor:pointer;margin-left:10px;display:inline-flex;align-items:center;gap:4px;">
             <i class="fa-solid fa-thumbs-down"></i>
+            <span id="dislikeCountLabel" style="font-size:0.8em;color:#444;">${dislikeCount}</span>
           </button>
         </div>
         <button id="shuffleBtn" class="shuffle-btn${app.state.isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle">

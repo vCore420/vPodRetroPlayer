@@ -281,11 +281,6 @@ function scrollMenu(direction) {
     }
   }
 
-  if (typeof window.onRecapScroll === 'function' && document.getElementById('recapSlideShow')) {
-    window.onRecapScroll(direction);
-    return;
-  }
-
   // Playlist song selection mode
   const playlistSongsSelectList = document.getElementById('playlistSongsSelectList');
   if (playlistSongsSelectList) {
