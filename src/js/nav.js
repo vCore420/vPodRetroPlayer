@@ -297,6 +297,23 @@ function scrollMenu(direction) {
     items[idx].scrollIntoView({ block: 'nearest' });
     return;
   }
+
+  // Playlist songs menu (from Playlists -> a specific playlist)
+  const playlistSongsList = document.getElementById('playlistSongsList');
+  if (playlistSongsList) {
+    let items = Array.from(playlistSongsList.querySelectorAll('.menu-list-song'));
+    if (!items.length) return;
+
+    let idx = app.state.currentMenuIndex;
+    items[idx]?.classList.remove('active');
+    idx += direction;
+    if (idx < 0) idx = items.length - 1;
+    if (idx >= items.length) idx = 0;
+    app.state.currentMenuIndex = idx;
+    items[idx].classList.add('active');
+    items[idx].scrollIntoView({ block: 'nearest' });
+    return;
+  }
   // Normal menu logic
   let menu =
     document.getElementById('allSongsList') ||
