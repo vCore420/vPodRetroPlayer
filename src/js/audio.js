@@ -3,30 +3,44 @@
 audioPlayer.addEventListener('timeupdate', updateNowPlayingProgress);
 audioPlayer.addEventListener('loadedmetadata', updateNowPlayingProgress);
 
+// Function to play a track from an album
 function playTrackFromAlbum(track, albumSongs) {
   const state = app.state;
 
+  // Reset shuffle if album changed
   if (albumSongs !== state.currentAlbumSongs) {
     state.isShuffleOn = false;
     state.originalAlbumSongs = null;
     state.originalSongIndex = -1;
   }
 
+  // Update state
   state.currentAlbumSongs = albumSongs || [track];
   state.currentSongIndex = state.currentAlbumSongs.findIndex(t => t.file === track.file);
   state.currentTrack = track;
   state.currentMenuIndex = state.currentSongIndex;
 
+  // Show hot bar message
+  if (typeof showHotBarMessage === 'function' && track) {
+    const artist = track.artist || '';
+    const title = track.title || 'Unknown Track';
+    const label = artist ? `${title} — ${artist}` : title;
+    showHotBarMessage(label, 2500);
+  }
+
   // Track play for suggestions
   if (window.logTrackPlay) window.logTrackPlay(track);
 
+  // Play the track
   const url = URL.createObjectURL(track.file);
   audioPlayer.src = url;
   audioPlayer.play();
   setScrollingSong(state.currentMenuIndex);
 
+  // Update Media Session metadata
   if (window.updateMediaSessionMetadata) window.updateMediaSessionMetadata();
 
+  // Re-render Now Playing screen if active
   const activeScreen = document.querySelector('.screen-content.screen-active');
   if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
     renderNowPlayingScreen();
@@ -44,15 +58,28 @@ function formatTime(sec) {
 // Play, Pause, Ended interactions 
 audioPlayer.addEventListener('play', () => {
   const icon = playPauseBtn.querySelector('i');
+  const ps = document.getElementById('hotBarPlayState');
+
   if (icon) icon.className = "fa-solid fa-pause";
+  if (ps) ps.innerHTML = '<i class="fa-solid fa-play"></i>';
+
   if (audioCtx.state === 'suspended') audioCtx.resume();
+
   updateMediaSessionMetadata();
   updateNowPlayingProgress();
 });
 
 audioPlayer.addEventListener('pause', () => {
   const icon = playPauseBtn.querySelector('i');
+  const ps = document.getElementById('hotBarPlayState');
+
   if (icon) icon.className = "fa-solid fa-play";
+  if (ps) {
+    ps.innerHTML = audioPlayer.currentTime > 0
+      ? '<i class="fa-solid fa-pause"></i>'
+      : '';
+  }
+
   updateNowPlayingProgress();
 });
 
@@ -71,6 +98,8 @@ audioPlayer.addEventListener('ended', () => {
     state.currentTrack = null;
     state.currentSongIndex = -1;
     console.log("Reached end of album or no more songs.");
+    const ps = document.getElementById('hotBarPlayState');
+    if (ps) ps.innerHTML = '';
   }
 });
 

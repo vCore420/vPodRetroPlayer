@@ -73,7 +73,11 @@ function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "men
 }
 
 // Update Hotbar time
+let hotBarMessageActive = false;
+
 function updateHotBarTime() {
+  if (hotBarMessageActive) return;
+
   const el = document.getElementById('hotBarTime');
   if (el) {
     const now = new Date();
@@ -89,6 +93,44 @@ function updateHotBarTime() {
   }
 }
 setInterval(updateHotBarTime, 1000);
+
+let hotBarMessageTimeoutId = null;
+
+function showHotBarMessage(text, duration = 2500) {
+  const el = document.getElementById('hotBarTime');
+  if (!el) return;
+
+  hotBarMessageActive = true;
+
+  // Clear any pending restore
+  if (hotBarMessageTimeoutId) {
+    clearTimeout(hotBarMessageTimeoutId);
+    hotBarMessageTimeoutId = null;
+  }
+
+  // Fade out current content
+  el.style.transition = 'opacity 0.3s';
+  el.style.opacity = '0';
+
+  setTimeout(() => {
+    // Set message and fade in
+    el.textContent = text;
+    el.style.opacity = '1';
+  }, 300);
+
+  // After duration, fade back to time
+  hotBarMessageTimeoutId = setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => {
+      hotBarMessageTimeoutId = null;
+      hotBarMessageActive = false;
+      updateHotBarTime();
+      el.style.opacity = '1';
+    }, 300);
+  }, duration);
+}
+
+window.showHotBarMessage = showHotBarMessage;
 
 // Render Album Carousel Screen
 function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone, selectedIdx = 0 }, direction = 'forward') {
@@ -131,6 +173,7 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
 // Render Song List Screen
 function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false, albumCover }, direction = 'forward') {
   const allAlbums = app.state.albums;
+  const currentTrack = app.state.currentTrack;
 
   renderScreen(
     `<div class="album-list">
@@ -151,9 +194,29 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
       (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
       (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
     );
+
+    const isNowPlaying =
+      currentTrack &&
+      currentTrack.title === track.title &&
+      currentTrack.artist === track.artist &&
+      currentTrack.album === track.album;
+
+    const nowPlayingLabel = isNowPlaying
+      ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
+      : '';
+
+    const selectedIcon = selectMode && isSelected
+      ? `<i class="fa-solid fa-check" style="color:#0074d9;margin-right:4px;"></i>`
+      : '';
+
     const div = document.createElement('div');
     div.className = 'menu-list-song';
-    div.innerHTML = `<span>${selectMode && isSelected ? '✅ ' : ''}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
+    div.innerHTML = `
+      ${nowPlayingLabel}
+      <span style="padding-left:6px;">
+        ${selectedIcon}${track.title}${track.artist ? ` - ${track.artist}` : ''}
+      </span>
+    `;
     div.onclick = () => {
       currentMenuIndex = idx;
       window.updateHighlightedSong();
@@ -226,6 +289,8 @@ function showResetPrompt() {
   document.getElementById('resetYesBtn').onclick = () => {
     audioPlayer.pause();
     audioPlayer.src = '';
+    const ps = document.getElementById('hotBarPlayState');
+    if (ps) ps.textContent = '';
     app.state.navStack = [];
     app.state.currentTrack = null;
     app.state.currentAlbumSongs = [];

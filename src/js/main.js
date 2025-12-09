@@ -36,7 +36,11 @@ function clearAllAlbumCoverURLs() {
 window.onload = () => {
   clearAllAlbumCoverURLs();
   const savedColour = localStorage.getItem('vpodColour');
+  const ps = document.getElementById('hotBarPlayState');
+  
   if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
+  if (ps) ps.textContent = '';
+
   maybeResetWeeklyStats();
   fadeOutSplashAndStart();
 };

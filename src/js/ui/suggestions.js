@@ -178,6 +178,20 @@ function getSuggestedTracks(tracks, limit = 20) {
   return filtered.slice(0, limit).map(obj => obj.track);
 }
 
+function resetTrackRatings(track) {
+  const id = getTrackId(track);
+  if (!userHabits[id]) return;
+
+  userHabits[id].likeCount = 0;
+  userHabits[id].dislikeCount = 0;
+  userHabits[id].weeklyLikes = 0;
+  userHabits[id].weeklyDislikes = 0;
+  userHabits[id].liked = false;
+  userHabits[id].disliked = false;
+  userHabits[id].lastLiked = 0;
+  saveUserHabits();
+}
+
 // Debug summary
 function debugUserHabits() {
   const habitsArr = Object.entries(userHabits).map(([id, data]) => ({ id, ...data }));
@@ -199,16 +213,17 @@ function debugUserHabits() {
   });
 }
 
-// Export functions for use in other files
+// Export functions
 window.logTrackPlay = logTrackPlay;
 window.logTrackSkip = logTrackSkip;
 window.setTrackRating = setTrackRating;
 window.getSuggestedTracks = getSuggestedTracks;
+window.resetTrackRatings = resetTrackRatings;
 
 // -- SUGGESTED SONGS MENU ---
 
 function renderSuggestedMenu(direction = 'forward') {
-  const allTracks = app.state.tracks;   // fallback to global for safety
+  const allTracks = app.state.tracks;  
   const allAlbums = app.state.albums;
 
   const suggested = window.getSuggestedTracks

@@ -362,7 +362,7 @@ body, html {
   flex-direction: column;
   justify-content: center;
   height: 100%;
-  padding: 32px 0 0 0;
+  padding: 6px 0 0 0;
 }
 
 .nowplaying-info {
@@ -431,6 +431,16 @@ body, html {
   transition: width 0.2s linear;
 }
 
+.nowplaying-pill {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.95em;
+  color: #0074d9;
+  pointer-events: none;
+}
+
 .shuffle-btn {
   font-size: 1.6em;
   padding: 6px 18px;
@@ -458,6 +468,55 @@ body, html {
   background: #e0eaff;
 }
 
+/* Rating counters (Now Playing) */
+.rating-count {
+  font-size: 0.8em;
+  color: #777;          /* default grey when 0 */
+  min-width: 1.6em;
+  text-align: center;
+}
+
+.rating-like {
+  color: #0074d9;       /* blue when liked at least once (lifetime) */
+}
+
+.rating-dislike {
+  color: #d90429;       /* red when disliked at least once (lifetime) */
+}
+
+/* Weekly “glow” – subtle, retro style */
+.rating-like-weekly,
+.rating-dislike-weekly {
+  position: relative;
+}
+
+/* blue dot for weekly like */
+.rating-like-weekly::after {
+  content: "•";
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1em;
+  line-height: 1;
+  color: #0074d9;
+  pointer-events: none;
+}
+
+/* red dot for weekly dislike */
+.rating-dislike-weekly::after {
+  content: "•";
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.1em;
+  line-height: 1;
+  color: #d90429;
+  pointer-events: none;
+}
+
+/* Controls */
 .vpod-controls {
   display: flex;
   justify-content: center;

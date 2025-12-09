@@ -62,10 +62,28 @@ function renderAllSongsMenu(direction = 'forward') {
   function renderList(filteredTracks) {
     const songsList = document.getElementById('allSongsList');
     songsList.innerHTML = '';
+
+    const currentTrack = app.state.currentTrack;
+
     filteredTracks.forEach((track, idx) => {
+      const isNowPlaying =
+        currentTrack &&
+        currentTrack.title === track.title &&
+        currentTrack.artist === track.artist &&
+        currentTrack.album === track.album;
+
+      const nowPlayingLabel = isNowPlaying
+        ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
+        : '';
+
       const div = document.createElement('div');
       div.className = 'menu-list-song';
-      div.innerHTML = `<span>${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
+      div.innerHTML = `
+        ${nowPlayingLabel}
+        <span style="padding-left:6px;">
+          ${track.title}${track.artist ? ` - ${track.artist}` : ''}
+        </span>
+      `;
       div.onclick = () => {
         app.state.currentMenuIndex = idx;
         playTrackFromAlbum(track, filteredTracks);
