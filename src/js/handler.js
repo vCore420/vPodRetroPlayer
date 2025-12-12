@@ -7,24 +7,105 @@ function updateLoadingCounter(loaded, total) {
 
 function migrateHabitsToStableIds(tracks = []) {
   const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-  let moved = 0;
+  if (!tracks.length || !Object.keys(habits).length) return;
 
-  tracks.forEach(track => {
-    const newId = getTrackId(track);
-    if (habits[newId]) return;
+  // Build lookup maps for robust matching
+  const norm = (s) => (s || '').toString().trim().toLowerCase();
+  const stripExt = (s) => norm(s).replace(/\.(mp3|flac)$/i, '');
 
-    const legacyId = `${(track.title || track.fileName || 'unknown_title')}|${(track.artist || 'unknown_artist')}|${(track.album || 'unknown_album')}`.toLowerCase();
-    if (habits[legacyId]) {
-      habits[newId] = habits[legacyId];
-      delete habits[legacyId];
-      moved++;
+  const byTriple = new Map();      // title|artist|album (normalized, ext stripped)
+  const byFileTriple = new Map();  // fileName|artist|album (normalized, ext stripped)
+  const byFileOnly = new Map();    // fileName (normalized, ext stripped) when unique
+
+  tracks.forEach(t => {
+    const titleK = stripExt(t.title || t.fileName || '');
+    const artistK = norm(t.artist || 'unknown_artist');
+    const albumK = norm(t.album || 'unknown_album');
+    const fileK = stripExt((t.file && t.file.name) || t.fileName || '');
+
+    const tripleKey = `${titleK}|${artistK}|${albumK}`;
+    const fileTripleKey = `${fileK}|${artistK}|${albumK}`;
+
+    if (!byTriple.has(tripleKey)) byTriple.set(tripleKey, t);
+    if (fileK && !byFileTriple.has(fileTripleKey)) byFileTriple.set(fileTripleKey, t);
+
+    if (fileK) {
+      if (!byFileOnly.has(fileK)) {
+        byFileOnly.set(fileK, t);
+      } else {
+        // not unique, mark as ambiguous
+        byFileOnly.set(fileK, null);
+      }
     }
   });
 
+  let moved = 0;
+  let skipped = 0;
+
+  Object.keys(habits).forEach(oldId => {
+    // If already a new stable ID that matches a loaded track, keep it
+    const existingTrack = tracks.find(t => getTrackId(t) === oldId);
+    if (existingTrack) return;
+
+    const parts = oldId.split('|');
+    const titlePart = stripExt(parts[0] || '');
+    const artistPart = norm(parts[1] || '');
+    const albumPart = norm(parts[2] || '');
+
+    let target = null;
+
+    // 1) exact title/artist/album match (normalized)
+    const tripleKey = `${titlePart}|${artistPart}|${albumPart}`;
+    if (byTriple.has(tripleKey)) {
+      target = byTriple.get(tripleKey);
+    }
+
+    // 2) fileName/artist/album match
+    if (!target) {
+      const fileTripleKey = `${titlePart}|${artistPart}|${albumPart}`;
+      if (byFileTriple.has(fileTripleKey)) {
+        target = byFileTriple.get(fileTripleKey);
+      }
+    }
+
+    // 3) unique filename-only match
+    if (!target && byFileOnly.has(titlePart) && byFileOnly.get(titlePart)) {
+      target = byFileOnly.get(titlePart);
+    }
+
+    if (target) {
+      const newId = getTrackId(target);
+      if (!habits[newId]) {
+        habits[newId] = habits[oldId];
+        moved++;
+      } else {
+        // merge counts if both exist
+        const hOld = habits[oldId];
+        const hNew = habits[newId];
+        hNew.plays = (hNew.plays || 0) + (hOld.plays || 0);
+        hNew.skips = (hNew.skips || 0) + (hOld.skips || 0);
+        hNew.likeCount = (hNew.likeCount || 0) + (hOld.likeCount || 0);
+        hNew.dislikeCount = (hNew.dislikeCount || 0) + (hOld.dislikeCount || 0);
+        hNew.weeklyLikes = (hNew.weeklyLikes || 0) + (hOld.weeklyLikes || 0);
+        hNew.weeklyDislikes = (hNew.weeklyDislikes || 0) + (hOld.weeklyDislikes || 0);
+        if (hOld.lastLiked) {
+          hNew.lastLiked = Math.max(hNew.lastLiked || 0, hOld.lastLiked);
+        }
+        moved++;
+      }
+      delete habits[oldId];
+    } else {
+      skipped++;
+    }
+  });
+
+  localStorage.setItem('userHabits', JSON.stringify(habits));
+  if (typeof userHabits !== 'undefined') userHabits = habits; // refresh in-memory
+
   if (moved > 0) {
-    localStorage.setItem('userHabits', JSON.stringify(habits));
-    if (typeof userHabits !== 'undefined') userHabits = habits; // refresh in-memory cache
-    console.log(`Migrated ${moved} habit entries to stable IDs`);
+    console.log(`Migrated ${moved} habit entries to stable IDs${skipped ? `; ${skipped} skipped` : ''}`);
+  } else {
+    console.log('No habit entries migrated; none matched loaded tracks.');
   }
 }
 
