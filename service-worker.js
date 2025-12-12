@@ -5,7 +5,6 @@ const toCache = [
   "./",
   "index.html",
   "manifest.json",
-  "src/js/version.js",
   "src/js/core.js",
   "src/js/main.js",
   "src/js/nav.js",
@@ -49,4 +48,5 @@ self.addEventListener("fetch", event => {
       response || fetch(event.request)
     )
   );
+
 });
