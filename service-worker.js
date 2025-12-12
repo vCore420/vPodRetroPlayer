@@ -1,8 +1,11 @@
-const CACHE_NAME = "vmusic-cache-v2.4";
+importScripts('src/js/version.js');
+
+const CACHE_NAME = `vmusic-cache-${APP_VERSION}`;
 const toCache = [
   "./",
   "index.html",
   "manifest.json",
+  "src/js/version.js",
   "src/js/core.js",
   "src/js/main.js",
   "src/js/nav.js",
