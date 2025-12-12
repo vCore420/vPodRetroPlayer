@@ -35,14 +35,19 @@ function renderPlaylistsMenu(direction = 'forward') {
 
   document.getElementById('addPlaylistBtn').onclick = () => showPlaylistNameModal();
 
-  document.querySelector('#playlistsList li[data-liked="true"]').onclick =
-    () => renderPlaylistSongsMenu('forward', 'liked');
+  document.querySelector('#playlistsList li[data-liked="true"]').onclick = () => {
+    app.state.currentMenuIndex = 0;
+    goTo(renderPlaylistSongsMenu, 'liked');
+  };
 
   // User playlists click
   allPlaylists.forEach((pl, idx) => {
-    document
-      .querySelector(`#playlistsList li[data-idx="${idx}"]`)
-      .onclick = () => renderPlaylistSongsMenu('forward', idx);
+    const li = document.querySelector(`#playlistsList li[data-idx="${idx}"]`);
+    if (!li) return;
+    li.onclick = () => {
+      app.state.currentMenuIndex = idx + 1; // keep highlight aligned
+      goTo(renderPlaylistSongsMenu, idx);
+    };
   });
 
   masterHighlight({
@@ -183,6 +188,7 @@ function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx =
   const songsList = document.getElementById('playlistSongsSelectList');
   songsList.innerHTML = '';
   const currentTrack = app.state.currentTrack;
+  const currentTrackId = currentTrack ? getTrackId(currentTrack) : null;
 
   albumObj.songs.forEach((track, idx) => {
     const isSelected = window.creatingPlaylist.tracks.some(t =>
@@ -191,10 +197,7 @@ function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx =
     );
 
     const isNowPlaying =
-      currentTrack &&
-      currentTrack.title === track.title &&
-      currentTrack.artist === track.artist &&
-      currentTrack.album === track.album;
+      currentTrackId && getTrackId(track) === currentTrackId;
 
     const nowPlayingLabel = isNowPlaying
       ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
@@ -266,6 +269,8 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
     tracksToShow = playlist.tracks;
   }
 
+  app.state.currentMenuIndex = 0;
+
   renderScreen(
     `<div style="display:flex;flex-direction:column;height:100%;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -286,6 +291,7 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
   listContainer.innerHTML = '';
   const allTracks = app.state.tracks;
   const currentTrack = app.state.currentTrack;
+  const currentTrackId = currentTrack ? getTrackId(currentTrack) : null;
 
   tracksToShow.forEach((plTrack, idx) => {
     // Resolve to full track object if needed (for now-playing comparison)
@@ -301,10 +307,7 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
       ) || plTrack;
 
     const isNowPlaying =
-      currentTrack &&
-      currentTrack.title === track.title &&
-      currentTrack.artist === track.artist &&
-      currentTrack.album === track.album;
+      currentTrackId && getTrackId(track) === currentTrackId;
 
     const nowPlayingLabel = isNowPlaying
       ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
@@ -328,6 +331,20 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
     listContainer.appendChild(div);
   });
 
+  // Initial highlight + scroll to current index
+  const applyHighlight = () => masterHighlight({
+    containerSelector: '#playlistSongsList',
+    itemsSelector: '.menu-list-song'
+  });
+  applyHighlight();
+  const items = listContainer.querySelectorAll('.menu-list-song');
+  if (items[app.state.currentMenuIndex]) {
+    items[app.state.currentMenuIndex].scrollIntoView({ block: 'nearest' });
+  }
+
+  // Keep helper for disk scroll confirm paths
+  window.updateHighlightedSong = applyHighlight;
+
   // "+" button: edit/add songs (only for user playlists)
   if (playlistIdx !== 'liked') {
     document.getElementById('editPlaylistBtn').onclick = () => {
@@ -344,11 +361,6 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
       }
     };
   }
-
-  masterHighlight({
-    containerSelector: '#playlistSongsList',
-    itemsSelector: '.menu-list-song'
-  });
 }
 
 function playPlaylistTrack(playlist, idx) {

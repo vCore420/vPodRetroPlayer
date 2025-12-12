@@ -13,7 +13,14 @@ function setLastStatsReset(ts) {
 
 // Get a unique track ID
 function getTrackId(track) {
-  return `${track.title}|${track.artist}|${track.album}`;
+  const rel = (track.file && track.file.webkitRelativePath) || track.relativePath || '';
+  const name = (track.file && track.file.name) || track.fileName || '';
+  const title = track.title || name || 'unknown_title';
+  const artist = track.artist || 'unknown_artist';
+  const album = track.album || 'unknown_album';
+  if (rel) return rel.toLowerCase();           // strongest, folder + file
+  if (name) return `${name}|${album}|${artist}`.toLowerCase();
+  return `${title}|${artist}|${album}`.toLowerCase();
 }
 
 // Log when a song is played
@@ -244,6 +251,8 @@ function renderSuggestedMenu(direction = 'forward') {
     return;
   }
 
+  app.state.currentMenuIndex = 0;
+
   renderSongList({
     songs: suggested,
     onSongClick: (track, idx) => {
@@ -252,4 +261,9 @@ function renderSuggestedMenu(direction = 'forward') {
     },
     albumCover: allAlbums[suggested[0]?.album]?.cover
   }, direction);
+
+  // initial highlight
+  if (typeof window.updateHighlightedSong === 'function') {
+    window.updateHighlightedSong();
+  }
 }

@@ -176,6 +176,17 @@ body, html {
   align-items: center;
   justify-content: center;
 }
+#hotBarTime {
+  flex: 1;
+  text-align: center;
+  font-weight: bold;
+  max-width: 68%;
+  padding: 0 42px;        /* leave room for battery/play icons */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
 .album-list {
   display: flex;
   flex-direction: row;
@@ -357,14 +368,31 @@ body, html {
   background: #0074d9;
 }
 
+
+/* --- Now Playing Screen --- */
+
 .nowplaying-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   height: 100%;
-  padding: 6px 0 0 0;
+  padding: 20px 10px 0 10px;
 }
-
+#resetTrackRatings {
+  position: absolute;
+  top: 14px;
+  right: 4px;
+  height: 0;          /* remove its own flow height */
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  overflow: visible; 
+}
+#resetTrackRatingsBtn {
+  position: relative;
+  right: 0;
+}
 .nowplaying-info {
   display: flex;
   flex-direction: row;
@@ -373,7 +401,6 @@ body, html {
   margin-bottom: 32px;
   gap: 32px; 
 }
-
 .nowplaying-cover img {
   width: 120px;
   height: 120px;
@@ -384,7 +411,6 @@ body, html {
   object-fit: cover;
   margin-left: 12px; 
 }
-
 .nowplaying-meta {
   display: flex;
   flex-direction: column;
@@ -393,19 +419,16 @@ body, html {
   gap: 6px;
   min-width: 180px;
 }
-
 .nowplaying-title {
   font-size: 1.3em;
   font-weight: bold;
   color: #222;
   margin-bottom: 2px;
 }
-
 .nowplaying-artist, .nowplaying-album {
   font-size: 1em;
   color: #444;
 }
-
 .nowplaying-progress {
   display: flex;
   align-items: center;
@@ -413,7 +436,6 @@ body, html {
   margin-top: auto;
   padding: 0 18px 18px 18px;
 }
-
 .nowplaying-bar-bg {
   flex: 1;
   height: 12px;
@@ -422,7 +444,6 @@ body, html {
   overflow: hidden;
   position: relative;
 }
-
 .nowplaying-bar {
   height: 100%;
   background: linear-gradient(90deg, #0074d9 60%, #4fc3f7 100%);
@@ -430,7 +451,6 @@ body, html {
   width: 0%;
   transition: width 0.2s linear;
 }
-
 .nowplaying-pill {
   position: absolute;
   left: 6px;
@@ -440,7 +460,6 @@ body, html {
   color: #0074d9;
   pointer-events: none;
 }
-
 .shuffle-btn {
   font-size: 1.6em;
   padding: 6px 18px;
@@ -459,38 +478,28 @@ body, html {
   -moz-user-select: none;                   
   -ms-user-select: none;  
 }
-
 .shuffle-btn.shuffle-on {
   color: #0074d9;
 }
-
 .shuffle-btn:active {
   background: #e0eaff;
 }
-
-/* Rating counters (Now Playing) */
 .rating-count {
   font-size: 0.8em;
-  color: #777;          /* default grey when 0 */
+  color: #777;       
   min-width: 1.6em;
   text-align: center;
 }
-
 .rating-like {
-  color: #0074d9;       /* blue when liked at least once (lifetime) */
+  color: #0074d9;      
 }
-
 .rating-dislike {
-  color: #d90429;       /* red when disliked at least once (lifetime) */
+  color: #d90429;   
 }
-
-/* Weekly “glow” – subtle, retro style */
 .rating-like-weekly,
 .rating-dislike-weekly {
   position: relative;
 }
-
-/* blue dot for weekly like */
 .rating-like-weekly::after {
   content: "•";
   position: absolute;
@@ -502,8 +511,6 @@ body, html {
   color: #0074d9;
   pointer-events: none;
 }
-
-/* red dot for weekly dislike */
 .rating-dislike-weekly::after {
   content: "•";
   position: absolute;
@@ -516,7 +523,9 @@ body, html {
   pointer-events: none;
 }
 
-/* Controls */
+
+/* --- Disk  Controls --- */
+
 .vpod-controls {
   display: flex;
   justify-content: center;
@@ -572,6 +581,18 @@ body, html {
 .vpod-disk-play   { bottom: 18px; left: 50%; transform: translateX(-50%); }
 .vpod-disk-prev   { left: 18px; top: 50%; transform: translateY(-50%); }
 .vpod-disk-next   { right: 18px; top: 50%; transform: translateY(-50%); }
+
+.vpod-disk-menu::after,
+.vpod-disk-play::after,
+.vpod-disk-prev::after,
+.vpod-disk-next::after {
+  content: "";
+  position: absolute;
+  inset: -12px; 
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: auto;
+}
 
 .vpod-disk-center {
   position: absolute;
@@ -805,6 +826,10 @@ body::-webkit-scrollbar,
     padding: 3vw 4vw;
   }
 
+  #hotBarTime {
+    max-width: 60%;
+  }
+
   .custom-file-btn {
     font-size: 1.1em;
     padding: 4vw 8vw;
@@ -863,6 +888,14 @@ body::-webkit-scrollbar,
   .nowplaying-container {
     padding: 2vw 0 0 0;
     min-height: 0;
+  }
+
+  #resetTrackRatings {
+    right: 0;
+  }
+
+  #resetTrackRatingsBtn {
+    top: 2px; 
   }
 
   .nowplaying-info {

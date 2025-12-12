@@ -174,6 +174,7 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
 function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onBack, selectMode = false, albumCover }, direction = 'forward') {
   const allAlbums = app.state.albums;
   const currentTrack = app.state.currentTrack;
+  const currentTrackId = currentTrack ? getTrackId(currentTrack) : null;
 
   renderScreen(
     `<div class="album-list">
@@ -196,10 +197,7 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
     );
 
     const isNowPlaying =
-      currentTrack &&
-      currentTrack.title === track.title &&
-      currentTrack.artist === track.artist &&
-      currentTrack.album === track.album;
+      currentTrackId && getTrackId(track) === currentTrackId;
 
     const nowPlayingLabel = isNowPlaying
       ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
@@ -263,6 +261,54 @@ document.getElementById('infoBtn').onclick = () => {
   showInfoPrompt();
 };
 
+function resetUiState() {
+  // Stop audio and release URL
+  audioPlayer.pause();
+  audioPlayer.currentTime = 0;
+  audioPlayer.src = '';
+  if (window.clearCurrentAudioUrl) window.clearCurrentAudioUrl();
+
+  // Reset play/pause icon and hotbar state/message
+  const icon = playPauseBtn.querySelector('i');
+  if (icon) icon.className = "fa-solid fa-play";
+  const ps = document.getElementById('hotBarPlayState');
+  if (ps) ps.textContent = '';
+  hotBarMessageActive = false;
+  if (hotBarMessageTimeoutId) {
+    clearTimeout(hotBarMessageTimeoutId);
+    hotBarMessageTimeoutId = null;
+  }
+  updateHotBarTime();
+
+  // Clear global UI callbacks/intervals
+  window.updateHighlightedSong = null;
+  window.onRecapScroll = null;
+  window.onPlaylistAlbumMenuDone = null;
+  window.onColourMenuScroll = null;
+  window.onColourMenuConfirm = null;
+  if (window.dateTimeMenuInterval) {
+    clearInterval(window.dateTimeMenuInterval);
+    window.dateTimeMenuInterval = null;
+  }
+
+  // Reset nav & playback state (but keep tracks/albums/playlists)
+  app.state.navStack = [];
+  app.state.currentTrack = null;
+  app.state.currentAlbumSongs = [];
+  app.state.currentSongIndex = -1;
+  app.state.currentMenuIndex = 0;
+  app.state.isShuffleOn = false;
+  app.state.originalAlbumSongs = null;
+  app.state.originalSongIndex = -1;
+  app.state.queueSignature = null;
+
+  console.log("UI state has been reset.");
+  
+  // Re-render main menu as fresh entry point
+  renderMainMenu('forward');
+  app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
+}
+
 // Reset Prompt and Functionality
 function showResetPrompt() {
   const modal = document.createElement('div');
@@ -287,19 +333,7 @@ function showResetPrompt() {
   document.body.appendChild(modal);
 
   document.getElementById('resetYesBtn').onclick = () => {
-    audioPlayer.pause();
-    audioPlayer.src = '';
-    const ps = document.getElementById('hotBarPlayState');
-    if (ps) ps.textContent = '';
-    app.state.navStack = [];
-    app.state.currentTrack = null;
-    app.state.currentAlbumSongs = [];
-    app.state.currentSongIndex = -1;
-    app.state.currentMenuIndex = 0;
-    app.state.isShuffleOn = false;
-    app.state.originalAlbumSongs = null;
-    app.state.originalSongIndex = -1;
-    startApp();
+    resetUiState();
     modal.remove();
   };
 

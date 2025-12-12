@@ -3,20 +3,57 @@
 audioPlayer.addEventListener('timeupdate', updateNowPlayingProgress);
 audioPlayer.addEventListener('loadedmetadata', updateNowPlayingProgress);
 
+// Track the active audio object URL so we can revoke it
+let currentAudioObjectUrl = null;
+
+// Function to compare two track queues for equality
+function queuesEqual(a = [], b = []) {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (getTrackId(a[i]) !== getTrackId(b[i])) return false;
+  }
+  return true;
+}
+
+function resolveTrackFile(track) {
+  if (track?.file instanceof Blob) return track.file;
+  const id = track ? getTrackId(track) : null;
+  if (!id) return null;
+  // look up the same track in the loaded library
+  const match = (app.state.tracks || []).find(
+    t => getTrackId(t) === id && t.file instanceof Blob
+  );
+  return match ? match.file : null;
+}
+
 // Function to play a track from an album
 function playTrackFromAlbum(track, albumSongs) {
   const state = app.state;
+  const incomingQueue = albumSongs || [track];
+  const sameQueue = state.currentAlbumSongs && queuesEqual(state.currentAlbumSongs, incomingQueue);
 
-  // Reset shuffle if album changed
-  if (albumSongs !== state.currentAlbumSongs) {
+  // Reset shuffle only when the queue actually changes
+  if (!sameQueue) {
     state.isShuffleOn = false;
     state.originalAlbumSongs = null;
     state.originalSongIndex = -1;
   }
 
+  // Resolve backing File/Blob (guards missing files)
+  const file = resolveTrackFile(track);
+  if (!file) {
+    console.warn("No file found for track", track);
+    if (typeof showHotBarMessage === 'function') {
+      showHotBarMessage("Track file not available", 2200);
+    }
+    return;
+  }
+
   // Update state
-  state.currentAlbumSongs = albumSongs || [track];
-  state.currentSongIndex = state.currentAlbumSongs.findIndex(t => t.file === track.file);
+  state.currentAlbumSongs = incomingQueue;
+  const trackId = getTrackId(track);
+  state.currentSongIndex = state.currentAlbumSongs.findIndex(t => getTrackId(t) === trackId);
+  if (state.currentSongIndex < 0) state.currentSongIndex = 0;
   state.currentTrack = track;
   state.currentMenuIndex = state.currentSongIndex;
 
@@ -31,8 +68,15 @@ function playTrackFromAlbum(track, albumSongs) {
   // Track play for suggestions
   if (window.logTrackPlay) window.logTrackPlay(track);
 
+  // Revoke previous Object URL (if any), then create a fresh one
+  if (currentAudioObjectUrl) {
+    URL.revokeObjectURL(currentAudioObjectUrl);
+    currentAudioObjectUrl = null;
+  }
+  
   // Play the track
-  const url = URL.createObjectURL(track.file);
+  const url = URL.createObjectURL(file);
+  currentAudioObjectUrl = url;
   audioPlayer.src = url;
   audioPlayer.play();
   setScrollingSong(state.currentMenuIndex);
@@ -47,6 +91,17 @@ function playTrackFromAlbum(track, albumSongs) {
     console.log("Re-rendering Now Playing screen for new track:", track.title);
   }
 }
+
+// Clear and revoke the current audio URL
+function clearCurrentAudioUrl() {
+  if (currentAudioObjectUrl) {
+    URL.revokeObjectURL(currentAudioObjectUrl);
+    currentAudioObjectUrl = null;
+  }
+  audioPlayer.src = '';
+}
+
+window.clearCurrentAudioUrl = clearCurrentAudioUrl;
 
 function formatTime(sec) {
   sec = Math.floor(sec);
@@ -183,10 +238,8 @@ function toggleShuffle() {
     if (state.originalAlbumSongs) {
       const currentSong = state.currentAlbumSongs[state.currentSongIndex];
       state.currentAlbumSongs = state.originalAlbumSongs.slice();
-      state.currentSongIndex = state.currentAlbumSongs.findIndex(
-        t => t.file === currentSong.file
-      );
-      if (state.currentSongIndex === -1) state.currentSongIndex = state.originalSongIndex;
+      const idx = state.currentAlbumSongs.findIndex(t => getTrackId(t) === getTrackId(currentSong));
+      state.currentSongIndex = idx >= 0 ? idx : state.originalSongIndex;
       state.originalAlbumSongs = null;
       state.originalSongIndex = -1;
     }

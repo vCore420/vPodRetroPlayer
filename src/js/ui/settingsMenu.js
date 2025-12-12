@@ -14,6 +14,7 @@ function saveTimeSettings(settings) {
 }
 
 function renderSettingsMenu(direction = 'forward') {
+  app.state.currentMenuIndex = 0;
   renderMenuList({
     title: "Settings",
     items: [
@@ -31,6 +32,12 @@ function renderSettingsMenu(direction = 'forward') {
     onBack: goBack,
     id: "settingsList",
   }, direction);
+
+  masterHighlight({
+    containerSelector: '#settingsList',
+    itemsSelector: 'li'
+  });
+  
   updateHotBarTime();
 }
 
@@ -257,13 +264,14 @@ function renderColourMenu(direction = 'forward') {
 
 // About Menu
 function renderAboutMenu(direction = 'forward') {
+  const version = window.APP_VERSION
   renderScreen(
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">About vRetro Player</div>
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.4</b><br>
+        Version: <b>${version}</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!

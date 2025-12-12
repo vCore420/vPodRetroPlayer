@@ -19,7 +19,7 @@ function attachNowPlayingButtonListeners() {
 
       // 2) Re-read habits from storage
       const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-      const trackId = `${track.title}|${track.artist}|${track.album}`;
+      const trackId = getTrackId(track);
       const habit = habits[trackId] || {};
       const likeCount = habit.likeCount || 0;
       const weeklyLikes = habit.weeklyLikes || 0;
@@ -61,7 +61,7 @@ function attachNowPlayingButtonListeners() {
 
       // 2) Re-read habits from storage
       const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-      const trackId = `${track.title}|${track.artist}|${track.album}`;
+      const trackId = getTrackId(track);
       const habit = habits[trackId] || {};
       const dislikeCount = habit.dislikeCount || 0;
       const weeklyDislikes = habit.weeklyDislikes || 0;
@@ -107,7 +107,7 @@ function attachNowPlayingButtonListeners() {
 
       // Re-read habits and update UI to empty state
       const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-      const trackId = `${track.title}|${track.artist}|${track.album}`;
+      const trackId = getTrackId(track);
       const habit = habits[trackId] || {};
       const likeCount = habit.likeCount || 0;
       const dislikeCount = habit.dislikeCount || 0;
@@ -151,7 +151,7 @@ window.attachNowPlayingButtonListeners = attachNowPlayingButtonListeners;
 function renderNowPlayingScreen(direction = 'forward') {
   const track = app.state.currentTrack;
   const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-  const trackId = track ? `${track.title}|${track.artist}|${track.album}` : '';
+  const trackId = track ? getTrackId(track) : '';
   const habit = track ? habits[trackId] || {} : {};
 
   const likeCount = habit.likeCount || 0;
@@ -172,7 +172,7 @@ function renderNowPlayingScreen(direction = 'forward') {
 
   renderScreen(
     `<div class="nowplaying-container">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin:0 12px 0 0;">
+      <div id="resetTrackRatings" style="display:flex;align-items:center;justify-content:space-between;margin:0 12px 0 0;">
         <span></span>
         <button id="resetTrackRatingsBtn" title="Reset likes/dislikes for this song"
           style="background:none;border:none;color:#b0b0b0;font-size:1.1em;cursor:pointer;padding:2px 0;">
@@ -260,7 +260,8 @@ function updateNowPlayingProgress() {
 
 function renderCurrentQueueMenu(direction = 'forward') {
   const queue = app.state.currentAlbumSongs || [];
-  const currentIdx = app.state.currentSongIndex;
+  const currentTrack = app.state.currentTrack;
+  const currentTrackId = currentTrack ? getTrackId(currentTrack) : null;
 
   if (!queue.length) {
     renderScreen(
@@ -277,12 +278,17 @@ function renderCurrentQueueMenu(direction = 'forward') {
     return;
   }
 
+  let currentIdx = app.state.currentSongIndex;
+  if (currentTrackId) {
+    const matchIdx = queue.findIndex(t => getTrackId(t) === currentTrackId);
+    if (matchIdx >= 0) currentIdx = matchIdx;
+  }
+
   // Use the generic song list renderer, with the current queue
   renderSongList({
     songs: queue,
     albumCover: (app.state.albums[queue[0]?.album] || {}).cover,
     onSongClick: (track, idx) => {
-      // Jump playback to this track within the same queue
       app.state.currentSongIndex = idx;
       playTrackFromAlbum(track, app.state.currentAlbumSongs);
     }
@@ -292,6 +298,10 @@ function renderCurrentQueueMenu(direction = 'forward') {
   app.state.currentMenuIndex = currentIdx >= 0 ? currentIdx : 0;
   if (typeof window.updateHighlightedSong === 'function') {
     window.updateHighlightedSong();
+  }
+  const list = document.getElementById('songsList');
+  if (list && list.children[app.state.currentMenuIndex]) {
+    list.children[app.state.currentMenuIndex].scrollIntoView({ block: 'center' });
   }
 }
 

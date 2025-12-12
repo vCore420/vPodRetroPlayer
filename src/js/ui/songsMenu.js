@@ -16,6 +16,8 @@ function renderAllSongsMenu(direction = 'forward') {
     return;
   }
 
+  app.state.currentMenuIndex = 0;
+
   const sortOrder = localStorage.getItem('allSongsSortOrder') || 'title';
   let currentSortOrder = sortOrder;
   let sortedTracks = allTracks.slice();
@@ -25,13 +27,15 @@ function renderAllSongsMenu(direction = 'forward') {
     localStorage.setItem('allSongsSortOrder', order);
     sortedTracks = allTracks.slice();
     if (order === 'title') {
-      sortedTracks.sort((a, b) => a.title.localeCompare(b.title));
+      sortedTracks.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
     } else if (order === 'artist') {
-      sortedTracks.sort((a, b) => a.artist.localeCompare(b.artist));
+      sortedTracks.sort((a, b) => (a.artist || '').localeCompare(b.artist || ''));
     } else if (order === 'album') {
-      sortedTracks.sort((a, b) => a.album.localeCompare(b.album));
+      sortedTracks.sort((a, b) => (a.album || '').localeCompare(b.album || ''));
     }
+    app.state.currentMenuIndex = 0;       // reset to top on resort
     renderList(sortedTracks);
+    if (typeof window.updateHighlightedSong === 'function') window.updateHighlightedSong();
   }
 
   renderScreen(
@@ -64,13 +68,11 @@ function renderAllSongsMenu(direction = 'forward') {
     songsList.innerHTML = '';
 
     const currentTrack = app.state.currentTrack;
+    const currentTrackId = currentTrack ? getTrackId(currentTrack) : null;
 
     filteredTracks.forEach((track, idx) => {
       const isNowPlaying =
-        currentTrack &&
-        currentTrack.title === track.title &&
-        currentTrack.artist === track.artist &&
-        currentTrack.album === track.album;
+        currentTrackId && getTrackId(track) === currentTrackId;
 
       const nowPlayingLabel = isNowPlaying
         ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
@@ -99,17 +101,28 @@ function renderAllSongsMenu(direction = 'forward') {
         tracks: filteredTracks,
         albumArtSelector: '#allSongsArt'
       });
+
+      // initial highlight
+    if (filteredTracks.length) {
+      window.updateHighlightedSong();
+      const items = songsList.querySelectorAll('.menu-list-song');
+      if (items[app.state.currentMenuIndex]) {
+        items[app.state.currentMenuIndex].scrollIntoView({ block: 'nearest' });
+      }
+    }
   }
 
   renderList(sortedTracks);
 
   document.getElementById('songSearchInput').oninput = (e) => {
-    const query = e.target.value.toLowerCase();
-    const filtered = sortedTracks.filter(track =>
-      track.title.toLowerCase().includes(query) ||
-      track.artist.toLowerCase().includes(query) ||
-      track.album.toLowerCase().includes(query)
-    );
+    const q = (e.target.value || '').toLowerCase();
+    const filtered = sortedTracks.filter(track => {
+      const t = (track.title || '').toLowerCase();
+      const ar = (track.artist || '').toLowerCase();
+      const al = (track.album || '').toLowerCase();
+      return t.includes(q) || ar.includes(q) || al.includes(q);
+    });
+    app.state.currentMenuIndex = 0;
     renderList(filtered);
   };
 
