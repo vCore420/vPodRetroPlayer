@@ -5,6 +5,29 @@ function updateLoadingCounter(loaded, total) {
   if (counter) counter.textContent = `Loaded ${loaded} of ${total} songs`;
 }
 
+function migrateHabitsToStableIds(tracks = []) {
+  const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
+  let moved = 0;
+
+  tracks.forEach(track => {
+    const newId = getTrackId(track);
+    if (habits[newId]) return;
+
+    const legacyId = `${(track.title || track.fileName || 'unknown_title')}|${(track.artist || 'unknown_artist')}|${(track.album || 'unknown_album')}`.toLowerCase();
+    if (habits[legacyId]) {
+      habits[newId] = habits[legacyId];
+      delete habits[legacyId];
+      moved++;
+    }
+  });
+
+  if (moved > 0) {
+    localStorage.setItem('userHabits', JSON.stringify(habits));
+    if (typeof userHabits !== 'undefined') userHabits = habits; // refresh in-memory cache
+    console.log(`Migrated ${moved} habit entries to stable IDs`);
+  }
+}
+
 function handleFiles(e) {
   console.log("Handling files:", e.target.files);
 
@@ -70,6 +93,7 @@ function handleFiles(e) {
 
       // Build albums (no nav here)
       groupTracksByAlbum(true, folderCovers);
+      migrateHabitsToStableIds(app.state.tracks);
 
       renderMainMenu('forward');
       app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
@@ -184,6 +208,7 @@ function handleFiles(e) {
               }
             });
             groupTracksByAlbum(false, folderCovers);
+            migrateHabitsToStableIds(app.state.tracks);
           }
         },
         onError: () => {
