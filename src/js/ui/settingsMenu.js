@@ -271,7 +271,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.5.4</b><br>
+        Version: <b>2.6.0</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -352,5 +352,4 @@ function renderUserStatsMenu(direction = 'forward') {
     const serial = Math.floor(Math.random() * 1e8).toString(16);
     localStorage.setItem('vpodSerial', serial);
   }
-
 }

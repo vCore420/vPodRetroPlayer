@@ -1,4 +1,4 @@
-const CACHE_NAME = `vmusic-cache-2.5.4`;
+const CACHE_NAME = `vmusic-cache-2.6.0`;
 const toCache = [
   "./",
   "index.html",
@@ -46,6 +46,4 @@ self.addEventListener("fetch", event => {
       response || fetch(event.request)
     )
   );
-
 });
-
