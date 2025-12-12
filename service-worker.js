@@ -1,6 +1,4 @@
-importScripts('src/js/version.js');
-
-const CACHE_NAME = `vmusic-cache-${APP_VERSION}`;
+const CACHE_NAME = `vmusic-cache-2.5.2`;
 const toCache = [
   "./",
   "index.html",
@@ -48,5 +46,4 @@ self.addEventListener("fetch", event => {
       response || fetch(event.request)
     )
   );
-
 });
