@@ -192,12 +192,15 @@ body, html {
   flex-direction: row;
   height: 100%;
   position: relative;
+  
 }
 .album-list-left {
   width: 50%;
   border-right: 1px solid #eee;
   overflow-y: auto; 
   height: 100%;
+  background-color: #fff;
+  box-shadow: inset -4px 0 8px rgba(0,0,0,0.08);
 }
 .album-list-right {
   width: 50%;
@@ -206,19 +209,20 @@ body, html {
   justify-content: center;
   background: #f4f4f4;
   position: absolute;     
-  right: 0;
+  right: 45px;
   top: 0;
   height: 100%;
-  z-index: 2;
+  z-index: -1;
 }
 .album-cover {
-  width: 160px;
-  height: 160px;
+  width: 280px;
+  height: 280px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 0;
 }
 
 .menu-list-song {
@@ -811,10 +815,8 @@ body::-webkit-scrollbar,
   }
 
   .album-cover {
-    width: 28vw;
-    height: 28vw;
-    min-width: 0;
-    min-height: 0;
+    width: 58vw;
+    height: 58vw;
   }
 
   .album-list-left, .album-list-right {

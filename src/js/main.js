@@ -57,7 +57,7 @@ if ('mediaSession' in navigator) {
       artist: track.artist,
       album: track.album,
       artwork: [
-        { src: (allAlbums[track.album]?.cover || 'src/img/default-cover.png'), sizes: '512x512', type: 'image/png' }
+        { src: (allAlbums[track.albumKey || track.album]?.cover || 'src/img/default-cover.png'), sizes: '512x512', type: 'image/png' }
       ]
     });
   }

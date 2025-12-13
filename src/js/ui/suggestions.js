@@ -107,18 +107,21 @@ function getSuggestedTracks(tracks, limit = 20) {
   const now = Date.now();
   const habits = JSON.parse(localStorage.getItem('userHabits')) || {};
 
+  // Build a lookup map for fast, reliable track resolution
+  const trackById = new Map(tracks.map(t => [getTrackId(t), t]));
+  const norm = (s = '') => s.trim().toLowerCase();
+
   // Gather seed data from liked songs
   const seedArtists = new Set();
   const seedAlbums = new Set();
   const seedGenres = new Set();
-  const seedBPMs = [];
   Object.entries(habits).forEach(([id, habit]) => {
     if (habit.likeCount > 0) {
-      const [title, artist, album] = id.split('|');
-      const track = tracks.find(t => getTrackId(t) === id);
-      seedArtists.add(artist);
-      seedAlbums.add(album);
-      if (track && track.genre) seedGenres.add(track.genre);
+      const track = trackById.get(id);
+      if (!track) return;
+      if (track.artist) seedArtists.add(norm(track.artist));
+      if (track.album) seedAlbums.add(norm(track.album));
+      if (track.genre)  seedGenres.add(norm(track.genre));
     }
   });
 
@@ -149,10 +152,10 @@ function getSuggestedTracks(tracks, limit = 20) {
     // Recency of last like
     score += recencyScore(habit);
 
-    // Similarity to liked songs
-    if (seedArtists.has(track.artist)) score += 2;
-    if (seedAlbums.has(track.album)) score += 1;
-    if (seedGenres.has(track.genre)) score += 2;
+    // Similarity to liked songs (normalized)
+    if (seedArtists.has(norm(track.artist))) score += 2;
+    if (seedAlbums.has(norm(track.album)))  score += 1;
+    if (seedGenres.has(norm(track.genre)))   score += 2;
 
     // Penalize disliked songs
     if (habit.disliked || habit.weeklyDislikes > 0) score -= 8;
@@ -259,7 +262,7 @@ function renderSuggestedMenu(direction = 'forward') {
       app.state.currentMenuIndex = idx;
       playTrackFromAlbum(track, suggested);
     },
-    albumCover: allAlbums[suggested[0]?.album]?.cover
+    albumCover: allAlbums[suggested[0]?.albumKey || suggested[0]?.album]?.cover
   }, direction);
 
   // initial highlight

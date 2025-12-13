@@ -31,9 +31,18 @@ function renderAllSongsMenu(direction = 'forward') {
     } else if (order === 'artist') {
       sortedTracks.sort((a, b) => (a.artist || '').localeCompare(b.artist || ''));
     } else if (order === 'album') {
-      sortedTracks.sort((a, b) => (a.album || '').localeCompare(b.album || ''));
+      sortedTracks.sort((a, b) => {
+        const albumCmp = (a.album || '').localeCompare(b.album || '');
+        if (albumCmp !== 0) return albumCmp;
+        const ta = Number.isFinite(a.trackNumber) ? a.trackNumber : null;
+        const tb = Number.isFinite(b.trackNumber) ? b.trackNumber : null;
+        if (ta != null && tb != null && ta !== tb) return ta - tb;
+        if (ta != null && tb == null) return -1;
+        if (ta == null && tb != null) return 1;
+        return (a.title || '').localeCompare(b.title || '');
+      });
     }
-    app.state.currentMenuIndex = 0;       // reset to top on resort
+    app.state.currentMenuIndex = 0;    
     renderList(sortedTracks);
     if (typeof window.updateHighlightedSong === 'function') window.updateHighlightedSong();
   }
@@ -64,6 +73,9 @@ function renderAllSongsMenu(direction = 'forward') {
 
   // Render song list
   function renderList(filteredTracks) {
+    // keep the currently displayed list for nav.js art updates
+    window.allSongsCurrentList = filteredTracks;
+
     const songsList = document.getElementById('allSongsList');
     songsList.innerHTML = '';
 
@@ -80,6 +92,8 @@ function renderAllSongsMenu(direction = 'forward') {
 
       const div = document.createElement('div');
       div.className = 'menu-list-song';
+      div.dataset.idx = idx;
+      div.dataset.trackId = getTrackId(track);
       div.innerHTML = `
         ${nowPlayingLabel}
         <span style="padding-left:6px;">
@@ -102,7 +116,7 @@ function renderAllSongsMenu(direction = 'forward') {
         albumArtSelector: '#allSongsArt'
       });
 
-      // initial highlight
+    // initial highlight
     if (filteredTracks.length) {
       window.updateHighlightedSong();
       const items = songsList.querySelectorAll('.menu-list-song');

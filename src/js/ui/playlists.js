@@ -9,8 +9,8 @@ function renderPlaylistsMenu(direction = 'forward') {
     `<div style="display:flex;flex-direction:column;height:100%;">
       <div style="position:relative;display:flex;align-items:center;justify-content:center;height:38px;">
         <button id="addPlaylistBtn"
-          style="position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">
-          ＋
+          style="position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:1.2em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">
+          <i class="fa-solid fa-plus"></i>
         </button>
         <span style="font-size:1.2em;font-weight:bold;display:block;margin:0 auto;">Playlists</span>
       </div>
@@ -104,7 +104,10 @@ function showPlaylistNameModal() {
 
 function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0) {
   const allAlbums = app.state.albums;
-  const albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
+  const albumKeys = Object.keys(allAlbums).sort((a, b) =>
+    (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
+    (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
+  );
 
   renderScreen(`
     <div class="album-carousel-container">
@@ -132,8 +135,8 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
 
   const carousel = document.getElementById('albumCarousel');
   carousel.innerHTML = '';
-  albumNames.forEach((album, idx) => {
-    const albumObj = allAlbums[album];
+  albumKeys.forEach((albumKey, idx) => {
+    const albumObj = allAlbums[albumKey];
     const div = document.createElement('div');
     div.className = 'carousel-album';
     div.innerHTML = `
@@ -143,13 +146,13 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
       </div>
     `;
     div.onclick = () => {
-      window.creatingPlaylist.selectedAlbum = album;
-      goTo(renderSongSelectionForPlaylist, album, idx);
+      window.creatingPlaylist.selectedAlbum = albumKey;
+      goTo(renderSongSelectionForPlaylist, albumKey, idx);
     };
     carousel.appendChild(div);
   });
   
-  setCarouselAlbum(selectedIdx, albumNames);
+  setCarouselAlbum(selectedIdx, albumKeys);
 
   document.getElementById('donePlaylistBtn').onclick = () => {
     if (!window.creatingPlaylist.tracks.length) {
@@ -168,10 +171,12 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
   };
 }
 
-function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx = 0) {
+function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumIdx = 0) {
   window.onPlaylistAlbumMenuDone = null;
   const allAlbums = app.state.albums;
-  const albumObj = allAlbums[album];
+  const albumObj = allAlbums[albumKey];
+
+  app.state.currentMenuIndex = 0;
 
   renderScreen(
     `<div class="album-list">
@@ -236,6 +241,12 @@ function renderSongSelectionForPlaylist(direction = 'forward', album, albumIdx =
     };
     songsList.appendChild(div);
   });
+
+  const items = songsList.querySelectorAll('.menu-list-song');
+  if (items.length) {
+    items[app.state.currentMenuIndex].classList.add('active');
+    items[app.state.currentMenuIndex].scrollIntoView({ block: 'nearest' });
+  }
 }
 
 function toggleTrackInCreatingPlaylist(track) {
@@ -275,11 +286,13 @@ function renderPlaylistSongsMenu(direction = 'forward', playlistIdx) {
     `<div style="display:flex;flex-direction:column;height:100%;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         ${playlistIdx !== 'liked'
-          ? `<button id="editPlaylistBtn" title="Add Songs" style="font-size:1.5em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;">＋</button>`
+          ? `<button id="editPlaylistBtn" title="Add Songs" style="font-size:1.2em;font-weight:bold;background:none;border:none;color:#0074d9;cursor:pointer;"><i class="fa-solid fa-plus"></i></button>`
           : '<span></span>'}
         <span style="font-size:1.2em;font-weight:bold;margin:auto;">${playlist.name}</span>
         ${playlistIdx !== 'liked'
-          ? `<button id="deletePlaylistBtn" title="Delete Playlist" style="font-size:1.3em;font-weight:bold;background:none;border:none;color:#d90429;cursor:pointer;">🗑️</button>`
+          ? `<button id="deletePlaylistBtn" title="Delete Playlist" style="font-size:1.1em;font-weight:bold;background:none;border:none;color:#d90429;cursor:pointer;">
+               <i class="fa-solid fa-trash"></i>
+             </button>`
           : '<span></span>'}
       </div>
       <div id="playlistSongsList" style="margin-top:18px;"></div>

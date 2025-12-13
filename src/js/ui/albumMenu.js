@@ -2,9 +2,12 @@
 
 function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
   const allAlbums = app.state.albums;
-  const albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
+  const albumKeys = Object.keys(allAlbums).sort((a, b) =>
+    (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
+    (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
+  );
 
-  if (albumNames.length === 0) {
+  if (albumKeys.length === 0) {
     renderScreen(
       `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
         <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">No music loaded</div>
@@ -20,18 +23,18 @@ function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
   app.state.currentMenuIndex = selectedIdx;
 
   renderAlbumCarousel({
-    albumsList: albumNames,
-    onAlbumClick: (album, idx) => {
+    albumsList: albumKeys,
+    onAlbumClick: (albumKey, idx) => {
       app.state.currentMenuIndex = idx;
-      goTo(renderAlbumSongsMenu, album, idx);
+      goTo(renderAlbumSongsMenu, albumKey, idx);
     },
     selectedIdx: app.state.currentMenuIndex
   }, direction);
 }
 
-function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist = null) {
+function renderAlbumSongsMenu(direction = 'forward', albumKey, albumIdx = 0, artist = null) {
   const allAlbums = app.state.albums;
-  const albumObj = allAlbums[album];
+  const albumObj = allAlbums[albumKey];
   app.state.currentMenuIndex = 0;
 
   renderSongList({
@@ -61,10 +64,10 @@ function renderAlbumSongsMenu(direction = 'forward', album, albumIdx = 0, artist
 
 // -- Album Carousel --
 
-function setCarouselAlbum(idx, albumNames) {
+function setCarouselAlbum(idx, albumKeys) {
   const carousel = document.getElementById('albumCarousel');
   const title = document.getElementById('albumTitle');
-  const visibleRange = 5; // Show center ± 5 albums
+  const visibleRange = 5;
 
   Array.from(carousel.children).forEach((el, i) => {
     const offset = i - idx;
@@ -108,5 +111,6 @@ function setCarouselAlbum(idx, albumNames) {
       el.style.transform = 'translate(-50%, -50%) scale(0.7) rotateY(0deg)';
     }
   });
-  title.textContent = albumNames[idx] || '';
+  const albumObj = app.state.albums[albumKeys[idx]] || {};
+  title.textContent = albumObj.title || '';
 }

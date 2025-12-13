@@ -54,8 +54,8 @@ function renderArtistAlbumsMenu(direction = 'forward', artistKey, selectedIdx = 
   const allTracks = app.state.tracks;
 
   const artistAlbums = Object.keys(allAlbums)
-    .filter(albumName =>
-      (allAlbums[albumName].artist || 'Unknown Artist')
+    .filter(key =>
+      (allAlbums[key].artist || 'Unknown Artist')
         .trim()
         .toLowerCase() === artistKey
     );
@@ -68,9 +68,9 @@ function renderArtistAlbumsMenu(direction = 'forward', artistKey, selectedIdx = 
 
   renderAlbumCarousel({
     albumsList: artistAlbums,
-    onAlbumClick: (album, idx) => {
+    onAlbumClick: (albumKey, idx) => {
       app.state.currentMenuIndex = idx;
-      goTo(renderAlbumSongsMenu, album, idx, displayName, artistKey);
+      goTo(renderAlbumSongsMenu, albumKey, idx, displayName, artistKey);
     },
     title: displayName,
     selectedIdx

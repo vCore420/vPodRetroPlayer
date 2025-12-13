@@ -3,7 +3,7 @@
 function renderLoadMusic(direction = 'forward') {
   renderScreen(
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
-      <input type="file" id="fileInput" accept=".mp3,.flac,.cue,.m3u" multiple webkitdirectory directory style="display:none;">
+      <input type="file" id="fileInput" accept=".mp3,.flac,.cue" multiple webkitdirectory directory style="display:none;">
       <button id="loadMusicBtn" class="load-music-btn">
         <span class="btn-icon">
           <i class="fa-solid fa-music"></i>

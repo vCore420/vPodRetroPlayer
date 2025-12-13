@@ -231,7 +231,7 @@ function getCurrentCover() {
   if (!track) return "src/img/default-cover.png";
 
   const allAlbums = app.state.albums;
-  const albumObj = allAlbums[track.album] || {};
+  const albumObj = allAlbums[track.albumKey || track.album] || {};
   return albumObj.cover || "src/img/default-cover.png";
 }
 
@@ -284,21 +284,20 @@ function renderCurrentQueueMenu(direction = 'forward') {
     if (matchIdx >= 0) currentIdx = matchIdx;
   }
 
-  // Use the generic song list renderer, with the current queue
   renderSongList({
     songs: queue,
-    albumCover: (app.state.albums[queue[0]?.album] || {}).cover,
+    albumCover: (app.state.albums[queue[0]?.albumKey || queue[0]?.album] || {}).cover,
     onSongClick: (track, idx) => {
       app.state.currentSongIndex = idx;
       playTrackFromAlbum(track, app.state.currentAlbumSongs);
     }
   }, direction);
 
-  // Highlight the current track in the queue list
   app.state.currentMenuIndex = currentIdx >= 0 ? currentIdx : 0;
   if (typeof window.updateHighlightedSong === 'function') {
     window.updateHighlightedSong();
   }
+  
   const list = document.getElementById('songsList');
   if (list && list.children[app.state.currentMenuIndex]) {
     list.children[app.state.currentMenuIndex].scrollIntoView({ block: 'center' });

@@ -13,7 +13,7 @@ function masterHighlight({ containerSelector, itemsSelector, tracks, albumArtSel
 
   if (albumArtSelector && tracks && tracks[idx]) {
     const allAlbums = app.state.albums;
-    const albumObj = allAlbums[tracks[idx].album] || {};
+    const albumObj = allAlbums[tracks[idx].albumKey || tracks[idx].album] || {};
     const artImg = document.querySelector(albumArtSelector);
     if (artImg) artImg.src = albumObj.cover || "src/img/default-cover.png";
   }
@@ -182,7 +182,7 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
         <div id="songsList"></div>
       </div>
       <div class="album-list-right">
-        <img src="${albumCover || allAlbums[songs[0]?.album]?.cover || 'src/img/default-cover.png'}" class="album-cover" alt="Album Cover">
+        <img src="${albumCover || allAlbums[songs[0]?.albumKey || songs[0]?.album]?.cover || 'src/img/default-cover.png'}" class="album-cover" alt="Album Cover">
         ${selectMode ? `<div style="margin-top:18px;text-align:center;width:100%;"><span style="font-size:1em;color:#0074d9;word-break:break-word;">Tap songs to add/remove from playlist</span></div>` : ''}
       </div>
     </div>

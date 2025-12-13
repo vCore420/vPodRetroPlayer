@@ -190,9 +190,16 @@ function attachDiskControlListeners() {
               (allAlbums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
           );
         } else if (stack.length > 0 && stack[stack.length - 1].fn === renderAlbumSelectionForPlaylist) {
-          albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
+          albumNames = Object.keys(allAlbums).sort((a, b) =>
+            (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
+            (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
+          );
         } else {
-          albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
+          // MAIN ALBUM CAROUSEL: sort by title then artist (matches renderAlbumsMenu)
+          albumNames = Object.keys(allAlbums).sort((a, b) =>
+            (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
+            (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
+          );
         }
 
         const idx = app.state.currentMenuIndex;
@@ -361,14 +368,14 @@ function scrollMenu(direction) {
 
   // Update album art for All Songs menu
   if (menu.id === 'allSongsList') {
-    const allTracks = app.state.tracks;
     const allAlbums = app.state.albums;
-
-    const trackTitle = items[idx].textContent.split(' - ')[0];
-    const track = allTracks.find(t => t.title === trackTitle);
-    const albumObj = track ? (allAlbums[track.album] || {}) : {};
-    document.getElementById('allSongsArt').src =
-      albumObj.cover || "src/img/default-cover.png";
+    const list = window.allSongsCurrentList || app.state.tracks || [];
+    const track = list[idx];
+    const albumObj = track ? (allAlbums[track.albumKey || track.album] || {}) : {};
+    const artEl = document.getElementById('allSongsArt');
+    if (artEl) {
+      artEl.src = albumObj.cover || "src/img/default-cover.png";
+    }
   }
 
   // Carousel logic for albums
@@ -383,16 +390,22 @@ function scrollMenu(direction) {
     ) {
       const artistKey = stack[stack.length - 1].args[1];
       albumNames = Object.keys(allAlbums).filter(
-        albumName =>
-          (allAlbums[albumName].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
+        key =>
+          (allAlbums[key].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
       );
     } else if (
       stack.length > 0 &&
       stack[stack.length - 1].fn === renderAlbumSelectionForPlaylist
     ) {
-      albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
+      albumNames = Object.keys(allAlbums).sort((a, b) =>
+        (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
+        (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
+      );
     } else {
-      albumNames = Object.keys(allAlbums).sort((a, b) => a.localeCompare(b));
+      albumNames = Object.keys(allAlbums).sort((a, b) =>
+        (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
+        (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
+      );
     }
 
     setCarouselAlbum(app.state.currentMenuIndex, albumNames);

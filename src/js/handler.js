@@ -109,6 +109,13 @@ function migrateHabitsToStableIds(tracks = []) {
   }
 }
 
+function parseTrackNumber(raw) {
+  if (raw == null) return null;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  const m = String(raw).match(/\d+/);
+  return m ? parseInt(m[0], 10) : null;
+}
+
 function handleFiles(e) {
   console.log("Handling files:", e.target.files);
 
@@ -193,26 +200,44 @@ function handleFiles(e) {
   let processed = 0;
 
   // Helper to parse CUE files
-  function parseCue(text, flacFile) {
-    console.log("Parsing CUE file:", flacFile ? flacFile.name : "No FLAC");
+  function parseCue(text, audioFiles, fallbackFile = null) {
+    console.log("Parsing CUE file:", fallbackFile ? fallbackFile.name : "No FLAC fallback");
+
     const albumMatch = text.match(/^\s*TITLE\s+"([^"]+)"/m);
-    const album = albumMatch ? albumMatch[1] : 'Unidentified Album';
-    const artistMatch = text.match(/^\s*PERFORMER\s+"([^"]+)"/m);
-    const artist = artistMatch ? artistMatch[1] : 'Unknown Artist';
-    const trackRegex = /TRACK\s+\d+\s+AUDIO([\s\S]*?)(?=TRACK|\Z)/g;
-    let match;
-    let cueTracks = [];
-    while ((match = trackRegex.exec(text))) {
-      const trackBlock = match[1];
-      const titleMatch = trackBlock.match(/TITLE\s+"([^"]+)"/);
-      const performerMatch = trackBlock.match(/PERFORMER\s+"([^"]+)"/);
-      cueTracks.push({
-        file: flacFile,
-        title: titleMatch ? titleMatch[1] : flacFile ? flacFile.name : 'Unknown Track',
-        artist: performerMatch ? performerMatch[1] : artist,
-        album
+    const albumTitle = albumMatch ? albumMatch[1] : 'Unidentified Album';
+
+    const performerMatch = text.match(/^\s*PERFORMER\s+"([^"]+)"/m);
+    const albumArtist = performerMatch ? performerMatch[1] : 'Unknown Artist';
+
+    const genreMatch = text.match(/REM\s+GENRE\s+"?([^"\r\n]+)"?/i);
+    const dateMatch = text.match(/REM\s+DATE\s+"?([^"\r\n]+)"?/i);
+    const genre = genreMatch ? genreMatch[1] : undefined;
+    const year = dateMatch ? dateMatch[1] : undefined;
+
+    const fileBlocks = [...text.matchAll(/FILE\s+"([^"]+)"\s+\w+\s+([\s\S]*?)(?=FILE\s+"|$)/gi)];
+    const cueTracks = [];
+
+    fileBlocks.forEach(([, fileName, block]) => {
+      const file = (audioFiles || []).find(f => f.name === fileName) || fallbackFile || null;
+
+      const trackBlocks = [...block.matchAll(/TRACK\s+(\d+)\s+AUDIO([\s\S]*?)(?=TRACK\s+\d+\s+AUDIO|$)/gi)];
+      trackBlocks.forEach(([, numStr, tBlock]) => {
+        const tn = parseInt(numStr, 10);
+        const titleMatch = tBlock.match(/TITLE\s+"([^"]+)"/i);
+        const performerTrack = tBlock.match(/PERFORMER\s+"([^"]+)"/i);
+
+        cueTracks.push({
+          file,
+          title: titleMatch ? titleMatch[1] : (file ? file.name : 'Unknown Track'),
+          artist: performerTrack ? performerTrack[1] : albumArtist,
+          album: albumTitle,
+          trackNumber: Number.isFinite(tn) ? tn : cueTracks.length + 1,
+          ...(genre ? { genre } : {}),
+          ...(year ? { year } : {})
+        });
       });
-    }
+    });
+
     console.log("Parsed cue tracks:", cueTracks);
     return cueTracks;
   }
@@ -230,7 +255,7 @@ function handleFiles(e) {
           flacFile = audioFiles.find(f => f.name === fileMatch[1]);
         }
         if (flacFile) {
-          cueTracks = cueTracks.concat(parseCue(cueText, flacFile));
+          cueTracks = cueTracks.concat(parseCue(cueText, audioFiles, flacFile));
         }
         if (++processed === cueFiles.length) {
           processAudioFiles();
@@ -242,7 +267,7 @@ function handleFiles(e) {
     processAudioFiles();
   }
 
-  // Now process audio files
+  // Process audio files
   function processAudioFiles() {
     console.log("Processing audio files...");
     let total = audioFiles.length;
@@ -266,7 +291,8 @@ function handleFiles(e) {
     audioFiles.forEach(file => {
       window.jsmediatags.read(file, {
         onSuccess: tag => {
-          const { title, artist, album, genre } = tag.tags;
+          const { title, artist, album, genre, track } = tag.tags;
+          const trackNumber = parseTrackNumber(track);
           console.log("Read tags for:", file.name, tag.tags);
           if (!stateTracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
             stateTracks.push({
@@ -274,7 +300,8 @@ function handleFiles(e) {
               title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
               artist: artist || 'Unknown Artist',
               album: album || 'Unidentified Album',
-              genre: genre || 'Unknown Genre'
+              genre: genre || 'Unknown Genre',
+              trackNumber
             });
           }
           done++;
@@ -330,6 +357,12 @@ function getFolderPath(file) {
   return folder;
 }
 
+function makeAlbumKey(track) {
+  const artist = (track.artist || 'Unknown Artist').trim().toLowerCase();
+  const album  = (track.album  || 'Unknown Album').trim().toLowerCase();
+  return `${artist}|${album}`;
+}
+
 function groupTracksByAlbum(skipPrompt = false, folderCovers = {}) {
   console.log("Grouping tracks by album...");
 
@@ -339,19 +372,35 @@ function groupTracksByAlbum(skipPrompt = false, folderCovers = {}) {
   const allAlbums = app.state.albums;
 
   allTracks.forEach(track => {
-    const albumName = track.album || 'Unknown Album';
-    if (!allAlbums[albumName]) {
+    const albumTitle  = track.album || 'Unknown Album';
+    const albumArtist = track.artist || 'Unknown Artist';
+    const albumKey    = makeAlbumKey(track);
+    track.albumKey    = albumKey; // store on track for lookups
+
+    if (!allAlbums[albumKey]) {
       const trackFolder = track.file ? getFolderPath(track.file) : '';
       const coverUrl = folderCovers[trackFolder] || track.cover || 'src/img/default-cover.png';
 
-      allAlbums[albumName] = {
-        name: albumName,
-        artist: track.artist || 'Unknown Artist',
+      allAlbums[albumKey] = {
+        key: albumKey,
+        title: albumTitle,
+        artist: albumArtist,
         cover: coverUrl,
         songs: []
       };
     }
-    allAlbums[albumName].songs.push(track);
+    allAlbums[albumKey].songs.push(track);
+  });
+
+  Object.values(allAlbums).forEach(album => {
+    album.songs.sort((a, b) => {
+      const ta = Number.isFinite(a.trackNumber) ? a.trackNumber : null;
+      const tb = Number.isFinite(b.trackNumber) ? b.trackNumber : null;
+      if (ta != null && tb != null && ta !== tb) return ta - tb;
+      if (ta != null && tb == null) return -1;
+      if (ta == null && tb != null) return 1;
+      return (a.title || '').localeCompare(b.title || '');
+    });
   });
 
   console.log("Albums grouped:", allAlbums);
