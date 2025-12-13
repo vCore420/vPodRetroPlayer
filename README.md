@@ -33,19 +33,19 @@ A browser-based, offline-capable, retro iPod-inspired player for your **local** 
 
 ```
 Music/
+tracks-meta.json     # optional exported metadata
   Artist Name/
     Album Name/
       01 - Track Title.mp3
-      02 - Track Title.mp3
+      02 - Track Title.flac
       cover.jpg            # album art (recommended)
-      tracks-meta.json     # optional exported metadata
 ```
 
 **Tips**
 - Filenames with track numbers keep album order reliable (albums now sort by tag track number when present).
 - Put a `cover.jpg/png` in each album folder; it will be picked up as art.
 - Keep CUE files in the same folder as their FLAC; per-track titles/performers are parsed.
-- If you export metadata, keep `tracks-meta.json` beside the audio files.
+- If you export metadata, keep `tracks-meta.json` in the root folder loaded.
 - M3U import is not supported; load folders directly.
 
 ---
@@ -119,3 +119,4 @@ All data stays local in your browser (localStorage + cache). No uploads or netwo
 
 
 Enjoy your music with a retro touch!
+
