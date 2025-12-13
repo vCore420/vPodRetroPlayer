@@ -1,4 +1,4 @@
-# vMusic (vRetro Player)
+# vPod Retro Player
 
 A browser-based, offline-capable, retro iPod-inspired player for your **local** music (MP3/FLAC). Enjoy click-wheel navigation, playlists, likes/dislikes-driven suggestions, weekly recaps, EQ presets, themes, and Media Session hardware key support.
 
@@ -116,5 +116,6 @@ Music/
 ## Privacy
 
 All data stays local in your browser (localStorage + cache). No uploads or network calls beyond CDN dependencies (font-awesome/jsmediatags).
+
 
 Enjoy your music with a retro touch!
