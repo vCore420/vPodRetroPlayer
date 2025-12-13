@@ -135,31 +135,52 @@ function attachDiskControlListeners() {
   };
 
   document.getElementById('nextBtn').onclick = () => {
-    console.log("Next button clicked");
     const state = app.state;
-    if (
-      state.currentAlbumSongs.length &&
-      state.currentSongIndex >= 0 &&
-      state.currentSongIndex < state.currentAlbumSongs.length - 1
-    ) {
+    if (state.smartMixActive) {
+      ensureSmartMixBuffer(10);
+      const q = state.smartMixQueue || state.currentAlbumSongs || [];
+      const idx = state.currentSongIndex;
+      if (q.length && idx < q.length - 1) {
+        if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && state.currentTrack) {
+          window.logTrackSkip(state.currentTrack);
+        }
+        playTrackFromAlbum(q[idx + 1], q, { smartMix: true });
+      }
+      return;
+    }
+
+    // Normal queue advance
+    const q = state.currentAlbumSongs || [];
+    const idx = state.currentSongIndex;
+    if (q.length && idx >= 0 && idx < q.length - 1) {
       if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && state.currentTrack) {
         window.logTrackSkip(state.currentTrack);
       }
-      playTrackFromAlbum(state.currentAlbumSongs[state.currentSongIndex + 1], state.currentAlbumSongs);
+      playTrackFromAlbum(q[idx + 1], q);
     }
   };
 
   document.getElementById('prevBtn').onclick = () => {
-    console.log("Prev button clicked");
     const state = app.state;
-    if (
-      state.currentAlbumSongs.length &&
-      state.currentSongIndex > 0
-    ) {
+    if (state.smartMixActive) {
+      const q = state.smartMixQueue || state.currentAlbumSongs || [];
+      if (q.length && state.currentSongIndex > 0) {
+        if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && state.currentTrack) {
+          window.logTrackSkip(state.currentTrack);
+        }
+        playTrackFromAlbum(q[state.currentSongIndex - 1], q, { smartMix: true });
+      }
+      return;
+    }
+
+    // Normal queue back
+    const q = state.currentAlbumSongs || [];
+    const idx = state.currentSongIndex;
+    if (q.length && idx > 0) {
       if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && state.currentTrack) {
         window.logTrackSkip(state.currentTrack);
       }
-      playTrackFromAlbum(state.currentAlbumSongs[state.currentSongIndex - 1], state.currentAlbumSongs);
+      playTrackFromAlbum(q[idx - 1], q);
     }
   };
 

@@ -6,15 +6,18 @@ A browser-based, offline-capable, retro iPod-inspired player for your **local** 
 
 ## Highlights
 
-- **Local library**: Load folders of MP3/FLAC (CUE for FLAC albums supported). Metadata and embedded/sidecar art via jsmediatags.
-- **Retro iPod UI**: Click-wheel style controls (Menu, Prev, Next, Play/Pause, Confirm) with smooth album carousel.
-- **Playback**: Now Playing with art, progress, shuffle, hardware/media keys via Media Session API.
-- **Playlists**: Create/edit/delete playlists; auto “Liked Songs” list.
-- **Habits & Insights**: Plays/skips/likes/dislikes tracked; “Suggested” smart picks; Weekly Recap; User Stats.
+- **Local library only**: Load folders of MP3/FLAC (CUE for FLAC albums supported). Metadata and art via jsmediatags.
+- **Retro iPod UI**: Click-wheel controls (Menu, Prev, Next, Play/Pause, Confirm), album carousel, hot bar.
+- **Playback**: Now Playing with art, progress, shuffle (auto-disabled in Smart Mix), hardware/media keys via Media Session API.
+- **Playlists**: Create/edit/delete playlists; auto “Liked Songs”; add from Now Playing.
+- **Habits & Insights**: Plays/skips/likes/dislikes tracked; “Suggested” picks; Smart Mix adaptive queue; Weekly Recap; User Stats.
+- **Smart Mix (adaptive)**: Endless, refilling queue that reacts to likes/dislikes/skips in real time, caps repeat artists, boosts liked/heard artists/albums, and blocks recently skipped/disliked items.
 - **Equalizer**: 3-band EQ with presets.
-- **Settings**: Themes/“iPod colours”, 12/24h time, date format, stats, About.
-- **PWA**: Service worker caching for offline use; installable.
-- **Responsive**: Desktop and mobile.
+- **Themes/Colours**: Classic colours plus unlockable rare themes (plays/likes/dislikes/unique/time), with optional dev unlock flag.
+- **Games**: Brick Paddle, Snake, Flappy Dot, 2048 Mini, Number Guess (disk controls; controls restored on exit).
+- **PWA**: Offline after first load; installable.
+- **Responsive**: Desktop and mobile friendly.
+
 
 ---
 
@@ -61,6 +64,8 @@ Music/                         # Root music folder
   - ◀ / ▶: previous/next track (logs a skip if before halfway).
 - **On Now Playing**: Like, Dislike, Shuffle, Queue view, Reset ratings for this track.
 - **Hot bar**: Shows time and play state; transient messages on track change.
+- **Smart Mix**: Endless adaptive queue; shuffle auto-disabled; next/prev uses the Smart Mix queue.
+- **Games**: Use disk buttons as indicated in each game; MENU exits and restores controls.
 
 ---
 
@@ -68,11 +73,14 @@ Music/                         # Root music folder
 
 - **Main Menu**: Load Music, Now Playing, Playlists, Artists, Albums, All Songs, Suggested, Settings (+ Weekly Recap on Mondays 8:00–20:00).
 - **Playlists**: Add/edit/delete; select albums then pick songs; “Liked Songs” auto-fills from your likes.
-- **Suggested**: Recommends tracks using play counts, likes/dislikes (weekly & lifetime), recency, and similarity (artist/album/genre).
+- **Suggested**: Recommends tracks the user may like but havnt played before using play counts, likes/dislikes (weekly & lifetime), recency, and similarity (artist/album/genre).
+- **Smart Mix**: Starts from the current track or top liked/played; live refilling queue; caps repeat artists; respects skips/dislikes; boosts liked/heard artists/albums.
 - **Weekly Recap**: Last week’s plays/skips/likes/dislikes and top tracks; auto-resets weekly (Monday ≥08:00).
 - **User Stats**: Lifetime totals, unique counts, most played/liked/skipped/disliked; wipe stats button (does not delete playlists).
 - **Equalizer**: Presets (Flat, Bass Boost, Rock, Pop, Jazz, Classical, etc.).
 - **Settings**: EQ, Date/Time format (12/24h, DD/MM or MM/DD), iPod colour/theme, User Stats, About.
+- **Themes/Colours**: Classic colours plus rare unlockable themes (plays/likes/dislikes/unique/time). Dev flag `DEV_UNLOCK_RARES` to bypass for testing.
+- **Games**: Brick Paddle, Snake, Flappy Dot, 2048 Mini, Number Guess—disk controlled.
 - **Reset UI**: Top-right reset button clears UI/nav and stops audio (keeps your loaded library).
 
 ---

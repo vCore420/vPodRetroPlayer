@@ -58,6 +58,21 @@ function logTrackSkip(track) {
   };
   userHabits[id].skips += 1;
   saveUserHabits();
+  if (app.state.smartMixActive) {
+    app.state.smartMixHistory = app.state.smartMixHistory || [];
+    app.state.smartMixSessionSkips = app.state.smartMixSessionSkips || [];
+    app.state.smartMixSkipArtists = app.state.smartMixSkipArtists || [];
+    const tid = getTrackId(track);
+    const artist = (track.artist || '').trim().toLowerCase();
+    if (artist) {
+      app.state.smartMixSkipArtists.unshift(artist);
+      app.state.smartMixSkipArtists = app.state.smartMixSkipArtists.slice(0, 12); // keep recent 12
+    }
+    if (!app.state.smartMixHistory.includes(tid)) app.state.smartMixHistory.push(tid);
+    if (!app.state.smartMixSessionSkips.includes(tid)) app.state.smartMixSessionSkips.push(tid);
+    refreshSmartMixTail?.();
+    ensureSmartMixBuffer?.(10);
+  }
 }
 
 // Log when a song is liked/disliked
@@ -84,6 +99,7 @@ function setTrackRating(track, rating) {
     userHabits[id].lastLiked = Date.now();
     userHabits[id].liked = true;      // still mark last action for filters
     userHabits[id].disliked = false;
+    rememberPositive(track);
   } else if (rating === 'dislike') {
     userHabits[id].dislikeCount = (userHabits[id].dislikeCount || 0) + 1;
     userHabits[id].weeklyDislikes = (userHabits[id].weeklyDislikes || 0) + 1;
@@ -95,6 +111,19 @@ function setTrackRating(track, rating) {
     userHabits[id].disliked = false;
   }
   saveUserHabits();
+  if (app.state.smartMixActive) {
+      app.state.smartMixHistory = app.state.smartMixHistory || [];
+      app.state.smartMixSessionSkips = app.state.smartMixSessionSkips || [];
+      app.state.smartMixSkipArtists = app.state.smartMixSkipArtists || [];
+      const artist = (track.artist || '').trim().toLowerCase();
+      const tid = getTrackId(track);
+      if (artist) {
+        app.state.smartMixSkipArtists.unshift(artist);
+        app.state.smartMixSkipArtists = app.state.smartMixSkipArtists.slice(0, 12);
+      }
+      if (!app.state.smartMixHistory.includes(tid)) app.state.smartMixHistory.push(tid);
+      if (!app.state.smartMixSessionSkips.includes(tid)) app.state.smartMixSessionSkips.push(tid);
+    }
 }
 
 // Save habits to localStorage
@@ -270,3 +299,284 @@ function renderSuggestedMenu(direction = 'forward') {
     window.updateHighlightedSong();
   }
 }
+
+// --- Smart Mix Functions ---
+
+function pushBounded(arr, val, max = 12) {
+  if (!val) return arr;
+  arr = arr || [];
+  if (!arr.includes(val)) {
+    arr.unshift(val);
+    if (arr.length > max) arr = arr.slice(0, max);
+  }
+  return arr;
+}
+
+function rememberPositive(track) {
+  const norm = s => (s || '').trim().toLowerCase();
+  app.state.smartMixLikedArtists = pushBounded(app.state.smartMixLikedArtists, norm(track.artist));
+  app.state.smartMixLikedAlbums  = pushBounded(app.state.smartMixLikedAlbums,  norm(track.album));
+}
+
+function markDeepListen(track) {
+  const norm = s => (s || '').trim().toLowerCase();
+  app.state.smartMixHeardArtists = pushBounded(app.state.smartMixHeardArtists, norm(track.artist));
+}
+window.markDeepListen = markDeepListen;
+
+function ensureSmartMixBuffer(bufferSize = 8) {
+  if (!app.state.smartMixActive) return;
+  const tracks = app.state.tracks || [];
+  if (!tracks.length) return;
+
+  const queue = app.state.smartMixQueue || [];
+  const idx = app.state.currentSongIndex ?? 0;
+  const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
+  const seed = app.state.currentTrack || queue[idx] || null;
+  if (!seed) return;
+
+  // history set to avoid quick repeats
+  const sessionSkips = new Set(app.state.smartMixSessionSkips || []);
+  const history = new Set(app.state.smartMixHistory || []);
+  sessionSkips.forEach(id => history.add(id));
+  queue.slice(0, idx + 1).forEach(t => history.add(getTrackId(t)));
+
+  // need more?
+  const need = bufferSize - (queue.length - (idx + 1));
+  if (need <= 0) return;
+
+  const candidates = getSmartMixTracks(tracks, seed, 60)
+    .filter(t => !history.has(getTrackId(t)))
+    .filter(t => !queue.some(q => getTrackId(q) === getTrackId(t)));
+
+  const toAdd = candidates.slice(0, need);
+  if (toAdd.length) {
+    app.state.smartMixQueue = queue.concat(toAdd);
+    app.state.currentAlbumSongs = app.state.smartMixQueue;
+  }
+}
+
+function refreshSmartMixTail() {
+  if (!app.state.smartMixActive) return;
+  const tracks = app.state.tracks || [];
+  const queue = app.state.smartMixQueue || [];
+  const idx = app.state.currentSongIndex ?? 0;
+  const head = queue.slice(0, idx + 1);
+  const seed = app.state.currentTrack || head[idx] || null;
+  if (!seed) return;
+
+  const sessionSkips = new Set(app.state.smartMixSessionSkips || []);
+  const history = new Set(app.state.smartMixHistory || []);
+  sessionSkips.forEach(id => history.add(id));
+  head.forEach(t => history.add(getTrackId(t)));
+
+  const tail = getSmartMixTracks(tracks, seed, 80)
+    .filter(t => !history.has(getTrackId(t)))
+    .slice(0, 12);
+
+  app.state.smartMixQueue = head.concat(tail);
+  app.state.currentAlbumSongs = app.state.smartMixQueue;
+}
+
+function startSmartMixFromList(list, startIdx = 0) {
+  if (!list || !list.length) return;
+  app.state.smartMixActive = true;
+  app.state.smartMixHistory = [];
+  app.state.smartMixQueue = list.slice();
+  app.state.smartMixSessionSkips = [];
+  app.state.smartMixSkipArtists = [];
+  app.state.smartMixLikedArtists = app.state.smartMixLikedArtists || [];
+  app.state.smartMixLikedAlbums  = app.state.smartMixLikedAlbums  || [];
+  app.state.smartMixHeardArtists = app.state.smartMixHeardArtists || [];
+  app.state.currentAlbumSongs = app.state.smartMixQueue;
+  app.state.currentSongIndex = startIdx;
+  const seedTrack = app.state.smartMixQueue[startIdx];
+  playTrackFromAlbum(seedTrack, app.state.smartMixQueue, { smartMix: true });
+  // record history
+  app.state.smartMixHistory.push(getTrackId(seedTrack));
+  ensureSmartMixBuffer(10);
+}
+window.ensureSmartMixBuffer = ensureSmartMixBuffer;
+window.refreshSmartMixTail = refreshSmartMixTail;
+window.startSmartMixFromList = startSmartMixFromList;
+
+function getSmartMixTracks(tracks, seedTrack, limit = 30) {
+  if (!tracks || !tracks.length) return [];
+  const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
+  const trackById = new Map(tracks.map(t => [getTrackId(t), t]));
+  const norm = s => (s || '').trim().toLowerCase();
+
+  const sessionSkips = new Set(app.state.smartMixSessionSkips || []);
+  const skipArtists = new Set((app.state.smartMixSkipArtists || []).map(norm));
+  const likedArtists = new Set((app.state.smartMixLikedArtists || []).map(norm));
+  const likedAlbums  = new Set((app.state.smartMixLikedAlbums  || []).map(norm));
+  const heardArtists = new Set((app.state.smartMixHeardArtists || []).map(norm));
+
+  // recent artists from the currently played part of the Smart Mix queue
+  const recentArtists = (() => {
+    const q = app.state.smartMixQueue || [];
+    const idx = app.state.currentSongIndex ?? 0;
+    const start = Math.max(0, idx - 6);
+    const last = q.slice(start, idx + 1);
+    return last.map(t => norm(t.artist));
+  })();
+  const recentArtistCounts = recentArtists.reduce((m, a) => {
+    m[a] = (m[a] || 0) + 1;
+    return m;
+  }, {});
+
+  // Seed selection
+  let seed = seedTrack || app.state.currentTrack || null;
+  if (!seed) {
+    const byLikes = Object.entries(habits).sort((a, b) => (b[1].likeCount || 0) - (a[1].likeCount || 0));
+    const topLike = byLikes.find(e => trackById.has(e[0]));
+    if (topLike) seed = trackById.get(topLike[0]);
+  }
+  if (!seed) {
+    const byPlays = Object.entries(habits).sort((a, b) => (b[1].plays || 0) - (a[1].plays || 0));
+    const topPlay = byPlays.find(e => trackById.has(e[0]));
+    if (topPlay) seed = trackById.get(topPlay[0]);
+  }
+  if (!seed) return [];
+
+  const seedArtist = norm(seed.artist);
+  const seedAlbum  = norm(seed.album);
+  const seedGenre  = norm(seed.genre);
+
+  const scored = tracks
+    .filter(t => getTrackId(t) !== getTrackId(seed))
+    .map(t => {
+      const id = getTrackId(t);
+      const h = habits[id] || {};
+      const artistN = norm(t.artist);
+
+      // Hard filters
+      if (h.dislikeCount > 0 || h.weeklyDislikes > 0 || h.disliked) return null;
+      if (sessionSkips.has(id)) return null;           // skipped this session
+      if ((h.skips || 0) >= 2) return null;            // too many lifetime skips
+      if (recentArtistCounts[artistN] >= 2) return null; // avoid recent ping‑pong
+
+      let score = 0;
+
+      // Similarity
+      if (artistN === seedArtist) score += 4;
+      if (norm(t.album) === seedAlbum) score += 2.5;
+      if (seedGenre && norm(t.genre) === seedGenre) score += 2.5;
+
+      // User feedback
+      score += (h.likeCount || 0) * 2;
+      score -= (h.dislikeCount || 0) * 6;
+      score -= (h.skips || 0) * 3;
+
+      // Freshness
+      if ((h.plays || 0) === 0) score += 5;
+      else if ((h.plays || 0) < 3) score += 3;
+
+      // Penalize recently skipped artists + recently played artists
+      if (skipArtists.has(artistN)) score -= 8;
+      if (recentArtistCounts[artistN]) score -= 4;
+
+      // Boost liked artists/albums and heard artists
+      if (likedArtists.has(artistN)) score += 6;
+      if (likedAlbums.has(norm(t.album))) score += 4;
+      if (heardArtists.has(artistN)) score += 3;
+
+      // Tiny jitter
+      score += Math.random();
+
+      return { track: t, score, artistN };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.score - a.score);
+
+  // Diversity with stricter caps if artist was recently skipped/played
+  const picked = [];
+  const artistSeen = {};
+  for (const s of scored) {
+    const a = s.artistN;
+    const baseCap = 2;
+    const cap = skipArtists.has(a) || recentArtistCounts[a] ? 1 : baseCap;
+    const count = artistSeen[a] || 0;
+    if (count < cap || picked.length < 6) {
+      picked.push(s.track);
+      artistSeen[a] = count + 1;
+    }
+    if (picked.length >= limit) break;
+  }
+
+  // Fillers from other artists if short
+  if (picked.length < limit) {
+    const seedArtistLower = seedArtist;
+    const filler = tracks
+      .filter(t => norm(t.artist) !== seedArtistLower)
+      .filter(t => !picked.some(p => getTrackId(p) === getTrackId(t)))
+      .map(t => {
+        const id = getTrackId(t);
+        const h = habits[id] || {};
+        const aN = norm(t.artist);
+        if (h.dislikeCount > 0 || h.weeklyDislikes > 0 || h.disliked) return null;
+        if (sessionSkips.has(id)) return null;
+        if ((h.skips || 0) >= 2) return null;
+        if (skipArtists.has(aN)) return null;
+        if (recentArtistCounts[aN] >= 2) return null;
+        let s = 0;
+        if ((h.plays || 0) === 0) s += 3;
+        if ((h.likeCount || 0) > 0) s += 2;
+        s += Math.random();
+        return { track: t, score: s, artistN: aN };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit - picked.length)
+      .map(x => x.track);
+    picked.push(...filler);
+  }
+
+  return picked.slice(0, limit);
+}
+
+function renderSmartMixMenu(direction = 'forward') {
+  const allTracks = app.state.tracks || [];
+  if (!allTracks.length) {
+    renderScreen(
+      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:0 18px;">
+        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:10px;">Smart Mix</div>
+        <div style="font-size:0.95em;color:#444;">Load music to start a mix.</div>
+      </div>`,
+      direction
+    );
+    return;
+  }
+
+  let mix;
+  if (app.state.smartMixActive && app.state.smartMixQueue?.length) {
+    mix = app.state.smartMixQueue;
+  } else {
+    const seed = app.state.currentTrack || null;
+    mix = getSmartMixTracks(allTracks, seed, 30);
+  }
+
+  if (!mix.length) {
+    renderScreen(
+      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:0 18px;">
+        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:10px;">Smart Mix</div>
+        <div style="font-size:0.95em;color:#444;">Not enough listening data yet.</div>
+      </div>`,
+      direction
+    );
+    return;
+  }
+
+  app.state.currentMenuIndex = 0;
+  renderSongList({
+    songs: mix,
+    albumCover: (app.state.albums[mix[0]?.albumKey || mix[0]?.album] || {}).cover,
+    onSongClick: (track, idx) => {
+      app.state.currentMenuIndex = idx;
+      startSmartMixFromList(mix, idx);
+    }
+  }, direction);
+
+  if (typeof window.updateHighlightedSong === 'function') window.updateHighlightedSong();
+}
+window.renderSmartMixMenu = renderSmartMixMenu;

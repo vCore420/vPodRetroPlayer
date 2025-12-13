@@ -22,6 +22,8 @@ function renderMainMenu(direction = 'forward') {
     { label: "Albums", action: renderAlbumsMenu },
     { label: "All Songs", action: renderAllSongsMenu },
     { label: "Suggested", action: renderSuggestedMenu },
+    { label: "Smart Mix", action: renderSmartMixMenu },
+    { label: "Games", action: renderGamesMenu },
     { label: "Settings", action: renderSettingsMenu }
   ];
 

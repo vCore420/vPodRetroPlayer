@@ -134,7 +134,14 @@ function attachNowPlayingButtonListeners() {
   }
 
   if (shuffleBtn) {
+    const disableShuffle = app.state.smartMixActive;
+    shuffleBtn.disabled = disableShuffle;
+    shuffleBtn.style.opacity = disableShuffle ? 0.4 : 1;
     shuffleBtn.onclick = () => {
+      if (app.state.smartMixActive) {
+        if (typeof showHotBarMessage === 'function') showHotBarMessage('Shuffle is disabled in Smart Mix', 1800);
+        return;
+      }
       toggleShuffle();
       shuffleBtn.classList.toggle('shuffle-on', app.state.isShuffleOn);
     };
@@ -324,7 +331,11 @@ function renderCurrentQueueMenu(direction = 'forward') {
     albumCover: (app.state.albums[queue[0]?.albumKey || queue[0]?.album] || {}).cover,
     onSongClick: (track, idx) => {
       app.state.currentSongIndex = idx;
-      playTrackFromAlbum(track, app.state.currentAlbumSongs);
+      if (app.state.smartMixActive) {
+        playTrackFromAlbum(track, app.state.currentAlbumSongs, { smartMix: true });
+      } else {
+        playTrackFromAlbum(track, app.state.currentAlbumSongs);
+      }
     }
   }, direction);
 

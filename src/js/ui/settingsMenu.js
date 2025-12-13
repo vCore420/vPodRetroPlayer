@@ -71,7 +71,9 @@ function renderEqualizerMenu(direction = 'forward', selectedIdx = null) {
   renderMenuList({
     title: "Equalizer Presets",
     items: presets.map(label => ({
-      label: label + (label === currentPreset ? ' <span style="color:#0074d9;font-size:1.2em;">•</span>' : ''),
+      label: label + (label === currentPreset
+       ? ' <i class="fa-solid fa-check" style="color:#0074d9;font-size:1.1em;"></i>'
+       : ''),
       rawLabel: label
     })),
     onItemClick: (idx, item) => {
@@ -80,7 +82,9 @@ function renderEqualizerMenu(direction = 'forward', selectedIdx = null) {
         const eqList = document.getElementById('eqList');
         if (eqList) {
             Array.from(eqList.children).forEach((li, i) => {
-              li.innerHTML = presets[i] + (i === idx ? ' <span style="color:#0074d9;font-size:1.2em;">•</span>' : '');
+              li.innerHTML = presets[i] + (i === idx
+                ? ' <i class="fa-solid fa-check" style="color:#0074d9;font-size:1.1em;"></i>'
+                : '');
             });
         }
         app.state.currentMenuIndex = idx;
@@ -402,7 +406,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.6.6</b><br>
+        Version: <b>2.7.0</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!

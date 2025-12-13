@@ -1,6 +1,19 @@
 // --- AUDIO PLAYBACK ---
 
-audioPlayer.addEventListener('timeupdate', updateNowPlayingProgress);
+audioPlayer.addEventListener('timeupdate', () => {
+  updateNowPlayingProgress();
+  const tr = app.state.currentTrack;
+  const dur = audioPlayer.duration || 0;
+  const cur = audioPlayer.currentTime || 0;
+  if (tr && dur > 0 && cur / dur > 0.55) {
+    const tid = getTrackId(tr);
+    if (app.state.halfPlayedMark !== tid) {
+      app.state.halfPlayedMark = tid;
+      if (window.markDeepListen) window.markDeepListen(tr);
+    }
+  }
+});
+
 audioPlayer.addEventListener('loadedmetadata', updateNowPlayingProgress);
 
 // Track the active audio object URL so we can revoke it
@@ -27,7 +40,23 @@ function resolveTrackFile(track) {
 }
 
 // Function to play a track from an album
-function playTrackFromAlbum(track, albumSongs) {
+function playTrackFromAlbum(track, albumSongs, opts = {}) {
+  const isSmartMix = !!opts.smartMix;
+  if (app.state.smartMixActive && !isSmartMix) {
+    // leaving smart mix
+    app.state.smartMixActive = false;
+    app.state.smartMixQueue = null;
+    app.state.smartMixHistory = null;
+  } else if (isSmartMix) {
+    app.state.smartMixActive = true;
+    app.state.smartMixQueue = app.state.smartMixQueue || albumSongs || [];
+    app.state.smartMixHistory = app.state.smartMixHistory || [];
+    const tid = getTrackId(track);
+    if (!app.state.smartMixHistory.includes(tid)) {
+      app.state.smartMixHistory.push(tid);
+    }
+  }
+
   const state = app.state;
   const incomingQueue = albumSongs || [track];
   const sameQueue = state.currentAlbumSongs && queuesEqual(state.currentAlbumSongs, incomingQueue);
@@ -56,6 +85,7 @@ function playTrackFromAlbum(track, albumSongs) {
   if (state.currentSongIndex < 0) state.currentSongIndex = 0;
   state.currentTrack = track;
   state.currentMenuIndex = state.currentSongIndex;
+  state.halfPlayedMark = null;
 
   // Show hot bar message
   if (typeof showHotBarMessage === 'function' && track) {
@@ -140,7 +170,21 @@ audioPlayer.addEventListener('pause', () => {
 
 audioPlayer.addEventListener('ended', () => {
   const state = app.state;
-  console.log("Audio ended, currentSongIndex:", state.currentSongIndex, "currentAlbumSongs:", state.currentAlbumSongs);
+  if (state.smartMixActive) {
+    ensureSmartMixBuffer(10);
+    const nextIdx = state.currentSongIndex + 1;
+    const q = state.smartMixQueue || state.currentAlbumSongs || [];
+    if (nextIdx < q.length) {
+      playTrackFromAlbum(q[nextIdx], q, { smartMix: true });
+    } else {
+      // no more candidates
+      state.smartMixActive = false;
+      state.smartMixQueue = null;
+      state.smartMixHistory = null;
+    }
+    return;
+  }
+
   if (
     state.currentAlbumSongs.length &&
     state.currentSongIndex >= 0 &&
@@ -152,7 +196,6 @@ audioPlayer.addEventListener('ended', () => {
     if (icon) icon.className = "fa-solid fa-play";
     state.currentTrack = null;
     state.currentSongIndex = -1;
-    console.log("Reached end of album or no more songs.");
     const ps = document.getElementById('hotBarPlayState');
     if (ps) ps.innerHTML = '';
   }
@@ -232,6 +275,11 @@ window.getAnalyser = getAnalyser;
 
 function toggleShuffle() {
   const state = app.state;
+
+  if (state.smartMixActive) {
+    if (typeof showHotBarMessage === 'function') showHotBarMessage('Shuffle disabled in Smart Mix', 1800);
+    return;
+  }
 
   if (!state.isShuffleOn) {
     state.isShuffleOn = true;

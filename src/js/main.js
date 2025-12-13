@@ -95,7 +95,7 @@ if ('mediaSession' in navigator) {
       if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
         window.logTrackSkip(track);
       }
-      player.playTrackFromAlbum(songs[idx - 1], songs);
+      playTrackFromAlbum(songs[idx - 1], songs, { smartMix: app.state.smartMixActive });
     }
   });
 
@@ -107,7 +107,13 @@ if ('mediaSession' in navigator) {
       if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
         window.logTrackSkip(track);
       }
-      player.playTrackFromAlbum(songs[idx + 1], songs);
+      playTrackFromAlbum(songs[idx + 1], songs, { smartMix: app.state.smartMixActive });
+    } else if (app.state.smartMixActive) {
+      ensureSmartMixBuffer(10);
+      const q = app.state.smartMixQueue || songs;
+      if (idx < q.length - 1) {
+        playTrackFromAlbum(q[idx + 1], q, { smartMix: true });
+      }
     }
   });
 
