@@ -301,6 +301,13 @@ function attachDiskControlListeners() {
 // Menu Scrolling Logic
 function scrollMenu(direction) {
   console.log("Scrolling menu, direction:", direction);
+
+  // Games menu scroll
+  if (typeof window.onGameScroll === 'function') {
+    window.onGameScroll(direction);
+    return;
+  }
+
   // Colour menu disk scroll
   if (document.getElementById('colourGrid')) {
     if (window.onColourMenuScroll) {

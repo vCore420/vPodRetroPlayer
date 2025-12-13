@@ -320,7 +320,7 @@ function showResetPrompt() {
     <div style="background:#fff;padding:32px 28px;border-radius:18px;box-shadow:0 2px 12px #0003;display:flex;flex-direction:column;align-items:center;max-width:320px;">
       <div style="font-size:1.15em;font-weight:bold;color:#0074d9;margin-bottom:14px;">Reset App UI?</div>
       <div style="font-size:1em;color:#444;text-align:center;margin-bottom:18px;">
-        This feature is for when the iPod UI acts strange or gets stuck.<br>
+        This feature is for when the vPod UI acts strange or gets stuck.<br>
         It will stop playback, clear the navigation, and refresh the menus.<br>
         <b>Your loaded music will remain.</b>
       </div>
@@ -384,7 +384,7 @@ function showInfoPrompt() {
       body: `
         • Create playlists from the <b>Playlists</b> menu.<br>
         • Add songs by picking albums and ticking tracks.<br>
-        • In <b>Settings</b> you can change EQ, time format, iPod colour, and view user stats.
+        • In <b>Settings</b> you can change EQ, time format, vPod colour, and view user stats.
       `
     }
   ];

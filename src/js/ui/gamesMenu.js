@@ -1,6 +1,15 @@
 // --- GAMES MENU ---
 let releaseGameControls = null;
 
+function pushGameNav(fn) {
+  const stack = app.state.navStack || [];
+  const top = stack[stack.length - 1];
+  if (!top || top.fn !== fn) {
+    stack.push({ fn, args: ['forward'] });
+    app.state.navStack = stack;
+  }
+}
+
 function useGameControls({ onLeft, onRight, onConfirm, onPlayPause }) {
   const prevOld = prevBtn.onclick, nextOld = nextBtn.onclick;
   const confirmOld = document.getElementById('confirmBtn').onclick;
@@ -26,6 +35,8 @@ function renderGamesMenu(direction = 'forward') {
       { label: "Snake", action: renderSnake },
       { label: "Flappy Dot", action: renderFlappy },
       { label: "2048 Mini", action: render2048 },
+      { label: "Chess (Beta)", action: renderChess },
+      { label: "Solitaire", action: renderSolitaire },
       { label: "Number Guess", action: renderNumberGuess }
     ],
     onItemClick: (idx, item) => { app.state.currentMenuIndex = idx; item.action(); },
@@ -36,6 +47,7 @@ function renderGamesMenu(direction = 'forward') {
 }
 
 function renderNumberGuess(direction = 'forward') {
+  pushGameNav(renderNumberGuess);
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
   const secret = Math.floor(Math.random() * 20) + 1;
   let msg = "Guess 1-20. Confirm to submit.";
@@ -68,6 +80,7 @@ function renderNumberGuess(direction = 'forward') {
 }
 
 function renderBrickPaddle(direction = 'forward') {
+  pushGameNav(renderBrickPaddle);
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
   renderScreen(
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
@@ -191,6 +204,7 @@ function renderBrickPaddle(direction = 'forward') {
 }
 
 function renderSnake(direction = 'forward') {
+  pushGameNav(renderSnake);
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
 
   renderScreen(
@@ -323,6 +337,7 @@ function renderSnake(direction = 'forward') {
 
 // --- Flappy Dot ---
 function renderFlappy(direction = 'forward') {
+  pushGameNav(renderFlappy);
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
   renderScreen(
     `<div style="padding-top:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
@@ -436,6 +451,7 @@ function renderFlappy(direction = 'forward') {
 
 // --- 2048 Mini ---
 function render2048(direction = 'forward') {
+  pushGameNav(render2048);
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
   renderScreen(
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
@@ -564,6 +580,509 @@ function render2048(direction = 'forward') {
   const menuBtn = document.getElementById('menuBtn');
   const oldMenu = menuBtn.onclick;
   menuBtn.onclick = () => { if (releaseGameControls) releaseGameControls(); releaseGameControls=null; menuBtn.onclick = oldMenu; goBack(); };
+}
+
+// Chess (Beta)
+
+function renderChess(direction = 'forward') {
+  pushGameNav(renderChess);
+  if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
+  renderScreen(
+    `<div style="padding-top:10px;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;">
+      <div style="font-size:1.15em;font-weight:bold;">Chess (Beta)</div>
+      <canvas id="chCanvas" width="240" height="240" style="background:#111;border:2px solid #444;border-radius:10px;"></canvas>
+      <div id="chStatus" style="font-size:0.9em;color:#555;text-align:center;">White to move. Prev/Next: ←/→, wheel: ↑/↓, Center: select/move, Play: cancel, Menu: back</div>
+    </div>`,
+    direction
+  );
+
+  const cvs = document.getElementById('chCanvas');
+  const ctx = cvs.getContext('2d');
+  const size = 30; // 8x8 board
+  const piecesSym = {
+    w: { p: "♙", r: "♖", n: "♘", b: "♗", q: "♕", k: "♔" },
+    b: { p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚" }
+  };
+  let mode = 'pvp'; 
+  let board = fromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+  let turn = 'w';
+  let cursor = { r: 6, c: 4 }; // start near white pawns
+  let sel = null;
+  let legal = [];
+  const statusEl = document.getElementById('chStatus');
+
+  statusEl.textContent = "Mode: 2P. White to move. Prev/Next: ←/→, wheel: ↑/↓, Center: select/move, Play: cancel/toggle mode, Menu: back";
+
+  // helper to show mode/turn
+  function setStatus(extra = "") {
+    const turnTxt = (turn === 'w' ? 'White' : 'Black') + " to move.";
+    const modeTxt = mode === 'pve' ? "Mode: PvE (Black = CPU)." : "Mode: 2P.";
+    statusEl.textContent = `${modeTxt} ${turnTxt} ${extra}`;
+  }
+
+// piece values for AI
+  const pieceVal = { p:1, n:3, b:3, r:5, q:9, k:100 };
+
+// generate all moves for current side (re-use genMoves)
+  function allMoves(color) {
+    const moves = [];
+    for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+      const p = at(r,c);
+      if (p && p.color === color) {
+        const list = genMoves(r,c).map(m=>({ from:{r,c}, to:m, piece:p }));
+        moves.push(...list);
+      }
+    }
+    return moves;
+  }
+
+// simple AI: pick highest capture, else random move
+  function doAIMove() {
+    if (mode !== 'pve' || turn !== 'b') return;
+    const moves = allMoves('b');
+    if (!moves.length) { setStatus("Black has no moves. White wins."); return; }
+    let best = [];
+    let bestScore = -1;
+    for (const m of moves) {
+      const tgt = at(m.to.r, m.to.c);
+      const score = tgt ? pieceVal[tgt.type] || 0 : 0;
+      if (score > bestScore) { bestScore = score; best = [m]; }
+      else if (score === bestScore) best.push(m);
+    }
+    const pick = best[Math.floor(Math.random() * best.length)];
+    sel = pick.from; move(pick.from, pick.to); // re-use move()
+    draw();
+    if (mode === 'pve' && turn === 'b') {
+      // if still black to move (shouldn't happen), avoid loops
+      setStatus("Black stuck.");
+    }
+  }
+
+  function fromFEN(fen) {
+    const rows = fen.split(' ')[0].split('/');
+    return rows.map(row => {
+      const arr = [];
+      for (const ch of row) {
+        if (/\d/.test(ch)) {
+          for (let i = 0; i < parseInt(ch,10); i++) arr.push(null);
+        } else {
+          const color = ch === ch.toLowerCase() ? 'b' : 'w';
+          const type = ch.toLowerCase();
+          arr.push({ color, type });
+        }
+      }
+      return arr;
+    });
+  }
+
+  function inBounds(r,c){ return r>=0 && r<8 && c>=0 && c<8; }
+  function at(r,c){ return board[r][c]; }
+
+  function genMoves(r,c) {
+    const p = at(r,c);
+    if (!p || p.color !== turn) return [];
+    const res = [];
+    const add = (r2,c2) => { if (!inBounds(r2,c2)) return;
+      const t = at(r2,c2);
+      if (!t || t.color !== p.color) res.push({r:r2,c:c2});
+    };
+    const ray = (dr,dc) => {
+      let rr=r+dr, cc=c+dc;
+      while (inBounds(rr,cc)) {
+        const t = at(rr,cc);
+        if (!t) res.push({r:rr,c:cc});
+        else { if (t.color!==p.color) res.push({r:rr,c:cc}); break; }
+        rr+=dr; cc+=dc;
+      }
+    };
+    switch(p.type){
+      case 'p': {
+        const dir = p.color==='w' ? -1 : 1;
+        if (!at(r+dir,c)) res.push({r:r+dir,c});
+        if ((p.color==='w' && r===6) || (p.color==='b' && r===1)) {
+          if (!at(r+dir,c) && !at(r+2*dir,c)) res.push({r:r+2*dir,c});
+        }
+        for (const dc of [-1,1]) {
+          const t = at(r+dir,c+dc);
+          if (t && t.color!==p.color) res.push({r:r+dir,c:c+dc});
+        }
+        break;
+      }
+      case 'n': [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>add(r+dr,c+dc)); break;
+      case 'b': [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(d=>ray(...d)); break;
+      case 'r': [[-1,0],[1,0],[0,-1],[0,1]].forEach(d=>ray(...d)); break;
+      case 'q': [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]].forEach(d=>ray(...d)); break;
+      case 'k': [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>add(r+dr,c+dc)); break;
+    }
+    return res;
+  }
+
+  function promoteIfNeeded(r,c,p) {
+    if (p.type==='p' && ((p.color==='w' && r===0) || (p.color==='b' && r===7))) {
+      p.type='q';
+    }
+  }
+
+  function move(sel,to) {
+    const p = at(sel.r, sel.c);
+    board[to.r][to.c] = p;
+    board[sel.r][sel.c] = null;
+    promoteIfNeeded(to.r,to.c,p);
+    turn = turn==='w'?'b':'w';
+    sel = null; legal = [];
+    setStatus();
+    draw();
+    if (mode === 'pve' && turn === 'b') {
+      setTimeout(doAIMove, 150);
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    for (let r=0;r<8;r++){
+      for (let c=0;c<8;c++){
+        const light = (r+c)%2===0;
+        ctx.fillStyle = light ? '#d8d8d8' : '#888';
+        ctx.fillRect(c*size, r*size, size, size);
+        const isCur = cursor.r===r && cursor.c===c;
+        const isSel = sel && sel.r===r && sel.c===c;
+        const isLegal = legal.some(m=>m.r===r && m.c===c);
+        if (isSel) { ctx.fillStyle='rgba(0,116,217,0.28)'; ctx.fillRect(c*size,r*size,size,size); }
+        else if (isLegal) { ctx.fillStyle='rgba(79,195,247,0.28)'; ctx.fillRect(c*size,r*size,size,size); }
+        if (isCur) {
+          ctx.strokeStyle = '#ffcc00';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(c*size+1, r*size+1, size-2, size-2);
+        }
+        const p = at(r,c);
+        if (p) {
+          ctx.fillStyle = p.color==='w' ? '#000' : '#111';
+          ctx.font = '22px Segoe UI Symbol';
+          ctx.textAlign='center'; ctx.textBaseline='middle';
+          ctx.fillText(piecesSym[p.color][p.type], c*size+size/2, r*size+size/2+1);
+        }
+      }
+    }
+  }
+
+  function cursorLeft(){ cursor.c = (cursor.c+7)%8; draw(); }
+  function cursorRight(){ cursor.c = (cursor.c+1)%8; draw(); }
+  function cursorUp(){ cursor.r = (cursor.r+7)%8; draw(); }
+  function cursorDown(){ cursor.r = (cursor.r+1)%8; draw(); }
+
+  function onConfirm() {
+    if (!sel) {
+      const p = at(cursor.r,cursor.c);
+      if (p && p.color===turn) {
+        sel = {r:cursor.r,c:cursor.c};
+        legal = genMoves(cursor.r,cursor.c);
+      }
+    } else {
+      const found = legal.find(m=>m.r===cursor.r && m.c===cursor.c);
+      if (found) move(sel, found);
+      sel = null; legal = [];
+    }
+    draw();
+  }
+
+  function onCancel() {
+    sel = null; legal = [];
+    setStatus();
+    draw();
+  }
+
+  function onPlayPause() {
+    if (sel) {
+      onCancel();
+      return;
+    }
+    mode = mode === 'pvp' ? 'pve' : 'pvp';
+    setStatus(mode === 'pve' ? "(Black = CPU)" : "");
+    // if we just switched to PvE and it's black's turn, let AI move
+    if (mode === 'pve' && turn === 'b') {
+      setTimeout(doAIMove, 120);
+    }
+  }
+
+  // controls
+  releaseGameControls = useGameControls({
+    onLeft: cursorLeft,
+    onRight: cursorRight,
+    onConfirm,
+    onPlayPause
+  });
+  window.onGameScroll = (dir) => { // wheel up/down
+    if (dir > 0) cursorDown(); else cursorUp();
+  };
+
+  // Back via MENU
+  const menuBtn = document.getElementById('menuBtn');
+  const oldMenu = menuBtn.onclick;
+  menuBtn.onclick = () => {
+    if (releaseGameControls) releaseGameControls();
+    releaseGameControls = null;
+    window.onGameScroll = null;
+    menuBtn.onclick = oldMenu;
+    goBack();
+  };
+
+  draw();
+}
+
+// Solitaire
+
+function renderSolitaire(direction = 'forward') {
+  pushGameNav(renderSolitaire);
+  if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
+
+  renderScreen(
+     `<div style="padding-top:10px;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;">
+       <div style="font-size:1.15em;font-weight:bold;">Solitaire</div>
+       <canvas id="solCanvas" width="320" height="260" style="background:#0f0f0f;border:2px solid #444;border-radius:10px;"></canvas>
+       <div id="solStatus" style="font-size:0.9em;color:#555;text-align:center;max-width:320px;">
+         Prev/Next or wheel: move | Center: draw/pick/move | Play: draw/recycle | Menu: back
+       </div>
+     </div>`,
+     direction
+  );
+
+  const cvs = document.getElementById('solCanvas');
+  const ctx = cvs.getContext('2d');
+  const posOrder = [
+    'STOCK','WASTE','F0','F1','F2','F3','T0','T1','T2','T3','T4','T5','T6'
+  ];
+  const CARD_W = 36, CARD_H = 56;
+  const SLOT_PAD = 3;
+  const STOCK_X = 10, SLOT_Y = 10;
+  const WASTE_X = STOCK_X + CARD_W + SLOT_PAD + 6;
+  const FOUND_X0 = 118, FOUND_SP = 46;
+  const TAB_X0 = 8, TAB_SP = 44, TAB_Y = 78, TAB_DY = 16;
+  let cursor = 0;
+  let held = null; // {src, card}
+  let stock = [], waste = [], foundations = [[],[],[],[]], tableaus = [];
+  const suits = ['♠','♥','♦','♣'];
+  const red = new Set(['♥','♦']);
+
+  function newDeck() {
+    const d = [];
+    for (const s of suits) for (let r=1;r<=13;r++) d.push({r,s});
+    for (let i=d.length-1;i>0;i--) {
+      const j = Math.floor(Math.random()*(i+1));
+      [d[i],d[j]]=[d[j],d[i]];
+    }
+    return d;
+  }
+
+  function deal() {
+    stock = newDeck();
+    waste = [];
+    foundations = [[],[],[],[]];
+    tableaus = Array.from({length:7}, ()=>[]);
+    for (let c=0;c<7;c++){
+      for (let r=0;r<=c;r++){
+        const card = stock.pop();
+        tableaus[c].push({card, up: r===c});
+      }
+    }
+    cursor = 0;
+    held = null;
+  }
+  deal();
+
+  function topCard(pile) { return pile[pile.length-1] || null; }
+  function canToFoundation(card, fIdx) {
+    const f = foundations[fIdx];
+    if (!card) return false;
+    if (!f.length) return card.r === 1;
+    const top = f[f.length-1];
+    return top.s === card.s && card.r === top.r + 1;
+  }
+  function canToTableau(card, tIdx) {
+    if (!card) return false;
+    const pile = tableaus[tIdx];
+    if (!pile.length) return card.r === 13;
+    const top = pile[pile.length-1];
+    if (!top.up) return false;
+    const diff = top.card.r - card.r;
+    const alt = red.has(top.card.s) !== red.has(card.s);
+    return diff === 1 && alt;
+  }
+  function flipExposed() {
+    tableaus.forEach(p => { const last = p[p.length-1]; if (last && !last.up) last.up = true; });
+  }
+
+  function drawStock() {
+    if (stock.length) {
+      waste.push({card: stock.pop(), up:true});
+    } else {
+      // recycle waste (keep order reversed)
+      if (waste.length) {
+        stock = waste.map(x=>x.card).reverse().map(c=>c); // facedown
+        waste = [];
+      }
+    }
+  }
+
+  function moveCard(src, dst) {
+    // src: 'WASTE' | 'F0'.. | 'T0'..
+    let cardObj = null;
+    if (src === 'WASTE') cardObj = waste.pop();
+    else if (src.startsWith('F')) cardObj = foundations[Number(src[1])].pop();
+    else if (src.startsWith('T')) cardObj = tableaus[Number(src[1])].pop();
+    if (!cardObj) return false;
+    const card = cardObj.card;
+
+    if (dst.startsWith('F')) {
+      const fi = Number(dst[1]);
+      if (!canToFoundation(card, fi)) { putBack(src, cardObj); return false; }
+      foundations[fi].push(cardObj);
+    } else if (dst.startsWith('T')) {
+      const ti = Number(dst[1]);
+      if (!canToTableau(card, ti)) { putBack(src, cardObj); return false; }
+      tableaus[ti].push({card, up:true});
+    } else { putBack(src, cardObj); return false; }
+
+    flipExposed();
+    return true;
+  }
+
+  function putBack(src, obj) {
+    if (src === 'WASTE') waste.push(obj);
+    else if (src.startsWith('F')) foundations[Number(src[1])].push(obj);
+    else if (src.startsWith('T')) tableaus[Number(src[1])].push(obj);
+  }
+
+  function tryMove(dst) {
+    if (!held) return;
+    if (!moveCard(held.src, dst)) {
+      // failed, restore held
+    }
+    held = null;
+    drawBoard();
+  }
+
+  function pickCurrent() {
+    const id = posOrder[cursor];
+    if (held) { tryMove(id); return; }
+
+    if (id === 'STOCK') {
+      drawStock();
+      drawBoard();
+      return;
+    } else if (id === 'WASTE') {
+      const top = topCard(waste);
+      if (top) held = { src:'WASTE', card: top.card };
+    } else if (id.startsWith('F')) {
+      const fi = Number(id[1]);
+      const top = topCard(foundations[fi]);
+      if (top) held = { src:id, card: top.card };
+    } else if (id.startsWith('T')) {
+      const ti = Number(id[1]);
+      const pile = tableaus[ti];
+      const top = pile[pile.length-1];
+      if (top && top.up) held = { src:id, card: top.card };
+    }
+    drawBoard();
+  }
+
+  function cursorLeft(){ cursor = (cursor + posOrder.length - 1) % posOrder.length; drawBoard(); }
+  function cursorRight(){ cursor = (cursor + 1) % posOrder.length; drawBoard(); }
+
+  function drawBoard() {
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.fillStyle = "#0f0f0f"; ctx.fillRect(0,0,cvs.width,cvs.height);
+
+    ctx.strokeStyle="#444"; ctx.lineWidth=1.5;
+    // stock & waste slots
+    ctx.strokeRect(STOCK_X-2, SLOT_Y-2, CARD_W+4, CARD_H+4);
+    ctx.strokeRect(WASTE_X-2, SLOT_Y-2, CARD_W+4, CARD_H+4);
+    // foundations
+    for (let i=0;i<4;i++) ctx.strokeRect(FOUND_X0 + i*FOUND_SP -2, SLOT_Y-2, CARD_W+4, CARD_H+4);
+
+    const drawCard = (x,y,card) => {
+      ctx.fillStyle = "#222";
+      ctx.fillRect(x,y,CARD_W,CARD_H);
+      ctx.strokeStyle="#666"; ctx.strokeRect(x,y,CARD_W,CARD_H);
+      ctx.fillStyle = red.has(card.s) ? "#f55" : "#fff";
+      ctx.font = "16px Segoe UI";
+      ctx.textAlign="left"; ctx.textBaseline="top";
+      ctx.fillText(rankStr(card.r)+card.s, x+5, y+5);
+    };
+
+    function rankStr(r){ return r===1?'A':r===11?'J':r===12?'Q':r===13?'K':String(r); }
+
+    // waste (now at its own slot)
+    const wt = topCard(waste);
+    if (wt) drawCard(WASTE_X, SLOT_Y, wt.card);
+
+    // stock back (separate, won’t cover waste)
+    if (stock.length) {
+      ctx.fillStyle="#1c3c5c";
+      ctx.fillRect(STOCK_X, SLOT_Y, CARD_W, CARD_H);
+      ctx.strokeStyle="#2a5d8a"; ctx.strokeRect(STOCK_X, SLOT_Y, CARD_W, CARD_H);
+    }
+
+    // foundations
+    for (let i=0;i<4;i++){
+      const top = topCard(foundations[i]);
+      if (top) drawCard(FOUND_X0 + i*FOUND_SP, SLOT_Y, top.card);
+    }
+
+    // tableaus (no grid outline)
+    for (let i=0;i<7;i++){
+      const pile = tableaus[i];
+      let y = TAB_Y;
+      pile.forEach((cObj) => {
+        if (!cObj.up) {
+          ctx.fillStyle="#222"; ctx.fillRect(TAB_X0 + i*TAB_SP, y, CARD_W, CARD_H);
+          ctx.strokeStyle="#444"; ctx.strokeRect(TAB_X0 + i*TAB_SP, y, CARD_W, CARD_H);
+        } else {
+          drawCard(TAB_X0 + i*TAB_SP, y, cObj.card);
+        }
+        y += TAB_DY;
+      });
+    }
+
+    const drawHighlight = (id, color="#00bcd4") => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      if (id === 'STOCK') ctx.strokeRect(STOCK_X-3, SLOT_Y-3, CARD_W+6, CARD_H+6);
+      else if (id === 'WASTE') ctx.strokeRect(WASTE_X-3, SLOT_Y-3, CARD_W+6, CARD_H+6);
+      else if (id.startsWith('F')) { const i=Number(id[1]); ctx.strokeRect(FOUND_X0 + i*FOUND_SP -3, SLOT_Y-3, CARD_W+6, CARD_H+6); }
+      else if (id.startsWith('T')) { const i=Number(id[1]); ctx.strokeRect(TAB_X0 + i*TAB_SP -3, TAB_Y-3, CARD_W+6, 7*TAB_DY + CARD_H + 6); }
+    };
+
+    drawHighlight(posOrder[cursor], "#ffcc00");
+    if (held) drawHighlight(held.src, "#00bcd4");
+
+    if (held) {
+      ctx.fillStyle="#fff"; ctx.font="12px Segoe UI"; ctx.textAlign="left"; ctx.textBaseline="top";
+      ctx.fillText("Held: "+rankStr(held.card.r)+held.card.s, 12, cvs.height-18);
+    }
+  }
+
+  drawBoard();
+
+  releaseGameControls = useGameControls({
+    onLeft: cursorLeft,
+    onRight: cursorRight,
+    onConfirm: pickCurrent,
+    onPlayPause: () => { drawStock(); drawBoard(); }
+  });
+  window.onGameScroll = (dir) => { // wheel cycles piles
+    if (dir > 0) cursorRight(); else cursorLeft();
+  };
+
+  // Back via MENU
+  const menuBtn = document.getElementById('menuBtn');
+  const oldMenu = menuBtn.onclick;
+  menuBtn.onclick = () => {
+    if (releaseGameControls) releaseGameControls();
+    releaseGameControls = null;
+    window.onGameScroll = null;
+    menuBtn.onclick = oldMenu;
+    goBack();
+  };
 }
 
 window.renderGamesMenu = renderGamesMenu;

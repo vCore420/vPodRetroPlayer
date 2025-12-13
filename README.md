@@ -78,7 +78,7 @@ Music/                         # Root music folder
 - **Weekly Recap**: Last week’s plays/skips/likes/dislikes and top tracks; auto-resets weekly (Monday ≥08:00).
 - **User Stats**: Lifetime totals, unique counts, most played/liked/skipped/disliked; wipe stats button (does not delete playlists).
 - **Equalizer**: Presets (Flat, Bass Boost, Rock, Pop, Jazz, Classical, etc.).
-- **Settings**: EQ, Date/Time format (12/24h, DD/MM or MM/DD), iPod colour/theme, User Stats, About.
+- **Settings**: EQ, Date/Time format (12/24h, DD/MM or MM/DD), vPod colour/theme, User Stats, About.
 - **Themes/Colours**: Classic colours plus rare unlockable themes (plays/likes/dislikes/unique/time). Dev flag `DEV_UNLOCK_RARES` to bypass for testing.
 - **Games**: Brick Paddle, Snake, Flappy Dot, 2048 Mini, Number Guess—disk controlled.
 - **Reset UI**: Top-right reset button clears UI/nav and stops audio (keeps your loaded library).

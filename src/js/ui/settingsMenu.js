@@ -21,7 +21,7 @@ function renderSettingsMenu(direction = 'forward') {
     items: [
       { label: "Equalizer", action: renderEqualizerMenu },
       { label: "Date and Time", action: renderDateTimeMenu },
-      { label: "iPod Colour", action: renderColourMenu },
+      { label: "vPod Colour", action: renderColourMenu },
       { label: "User Stats", action: renderUserStatsMenu },
       { label: "Backup / Restore", action: renderBackupMenu },
       { label: "About", action: renderAboutMenu }
@@ -406,7 +406,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.7.3</b><br>
+        Version: <b>2.7.4</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -486,7 +486,7 @@ function renderUserStatsMenu(direction = 'forward') {
       <div style="font-size:1.1em;font-weight:bold;margin-bottom:6px;margin-top:18px;">User Info</div>
       <div style="padding:10px 18px;">
         <div style="font-size:1em;color:#222;">
-          Name: <b>iPod User</b><br>
+          Name: <b>vPod User</b><br>
           Model: <b>vPod Classic</b><br>
           Serial: <b>#${(localStorage.getItem('vpodSerial') || (Math.floor(Math.random()*1e8).toString(16)) )}</b><br>
           <hr style="margin:6px 0;">
