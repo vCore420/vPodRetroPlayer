@@ -218,16 +218,16 @@ function renderColourMenu(direction = 'forward') {
   }, { plays: 0, likes: 0, dislikes: 0, skips: 0, uniquePlayed: 0, playSeconds: 0 });
 
   const rareThemes = [
-    { key: 'mono',      label: 'Monochrome',     preview: 'linear-gradient(160deg,#f7f7f7 0%,#dcdcdc 60%,#bfbfbf 100%)', requires: { plays: 10 } },
-    { key: 'contrast',  label: 'High Contrast',  preview: 'linear-gradient(160deg,#0e1726 0%,#0b1020 60%,#05070c 100%)', requires: { plays: 120 } },
+    { key: 'mono',      label: 'Monochrome',     preview: 'linear-gradient(160deg,#f7f7f7 0%,#dcdcdc 60%,#bfbfbf 100%)', requires: { plays: 50 } },
+    { key: 'contrast',  label: 'High Contrast',  preview: 'linear-gradient(160deg,#0e1726 0%,#0b1020 60%,#05070c 100%)', requires: { plays: 200 } },
     { key: 'u2',        label: 'U2 Red/Black',   preview: 'linear-gradient(160deg,#0b0b0b 0%,#1d0000 50%,#4a0000 100%)', requires: { likes: 20 } },
-    { key: 'midnight',  label: 'Midnight Neon',  preview: 'linear-gradient(160deg,#0c1020 0%,#12264a 55%,#00b4ff 100%)', requires: { plays: 250 } },
-    { key: 'neonwave',  label: 'Neon Wave',      preview: 'linear-gradient(160deg,#1a0f2e 0%,#5327ff 50%,#ff7ee2 100%)', requires: { likes: 50 } },
-    { key: 'carbon',    label: 'Carbon',         preview: 'linear-gradient(160deg,#0f0f0f 0%,#1f1f1f 55%,#3a3a3a 100%)', requires: { dislikes: 15 } },
-    { key: 'forest',    label: 'Deep Forest',    preview: 'linear-gradient(160deg,#0b2e1c 0%,#1f6a3b 55%,#7bd27f 100%)', requires: { uniquePlayed: 40 } },
-    { key: 'aqua',      label: 'Aqua Glass',     preview: 'linear-gradient(160deg,#022c43 0%,#1b9aaa 55%,#72efdd 100%)', requires: { playSeconds: 36000 } }, // 10 hours
-    { key: 'sunset',    label: 'Sunset Fade',    preview: 'linear-gradient(160deg,#2d0b3a 0%,#ff5f6d 55%,#ffc371 100%)', requires: { plays: 500 } },
-    { key: 'plasma',    label: 'Plasma Pulse',   preview: 'linear-gradient(160deg,#1b0036 0%,#4a148c 40%,#ff3cac 100%)', requires: { plays: 800, likes: 80 } },
+    { key: 'midnight',  label: 'Midnight Neon',  preview: 'linear-gradient(160deg,#0c1020 0%,#12264a 55%,#00b4ff 100%)', requires: { plays: 550 } },
+    { key: 'neonwave',  label: 'Neon Wave',      preview: 'linear-gradient(160deg,#1a0f2e 0%,#5327ff 50%,#ff7ee2 100%)', requires: { likes: 250 } },
+    { key: 'carbon',    label: 'Carbon',         preview: 'linear-gradient(160deg,#0f0f0f 0%,#1f1f1f 55%,#3a3a3a 100%)', requires: { dislikes: 150 } },
+    { key: 'forest',    label: 'Deep Forest',    preview: 'linear-gradient(160deg,#0b2e1c 0%,#1f6a3b 55%,#7bd27f 100%)', requires: { uniquePlayed: 300 } },
+    { key: 'aqua',      label: 'Aqua Glass',     preview: 'linear-gradient(160deg,#022c43 0%,#1b9aaa 55%,#72efdd 100%)', requires: { playSeconds: 86400 } }, // 24 hours
+    { key: 'sunset',    label: 'Sunset Fade',    preview: 'linear-gradient(160deg,#2d0b3a 0%,#ff5f6d 55%,#ffc371 100%)', requires: { plays: 1000 } },
+    { key: 'plasma',    label: 'Plasma Pulse',   preview: 'linear-gradient(160deg,#1b0036 0%,#4a148c 40%,#ff3cac 100%)', requires: { plays: 1500, likes: 500 } },
   ];
 
   const unlocked = new Set(JSON.parse(localStorage.getItem('unlockedThemes') || '[]'));
@@ -402,7 +402,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.6.5</b><br>
+        Version: <b>2.6.6</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
