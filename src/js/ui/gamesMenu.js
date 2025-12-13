@@ -1,6 +1,19 @@
 // --- GAMES MENU ---
 let releaseGameControls = null;
 
+const HS_KEY = 'gameHighScores';
+
+function getHighScore(game) {
+  const hs = JSON.parse(localStorage.getItem(HS_KEY) || '{}');
+  return Number.isFinite(hs[game]) ? hs[game] : 0;
+}
+
+function setHighScore(game, val) {
+  const hs = JSON.parse(localStorage.getItem(HS_KEY) || '{}');
+  hs[game] = val;
+  localStorage.setItem(HS_KEY, JSON.stringify(hs));
+}
+
 function pushGameNav(fn) {
   const stack = app.state.navStack || [];
   const top = stack[stack.length - 1];
@@ -83,13 +96,14 @@ function renderBrickPaddle(direction = 'forward') {
   pushGameNav(renderBrickPaddle);
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
   renderScreen(
-    `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
+    `<div style="padding-top:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
       <div style="font-size:1.2em;font-weight:bold;">Brick Paddle</div>
-      <canvas id="bpCanvas" width="320" height="220" style="background:#111;border:2px solid #444;border-radius:10px;"></canvas>
+      <canvas id="bpCanvas" width="340" height="220" style="background:#111;border:2px solid #444;border-radius:10px;"></canvas>
       <div style="font-size:0.9em;color:#555;text-align:center;max-width:320px;">
         Prev/Next: move | Center: serve | Play/Pause: pause | Menu: back
       </div>
       <div id="bpScore" style="font-weight:bold;color:#0074d9;">Score: 0</div>
+      <div id="bpHigh" style="font-weight:bold;color:#888;">High: 0</div>
     </div>`,
     direction
   );
@@ -101,13 +115,19 @@ function renderBrickPaddle(direction = 'forward') {
   let ball = { x: w/2, y: h/2, r: 5, vx: 2.4, vy: -3.2, stuck: true };
   let bricks = [];
   let rows = 4, cols = 8, bw = 34, bh = 12, gap = 6, top = 24;
-  let running = true, score = 0;
+  let running = true, score = 0, highScore = getHighScore('brick');
+  const updateBpUI = () => {
+    document.getElementById('bpScore').textContent = `Score: ${score}`;
+    document.getElementById('bpHigh').textContent = `High: ${highScore}`;
+  };
+  updateBpUI();
 
   function resetBricks() {
     bricks = [];
     for (let r=0; r<rows; r++) for (let c=0; c<cols; c++) {
       bricks.push({ x: 14 + c*(bw+gap), y: top + r*(bh+gap), w: bw, h: bh, hit:false });
     }
+    score = 0;
   }
   resetBricks();
 
@@ -150,6 +170,7 @@ function renderBrickPaddle(direction = 'forward') {
         ball.x = paddle.x + paddle.w/2;
         ball.y = paddle.y - ball.r - 1;
         ball.vx = 0; ball.vy = 0;
+        resetBricks();
       }
       // paddle bounce
       if (ball.y + ball.r >= paddle.y &&
@@ -167,7 +188,8 @@ function renderBrickPaddle(direction = 'forward') {
           b.hit = true;
           ball.vy *= -1;
           score += 10;
-          document.getElementById('bpScore').textContent = `Score: ${score}`;
+          if (score > highScore) { highScore = score; setHighScore('brick', highScore); }
+          updateBpUI();
         }
       });
       if (bricks.every(b=>b.hit)) {
@@ -208,13 +230,14 @@ function renderSnake(direction = 'forward') {
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
 
   renderScreen(
-    `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
+    `<div style="padding-top:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
       <div style="font-size:1.2em;font-weight:bold;">Snake</div>
       <canvas id="snCanvas" width="240" height="240" style="background:#0b0b0b;border:2px solid #444;border-radius:10px;"></canvas>
       <div style="font-size:0.9em;color:#555;text-align:center;max-width:320px;">
         Prev/Next: turn | Center: start/restart | Play/Pause: pause | Menu: back
       </div>
       <div id="snScore" style="font-weight:bold;color:#0074d9;">Score: 0</div>
+      <div id="snHigh" style="font-weight:bold;color:#888;">High: 0</div>
     </div>`,
     direction
   );
@@ -223,7 +246,11 @@ function renderSnake(direction = 'forward') {
   const ctx = cvs.getContext('2d');
   const size = 12;
   const cells = Math.floor(cvs.width / size);
-  let snake, dir, food, running, score, lastStep;
+  let snake, dir, food, running, score, lastStep, highScore = getHighScore('snake');
+  function updateSnUI() {
+    document.getElementById('snScore').textContent = `Score: ${score}`;
+    document.getElementById('snHigh').textContent = `High: ${highScore}`;
+  }
 
   function resetGame() {
     snake = [{ x: 8, y: 10 }, { x: 7, y: 10 }, { x: 6, y: 10 }];
@@ -232,7 +259,7 @@ function renderSnake(direction = 'forward') {
     running = true;
     score = 0;
     lastStep = performance.now();
-    document.getElementById('snScore').textContent = `Score: ${score}`;
+    updateSnUI();
     loop();
   }
 
@@ -272,7 +299,8 @@ function renderSnake(direction = 'forward') {
 
     if (x === food.x && y === food.y) {
       score += 10;
-      document.getElementById('snScore').textContent = `Score: ${score}`;
+      if (score > highScore) { highScore = score; setHighScore('snake', highScore); }
+      updateSnUI();
       placeFood();
     } else {
       snake.pop();
@@ -340,9 +368,9 @@ function renderFlappy(direction = 'forward') {
   pushGameNav(renderFlappy);
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
   renderScreen(
-    `<div style="padding-top:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
+    `<div style="padding-top:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
        <div style="font-size:1.2em;font-weight:bold;">Flappy Dot</div>
-       <canvas id="fpCanvas" width="240" height="200" style="background:#0b0b0b;border:2px solid #444;border-radius:10px;"></canvas>
+       <canvas id="fpCanvas" width="300" height="220" style="background:#0b0b0b;border:2px solid #444;border-radius:10px;"></canvas>
        <div style="font-size:0.9em;color:#555;text-align:center;max-width:320px;">
          Center/Play: flap | Menu: back
        </div>
@@ -357,7 +385,7 @@ function renderFlappy(direction = 'forward') {
   let bird = { x: 50, y: 80, vy: 0 };
   let pipes = [];
   let running = true, score = 0;
-  let highScore = Number(localStorage.getItem('flappyHighScore') || 0);
+  let highScore = Math.max(getHighScore('flappy'), Number(localStorage.getItem('flappyHighScore') || 0));
   let lastFrame = 0;
   let spawnTimer = 0;
 
@@ -408,8 +436,9 @@ function renderFlappy(direction = 'forward') {
         score += 1;
         p.scored = true;
         if (score > highScore) {
-          highScore = score;
-          localStorage.setItem('flappyHighScore', highScore);
+            highScore = score;
+            setHighScore('flappy', highScore);
+            localStorage.setItem('flappyHighScore', highScore);
         }
         updateScoreUI();
       }
@@ -454,13 +483,14 @@ function render2048(direction = 'forward') {
   pushGameNav(render2048);
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
   renderScreen(
-    `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
+    `<div style="padding-top:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
       <div style="font-size:1.2em;font-weight:bold;">2048 Mini</div>
-      <canvas id="g2048" width="240" height="240" style="background:#0f0f0f;border:2px solid #444;border-radius:10px;"></canvas>
+      <canvas id="g2048" width="250" height="250" style="background:#0f0f0f;border:2px solid #444;border-radius:10px;"></canvas>
       <div style="font-size:0.9em;color:#555;text-align:center;max-width:320px;">
         Prev/Next: Left/Right | Center: Up | Play/Pause: Down | Menu: back
       </div>
       <div id="g2048Score" style="font-weight:bold;color:#0074d9;">Score: 0</div>
+      <div id="g2048High" style="font-weight:bold;color:#888;">High: 0</div>
     </div>`,
     direction
   );
@@ -468,7 +498,11 @@ function render2048(direction = 'forward') {
   const cvs = document.getElementById('g2048');
   const ctx = cvs.getContext('2d');
   const n = 4, cell = 54, gap = 6, off = 9;
-  let grid, score;
+  let grid, score, highScore = getHighScore('g2048');
+  function update2048UI() {
+    document.getElementById('g2048Score').textContent = `Score: ${score}`;
+    document.getElementById('g2048High').textContent = `High: ${highScore}`;
+  }
 
   function emptyCells() {
     const e = [];
@@ -485,6 +519,7 @@ function render2048(direction = 'forward') {
     grid = Array.from({length:n},()=>Array(n).fill(0));
     score = 0;
     addTile(); addTile();
+    update2048UI();
     draw();
   }
 
@@ -525,6 +560,7 @@ function render2048(direction = 'forward') {
       }
     }
     if (moved) addTile();
+    if (score > highScore) { highScore = score; setHighScore('g2048', highScore); }
     draw();
   }
 
@@ -558,7 +594,7 @@ function render2048(direction = 'forward') {
         ctx.fillText(String(v), x+cell/2, y+cell/2);
       }
     }
-    document.getElementById('g2048Score').textContent = `Score: ${score}`;
+    update2048UI();
     if (!hasMoves()) {
       ctx.fillStyle="rgba(0,0,0,0.6)";
       ctx.fillRect(0,0,cvs.width,cvs.height);
