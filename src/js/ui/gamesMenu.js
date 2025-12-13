@@ -340,7 +340,9 @@ function renderFlappy(direction = 'forward') {
   const ctx = cvs.getContext('2d');
   let bird = { x: 50, y: 80, vy: 0 };
   let pipes = [];
-  let running = true, score = 0, lastSpawn = 0;
+  let running = true, score = 0;
+  let lastFrame = 0;
+  let spawnTimer = 0;
 
   function reset() {
     bird = { x: 50, y: 80, vy: 0 };
@@ -348,8 +350,9 @@ function renderFlappy(direction = 'forward') {
     score = 0;
     document.getElementById('fpScore').textContent = `Score: ${score}`;
     running = true;
-    lastSpawn = performance.now();
-    loop();
+    lastFrame = performance.now();
+    spawnTimer = 0;
+    loop(lastFrame);
   }
 
   function flap() { bird.vy = -4.2; }
@@ -364,13 +367,19 @@ function renderFlappy(direction = 'forward') {
     if (!running) return;
     requestAnimationFrame(loop);
 
-    if (ts - lastSpawn > 1400) { spawnPipe(); lastSpawn = ts; }
+    const deltaMs = ts - lastFrame;
+    if (deltaMs < 1000 / 60) return;           // cap ~60 FPS
+    const dt = Math.min(deltaMs / 16.67, 2);   // scale speeds, clamp big jumps
+    lastFrame = ts;
+    spawnTimer += deltaMs;
 
-    bird.vy += 0.18;
-    bird.y += bird.vy;
+    if (spawnTimer > 1400) { spawnPipe(); spawnTimer = 0; }
+
+    bird.vy += 0.18 * dt;
+    bird.y += bird.vy * dt;
 
     // move pipes
-    pipes.forEach(p => p.x -= 2.1);
+    pipes.forEach(p => p.x -= 2.1 * dt);
     pipes = pipes.filter(p => p.x > -40);
 
     // collisions / score
