@@ -21,7 +21,7 @@ A browser-based, offline-capable, retro iPod-inspired player for your **local** 
 ## Quick Start
 
 1) **Open** `index.html` in a modern Chromium/Firefox desktop or mobile browser.  
-2) **Load Music**: Main Menu → *Load Music* → pick your music folder (allow folder access).  
+2) **Load Music**: Main Menu → *Load Music* → pick your music folder and allow access (it reads all folders and files in the root folder choosen so create a dedicated music folder as showen below with your entire libary and load the root folder).  
 3) **Play**: Browse Artists/Albums/All Songs/Playlists or use Suggested. Press center (Confirm) to play.  
 4) **Control**: Use the disk buttons; hardware/media keys also work (play/pause/prev/next).  
 5) **Like/Dislike**: On Now Playing, tap 👍 or 👎 to improve Suggestions and Recap.  
@@ -32,20 +32,21 @@ A browser-based, offline-capable, retro iPod-inspired player for your **local** 
 ## Recommended Music Folder Structure (best results)
 
 ```
-Music/
-tracks-meta.json     # optional exported metadata
-  Artist Name/
-    Album Name/
-      01 - Track Title.mp3
-      02 - Track Title.flac
-      cover.jpg            # album art (recommended)
+Music/                         # Root music folder
+  tracks-meta.json             # Optional exported metadata in Root folder
+  Artist Name/                 # Artist folder 
+    Album Name/                # Albums folder for that artist
+      01 - Track Title.mp3     # .mp3 files supported
+      02 - Track Title.flac    # .flac files supported
+      album-name.cue           # Optinal cue file for album data
+      cover.jpg/png            # Album art (recommended)
 ```
 
 **Tips**
-- Filenames with track numbers keep album order reliable (albums now sort by tag track number when present).
+- Filenames with track numbers keep album order reliable (albums now sort by tag track number when present if not set track numbers in cue file or the tracks own meta data).
 - Put a `cover.jpg/png` in each album folder; it will be picked up as art.
 - Keep CUE files in the same folder as their FLAC; per-track titles/performers are parsed.
-- If you export metadata, keep `tracks-meta.json` in the root folder loaded.
+- If you export metadata, keep `tracks-meta.json` in the root music folder loaded.
 - M3U import is not supported; load folders directly.
 
 ---
@@ -98,8 +99,8 @@ tracks-meta.json     # optional exported metadata
 ## Performance Tips
 
 - Keep album art reasonable (<512px) to reduce memory/object URLs.
-- Very large libraries: load in batches or keep `tracks-meta.json` to skip tag parsing.
-- Close/reopen the page to reclaim revoked object URLs after heavy use.
+- Very large libraries: load in batches or keep `tracks-meta.json` to skip tag parsing. (Currently tested to be able to load 7k libaries at once, load it once and save the json and load times will be seconds from then on)
+- Close/reopen the page to reclaim revoked object URLs after heavy use (tested to last a good couple of days of before memory leaks may start to show, for gerneral use youll find no issues, can always try the reload ui button in the top right on the page first to refresh ui without unloading uploaded audio data).
 
 ---
 
@@ -110,6 +111,7 @@ tracks-meta.json     # optional exported metadata
 - **Playlists say “not loaded”**: Those tracks aren’t in the current loaded library—reload the same library.
 - **Stats didn’t reset**: Weekly reset happens Monday after 08:00; you can wipe stats manually in User Stats.
 - **Service worker stale**: Hard-refresh (Ctrl+F5) or unregister SW in DevTools; bump cache name when deploying.
+- **All else fails clear browser cache to hard reset all site data (this will delete all your user data on the application)
 
 ---
 
@@ -117,6 +119,6 @@ tracks-meta.json     # optional exported metadata
 
 All data stays local in your browser (localStorage + cache). No uploads or network calls beyond CDN dependencies (font-awesome/jsmediatags).
 
-
 Enjoy your music with a retro touch!
+
 
