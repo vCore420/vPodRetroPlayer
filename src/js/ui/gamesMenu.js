@@ -325,15 +325,15 @@ function renderSnake(direction = 'forward') {
 function renderFlappy(direction = 'forward') {
   if (releaseGameControls) { releaseGameControls(); releaseGameControls = null; }
   renderScreen(
-    `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
-      <div style="font-size:1.2em;font-weight:bold;">Flappy Dot</div>
-      <canvas id="fpCanvas" width="240" height="200" style="background:#0b0b0b;border:2px solid #444;border-radius:10px;"></canvas>
-      <div style="font-size:0.9em;color:#555;text-align:center;max-width:320px;">
-        Center/Play: flap | Menu: back
-      </div>
-      <div id="fpScore" style="font-weight:bold;color:#0074d9;">Score: 0</div>
-      <div id="fpHigh" style="font-weight:bold;color:#888;">High: 0</div>
-    </div>`,
+    `<div style="padding-top:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
+       <div style="font-size:1.2em;font-weight:bold;">Flappy Dot</div>
+       <canvas id="fpCanvas" width="240" height="200" style="background:#0b0b0b;border:2px solid #444;border-radius:10px;"></canvas>
+       <div style="font-size:0.9em;color:#555;text-align:center;max-width:320px;">
+         Center/Play: flap | Menu: back
+       </div>
+       <div id="fpScore" style="font-weight:bold;color:#0074d9;">Score: 0</div>
+       <div id="fpHigh" style="font-weight:bold;color:#888;">High: 0</div>
+     </div>`,
     direction
   );
 
