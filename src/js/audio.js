@@ -216,6 +216,20 @@ function setEQPreset(preset) {
   localStorage.setItem('eqPreset', preset);
 }
 
+const analyser = audioCtx.createAnalyser();
+analyser.fftSize = 256;
+const analyserBuffer = new Uint8Array(analyser.frequencyBinCount);
+
+// Connect the filters in series
+// (was trebleEQ -> destination)
+audioSource.connect(bassEQ).connect(midEQ).connect(trebleEQ).connect(analyser).connect(audioCtx.destination);
+
+// Expose for visualizer
+function getAnalyser() {
+  return { analyser, buffer: analyserBuffer };
+}
+window.getAnalyser = getAnalyser;
+
 function toggleShuffle() {
   const state = app.state;
 

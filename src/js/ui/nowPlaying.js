@@ -8,6 +8,7 @@ function attachNowPlayingButtonListeners() {
   const dislikeLabel = document.getElementById('dislikeCountLabel');
   const resetBtn = document.getElementById('resetTrackRatingsBtn');
   const queueBtn = document.getElementById('queueBtn');
+  const addBtn = document.getElementById('addToPlaylistBtn');
 
   if (likeBtn) {
     likeBtn.onclick = () => {
@@ -144,6 +145,29 @@ function attachNowPlayingButtonListeners() {
       goTo(renderCurrentQueueMenu);
     };
   }
+
+  if (addBtn) {
+    addBtn.onclick = () => {
+      const track = app.state.currentTrack;
+      if (!track) return;
+      if (typeof showAddToPlaylistModal === 'function') {
+        showAddToPlaylistModal(track);
+      }
+    };
+  }
+
+  const vizBtn = document.getElementById('vizToggleBtn');
+  if (vizBtn) {
+    vizBtn.onclick = () => {
+      const wrap = document.getElementById('npVizWrap');
+      const canvas = document.getElementById('npViz');
+      if (!wrap || !canvas) return;
+      const on = wrap.style.display === 'none';
+      wrap.style.display = on ? 'block' : 'none';
+       vizBtn.style.color = on ? '#0074d9' : '#888';
+       if (on) startNowPlayingViz(canvas); else stopNowPlayingViz();
+    };
+  }
 }
 
 window.attachNowPlayingButtonListeners = attachNowPlayingButtonListeners;
@@ -203,6 +227,10 @@ function renderNowPlayingScreen(direction = 'forward') {
           </button>
         </div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:4px;margin-right:4px;">
+          <button id="addToPlaylistBtn" title="Add to Playlist"
+            style="font-size:1.3em;background:none;border:none;color:#888;cursor:pointer;padding:4px 8px;">
+            <i class="fa-solid fa-plus"></i>
+          </button>
           <button id="queueBtn" title="View Queue"
             style="font-size:1.4em;background:none;border:none;color:#888;cursor:pointer;padding:4px 8px;">
             <i class="fa-solid fa-list-ol"></i>
@@ -210,7 +238,14 @@ function renderNowPlayingScreen(direction = 'forward') {
           <button id="shuffleBtn" class="shuffle-btn${app.state.isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle">
             <i class="fa-solid fa-shuffle"></i>
           </button>
+          <button id="vizToggleBtn" title="Visualizer"
+            style="font-size:1.3em;background:none;border:none;color:#888;cursor:pointer;padding:4px 8px;">
+            <i class="fa-solid fa-wave-square"></i>
+          </button>
         </div>
+      </div>
+      <div id="npVizWrap" class="np-viz-panel" style="display:none;">
+        <canvas id="npViz" width="320" height="48"></canvas>
       </div>
       <div class="nowplaying-progress">
         <span id="nowplayingElapsed">0:00</span>
@@ -297,7 +332,7 @@ function renderCurrentQueueMenu(direction = 'forward') {
   if (typeof window.updateHighlightedSong === 'function') {
     window.updateHighlightedSong();
   }
-  
+
   const list = document.getElementById('songsList');
   if (list && list.children[app.state.currentMenuIndex]) {
     list.children[app.state.currentMenuIndex].scrollIntoView({ block: 'center' });
@@ -305,3 +340,33 @@ function renderCurrentQueueMenu(direction = 'forward') {
 }
 
 window.renderCurrentQueueMenu = renderCurrentQueueMenu;
+
+// ...append near bottom...
+let vizRaf = null;
+function startNowPlayingViz(canvas) {
+  const ctx = canvas.getContext('2d');
+  const a = window.getAnalyser && window.getAnalyser();
+  if (!a) return;
+  const { analyser, buffer } = a;
+  const w = canvas.width, h = canvas.height;
+  function draw() {
+    vizRaf = requestAnimationFrame(draw);
+    analyser.getByteFrequencyData(buffer);
+    ctx.clearRect(0, 0, w, h);
+    const bars = 48;
+    const step = Math.floor(buffer.length / bars);
+    for (let i = 0; i < bars; i++) {
+      const v = buffer[i * step] / 255;
+      const bh = v * h;
+      const x = (w / bars) * i;
+      ctx.fillStyle = '#0074d9';
+      ctx.fillRect(x + 1, h - bh, (w / bars) - 2, bh);
+    }
+  }
+  draw();
+}
+function stopNowPlayingViz() {
+  if (vizRaf) cancelAnimationFrame(vizRaf);
+  vizRaf = null;
+}
+window.stopNowPlayingViz = stopNowPlayingViz;

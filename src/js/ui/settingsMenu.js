@@ -1,4 +1,5 @@
 // --- SETTINGS MENU ---
+const DEV_UNLOCK_RARES = false;
 
 const defaultTimeSettings = {
   hourFormat: '24', 
@@ -22,6 +23,7 @@ function renderSettingsMenu(direction = 'forward') {
       { label: "Date and Time", action: renderDateTimeMenu },
       { label: "iPod Colour", action: renderColourMenu },
       { label: "User Stats", action: renderUserStatsMenu },
+      { label: "Backup / Restore", action: renderBackupMenu },
       { label: "About", action: renderAboutMenu }
       // Add more settings here 
     ],
@@ -185,93 +187,222 @@ function updateDateTimeMenuDisplay() {
 }
 
 function renderColourMenu(direction = 'forward') {
-  const colours = [
-    { name: "White", value: "linear-gradient(160deg, #fff 0%, #f6f6f8 60%, #e2e2e4 100%)" },
-    { name: "Silver", value: "linear-gradient(160deg, #e0e0e0 0%, #bdbdbd 60%, #757575 100%)" },
-    { name: "Black", value: "linear-gradient(160deg, #222 0%, #444 60%, #888 100%)" },
-    { name: "Gold", value: "linear-gradient(160deg, #fff8e1 0%, #ffd700 60%, #bfa640 100%)" },
-    { name: "Red", value: "linear-gradient(160deg, #ffe0e0 0%, #ff5252 60%, #b71c1c 100%)" },
-    { name: "Orange", value: "linear-gradient(160deg, #fff3e0 0%, #ffb74d 60%, #ff9800 100%)" },
-    { name: "Yellow", value: "linear-gradient(160deg, #fffde7 0%, #fff176 60%, #ffd600 100%)" },
-    { name: "Green", value: "linear-gradient(160deg, #e0ffe0 0%, #a1f7a1 60%, #00d974 100%)" },
-    { name: "Blue", value: "linear-gradient(160deg, #e0eaff 0%, #4fc3f7 60%, #0074d9 100%)" },
-    { name: "Pink", value: "linear-gradient(160deg, #ffe0f7 0%, #f7a1e3 60%, #d90074 100%)" },
-    { name: "Purple", value: "linear-gradient(160deg, #f3e0ff 0%, #b39ddb 60%, #6a1b9a 100%)" }
-    
+  const colourSwatches = [
+    { name: "White",   value: "linear-gradient(160deg, #fff 0%, #f6f6f8 60%, #e2e2e4 100%)", type: 'colour' },
+    { name: "Silver",  value: "linear-gradient(160deg, #e0e0e0 0%, #bdbdbd 60%, #757575 100%)", type: 'colour' },
+    { name: "Black",   value: "linear-gradient(160deg, #222 0%, #444 60%, #888 100%)", type: 'colour' },
+    { name: "Gold",    value: "linear-gradient(160deg, #fff8e1 0%, #ffd700 60%, #bfa640 100%)", type: 'colour' },
+    { name: "Red",     value: "linear-gradient(160deg, #ffe0e0 0%, #ff5252 60%, #b71c1c 100%)", type: 'colour' },
+    { name: "Orange",  value: "linear-gradient(160deg, #fff3e0 0%, #ffb74d 60%, #ff9800 100%)", type: 'colour' },
+    { name: "Yellow",  value: "linear-gradient(160deg, #fffde7 0%, #fff176 60%, #ffd600 100%)", type: 'colour' },
+    { name: "Green",   value: "linear-gradient(160deg, #e0ffe0 0%, #a1f7a1 60%, #00d974 100%)", type: 'colour' },
+    { name: "Blue",    value: "linear-gradient(160deg, #e0eaff 0%, #4fc3f7 60%, #0074d9 100%)", type: 'colour' },
+    { name: "Pink",    value: "linear-gradient(160deg, #ffe0f7 0%, #f7a1e3 60%, #d90074 100%)", type: 'colour' },
+    { name: "Purple",  value: "linear-gradient(160deg, #f3e0ff 0%, #b39ddb 60%, #6a1b9a 100%)", type: 'colour' }
   ];
+
+  const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
+  const tracks = app.state.tracks || [];
+  const trackById = new Map(tracks.map(t => [getTrackId(t), t]));
+  const totals = Object.values(habits).reduce((acc, h, i, arr) => {
+    const id = Object.keys(habits)[i];
+    const t = trackById.get(id);
+    acc.plays += h.plays || 0;
+    acc.likes += h.likeCount || 0;
+    acc.dislikes += h.dislikeCount || 0;
+    acc.skips += h.skips || 0;
+    if ((h.plays || 0) > 0) acc.uniquePlayed += 1;
+    const dur = (t && Number.isFinite(t.duration) ? t.duration : 0);
+    acc.playSeconds += (h.plays || 0) * dur;
+    return acc;
+  }, { plays: 0, likes: 0, dislikes: 0, skips: 0, uniquePlayed: 0, playSeconds: 0 });
+
+  const rareThemes = [
+    { key: 'mono',      label: 'Monochrome',     preview: 'linear-gradient(160deg,#f7f7f7 0%,#dcdcdc 60%,#bfbfbf 100%)', requires: { plays: 10 } },
+    { key: 'contrast',  label: 'High Contrast',  preview: 'linear-gradient(160deg,#0e1726 0%,#0b1020 60%,#05070c 100%)', requires: { plays: 120 } },
+    { key: 'u2',        label: 'U2 Red/Black',   preview: 'linear-gradient(160deg,#0b0b0b 0%,#1d0000 50%,#4a0000 100%)', requires: { likes: 20 } },
+    { key: 'midnight',  label: 'Midnight Neon',  preview: 'linear-gradient(160deg,#0c1020 0%,#12264a 55%,#00b4ff 100%)', requires: { plays: 250 } },
+    { key: 'neonwave',  label: 'Neon Wave',      preview: 'linear-gradient(160deg,#1a0f2e 0%,#5327ff 50%,#ff7ee2 100%)', requires: { likes: 50 } },
+    { key: 'carbon',    label: 'Carbon',         preview: 'linear-gradient(160deg,#0f0f0f 0%,#1f1f1f 55%,#3a3a3a 100%)', requires: { dislikes: 15 } },
+    { key: 'forest',    label: 'Deep Forest',    preview: 'linear-gradient(160deg,#0b2e1c 0%,#1f6a3b 55%,#7bd27f 100%)', requires: { uniquePlayed: 40 } },
+    { key: 'aqua',      label: 'Aqua Glass',     preview: 'linear-gradient(160deg,#022c43 0%,#1b9aaa 55%,#72efdd 100%)', requires: { playSeconds: 36000 } }, // 10 hours
+    { key: 'sunset',    label: 'Sunset Fade',    preview: 'linear-gradient(160deg,#2d0b3a 0%,#ff5f6d 55%,#ffc371 100%)', requires: { plays: 500 } },
+    { key: 'plasma',    label: 'Plasma Pulse',   preview: 'linear-gradient(160deg,#1b0036 0%,#4a148c 40%,#ff3cac 100%)', requires: { plays: 800, likes: 80 } },
+  ];
+
+  const unlocked = new Set(JSON.parse(localStorage.getItem('unlockedThemes') || '[]'));
+  const meetsReq = (req) => {
+    if (DEV_UNLOCK_RARES) return true;
+    if (!req) return true;
+    if (req.plays && totals.plays < req.plays) return false;
+    if (req.likes && totals.likes < req.likes) return false;
+    if (req.dislikes && totals.dislikes < req.dislikes) return false;
+    if (req.skips && totals.skips < req.skips) return false;
+    if (req.uniquePlayed && totals.uniquePlayed < req.uniquePlayed) return false;
+    if (req.playSeconds && totals.playSeconds < req.playSeconds) return false;
+    return true;
+  };
+  rareThemes.forEach(t => { if (meetsReq(t.requires)) unlocked.add(t.key); });
+  localStorage.setItem('unlockedThemes', JSON.stringify([...unlocked]));
+
+  const currentTheme = localStorage.getItem('themeName') || 'default';
   let selectedIdx = parseInt(localStorage.getItem('vpodColourIdx'), 10);
-  if (isNaN(selectedIdx) || selectedIdx < 0 || selectedIdx >= colours.length) selectedIdx = 0;
-  app.state.currentMenuIndex = selectedIdx;
+  if (isNaN(selectedIdx) || selectedIdx < 0 || selectedIdx >= colourSwatches.length) selectedIdx = 0;
+
+  const items = [
+    ...colourSwatches.map((c, idx) => ({ ...c, idx, type: 'colour' })),
+    ...rareThemes.map((t, i) => ({
+      name: t.label,
+      value: t.preview,
+      key: t.key,
+      requires: t.requires,
+      unlocked: unlocked.has(t.key),
+      type: 'theme',
+      idx: colourSwatches.length + i
+    }))
+  ];
+
+  // Determine the active index (theme wins over colour)
+  let activeIdx = selectedIdx;
+  if (currentTheme !== 'default') {
+    const found = items.findIndex(it => it.type === 'theme' && it.key === currentTheme);
+    if (found >= 0) activeIdx = found;
+  }
+  app.state.currentMenuIndex = activeIdx;
 
   renderScreen(
-    `<div style="padding:4px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
-      <div style="font-size:1.2em;font-weight:bold;margin-bottom:18px;">Choose iPod Colour</div>
-      <div id="colourGrid" style="display:grid;grid-template-columns:repeat(4, 64px);gap:14px;">
-        ${colours.map((c, idx) =>
-          `<button class="colour-btn${idx === selectedIdx ? ' active' : ''}" data-idx="${idx}" title="${c.name}" style="
-            width:60px;height:60px;border-radius:14px;border:3px solid ${idx === selectedIdx ? '#0074d9' : '#ccc'};
-            background:${c.value};box-shadow:0 2px 8px rgba(0,0,0,0.13);cursor:pointer;outline:none;">
-            ${idx === selectedIdx ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : ''}
-          </button>`
-        ).join('')}
+    `<div style="padding:8px 0 0 0;display:flex;flex-direction:column;align-items:center;gap:12px;height:100%;">
+      <div style="font-size:1.2em;font-weight:bold;">Colours & Themes</div>
+      <div id="colourGrid" style="display:grid;grid-template-columns:repeat(4, 64px);gap:14px;justify-content:center;">
+        ${items.map((it, i) => {
+          const isColour = it.type === 'colour';
+          const isActive = isColour ? i === selectedIdx && currentTheme === 'default' : currentTheme === it.key;
+          const locked = it.type === 'theme' && !it.unlocked;
+          return `
+            <button class="colour-btn${isActive ? ' active' : ''}"
+              data-idx="${i}" data-type="${it.type}" data-key="${it.key || ''}"
+              title="${it.name}" style="
+              width:60px;height:60px;border-radius:14px;border:3px solid ${isActive ? '#0074d9' : '#ccc'};
+              background:${it.value};box-shadow:0 2px 8px rgba(0,0,0,0.13);cursor:${locked ? 'not-allowed' : 'pointer'};
+              outline:none;position:relative;overflow:hidden;">
+              ${isActive ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : ''}
+              ${locked ? `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                background:rgba(0,0,0,0.45);color:#fff;"><i class="fa-solid fa-lock"></i></span>` : ''}
+            </button>
+          `;
+        }).join('')}
+      </div>
+      <div style="font-size:0.9em;color:#666;padding:0 12px;text-align:center;max-width:320px;">
+        Rare themes unlock as you listen (plays/likes). They’re listed after the main colours.
       </div>
     </div>`,
     direction
   );
 
-  // Disk control support
-  let gridBtns = Array.from(document.querySelectorAll('.colour-btn'));
+  const buttons = Array.from(document.querySelectorAll('.colour-btn'));
+  const totalItems = items.length; // include rare themes
 
-  function highlightColour(idx) {
-    gridBtns.forEach((btn, i) => btn.classList.toggle('active', i === idx));
-    gridBtns.forEach((btn, i) => btn.style.borderColor = i === idx ? '#0074d9' : '#ccc');
-    gridBtns.forEach((btn, i) => btn.innerHTML = i === idx ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : '');
+  function highlight(idx) {
+    buttons.forEach((btn, i) => {
+      const isColour = btn.dataset.type === 'colour';
+      const isActive = i === idx;
+      const isThemeActive = btn.dataset.type === 'theme' && (items[i].key === (localStorage.getItem('themeName') || 'default'));
+      const active = isColour
+        ? (isActive && (localStorage.getItem('themeName') || 'default') === 'default')
+        : isThemeActive;
+
+      const locked = items[i].type === 'theme' && !items[i].unlocked;
+
+      btn.classList.toggle('active', active);
+      btn.style.borderColor = active ? '#0074d9' : '#ccc';
+      btn.innerHTML = active ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : '';
+
+      // Focus ring even on locked items so you can see where you are
+      btn.style.boxShadow = isActive
+        ? '0 0 0 2px #0074d9 inset, 0 2px 8px rgba(0,0,0,0.18)'
+        : '0 2px 8px rgba(0,0,0,0.13)';
+
+      if (locked) {
+        btn.innerHTML += `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+          background:rgba(0,0,0,0.45);color:#fff;"><i class="fa-solid fa-lock"></i></span>`;
+      }
+    });
+    const btn = buttons[idx];
+    if (btn && btn.scrollIntoView) {
+      btn.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    }
   }
-  highlightColour(app.state.currentMenuIndex);
 
-  gridBtns.forEach((btn, idx) => {
+  function applyColour(idx) {
+    localStorage.setItem('vpodColourIdx', idx);
+    localStorage.setItem('vpodColour', items[idx].value);
+    localStorage.setItem('themeName', 'default');
+    document.body.setAttribute('data-theme', 'default');
+    const cont = document.querySelector('.vpod-container');
+    if (cont) cont.style.background = items[idx].value;
+  }
+
+  function applyThemeName(name) {
+    localStorage.setItem('themeName', name);
+    document.body.setAttribute('data-theme', name);
+    const cont = document.querySelector('.vpod-container');
+    if (cont) cont.style.background = ''; // clear inline colour so theme shows
+  }
+
+  // Click handlers
+  buttons.forEach((btn, i) => {
     btn.onclick = () => {
-      app.state.currentMenuIndex = idx;
-      localStorage.setItem('vpodColourIdx', idx);
-      highlightColour(idx);
-      localStorage.setItem('vpodColour', colours[idx].value);
-      document.querySelector('.vpod-container').style.background = colours[idx].value;
+      const item = items[i];
+      if (item.type === 'colour') {
+        app.state.currentMenuIndex = i;
+        applyColour(i);
+        highlight(i);
+      } else {
+        if (!item.unlocked && !DEV_UNLOCK_RARES) {
+          const reqText = [
+            item.requires?.plays ? `${item.requires.plays} plays` : null,
+            item.requires?.likes ? `${item.requires.likes} likes` : null,
+            item.requires?.dislikes ? `${item.requires.dislikes} dislikes` : null,
+            item.requires?.skips ? `${item.requires.skips} skips` : null,
+            item.requires?.uniquePlayed ? `${item.requires.uniquePlayed} unique played` : null,
+            item.requires?.playSeconds ? `${Math.ceil(item.requires.playSeconds / 3600)}h playtime` : null,
+          ].filter(Boolean).join(', ');
+          alert(`Locked theme. Unlock by: ${reqText || 'keep listening!'}`);
+          return;
+        }
+        applyThemeName(item.key);
+        app.state.currentMenuIndex = i;
+        highlight(i);
+      }
     };
   });
 
-  window.onColourMenuConfirm = () => {
-    const idx = app.state.currentMenuIndex;
-    localStorage.setItem('vpodColour', colours[idx].value);
-    localStorage.setItem('vpodColourIdx', idx);
-    document.querySelector('.vpod-container').style.background = colours[idx].value;
-    highlightColour(idx);
-  };
-
+  // Disk scroll across all items
   window.onColourMenuScroll = (direction) => {
-    let idx = app.state.currentMenuIndex;
+    let idx = Number.isFinite(app.state.currentMenuIndex) ? app.state.currentMenuIndex : 0;
     idx += direction;
-    if (idx < 0) idx = gridBtns.length - 1;
-    if (idx >= gridBtns.length) idx = 0;
+    if (idx < 0) idx = totalItems - 1;
+    if (idx >= totalItems) idx = 0;
     app.state.currentMenuIndex = idx;
-    localStorage.setItem('vpodColourIdx', idx);
-    highlightColour(idx);
+    highlight(idx);
+  };
+  window.onColourMenuConfirm = () => {
+    const idx = Number.isFinite(app.state.currentMenuIndex) ? app.state.currentMenuIndex : 0;
+    buttons[idx]?.click();
   };
 
-  // Set colour on load
-  const savedColour = localStorage.getItem('vpodColour');
-  if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
+  highlight(app.state.currentMenuIndex);
 }
 
 // About Menu
 function renderAboutMenu(direction = 'forward') {
-  const version = window.APP_VERSION
   renderScreen(
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">About vRetro Player</div>
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.6.4</b><br>
+        Version: <b>2.6.5</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -390,4 +521,105 @@ function renderUserStatsMenu(direction = 'forward') {
     const serial = Math.floor(Math.random() * 1e8).toString(16);
     localStorage.setItem('vpodSerial', serial);
   }
+}
+
+function renderBackupMenu(direction = 'forward') {
+  renderScreen(
+    `<div style="padding:32px 16px;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;height:100%;">
+      <div style="font-size:1.2em;font-weight:bold;">Backup / Restore</div>
+      <div style="font-size:0.95em;color:#444;text-align:center;max-width:280px;">
+        Export your playlists, likes/skips stats, settings, colours, and weekly recap snapshot.
+      </div>
+      <button id="backupExportBtn" style="padding:10px 18px;border:none;border-radius:10px;background:#0074d9;color:#fff;font-size:1em;cursor:pointer;">
+        Export Backup
+      </button>
+      <button id="backupImportBtn" style="padding:10px 18px;border:none;border-radius:10px;background:#eee;color:#444;font-size:1em;cursor:pointer;">
+        Import Backup
+      </button>
+      <input type="file" id="backupFileInput" accept=".json" style="display:none;">
+      <div style="font-size:0.9em;color:#666;text-align:center;max-width:260px;">
+        Note: Music files are not included. Load the same library after restoring.
+      </div>
+    </div>`,
+    direction
+  );
+
+  document.getElementById('backupExportBtn').onclick = exportBackup;
+  document.getElementById('backupImportBtn').onclick = () => document.getElementById('backupFileInput').click();
+  document.getElementById('backupFileInput').onchange = (e) => {
+    const f = e.target.files[0];
+    if (f) importBackup(f);
+    e.target.value = '';
+  };
+}
+
+// Helpers
+function exportBackup() {
+  const data = {
+    version: '2.6.4',
+    timestamp: Date.now(),
+    playlists: app.state.playlists || [],
+    userHabits: JSON.parse(localStorage.getItem('userHabits') || '{}'),
+    timeSettings: getTimeSettings(),
+    vpodColour: localStorage.getItem('vpodColour') || '',
+    vpodColourIdx: localStorage.getItem('vpodColourIdx') || 0,
+    eqPreset: localStorage.getItem('eqPreset') || 'Flat',
+    lastWeekStats: JSON.parse(localStorage.getItem('lastWeekStats') || '{}'),
+    userStatsLastReset: localStorage.getItem('userStatsLastReset') || null
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'vmusic-backup.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (typeof showHotBarMessage === 'function') showHotBarMessage('Backup exported', 1800);
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result || '{}');
+
+      // Restore playlists
+      if (Array.isArray(data.playlists)) {
+        app.state.playlists = data.playlists;
+        savePlaylists();
+      }
+
+      // Restore habits/stats
+      if (data.userHabits && typeof data.userHabits === 'object') {
+        localStorage.setItem('userHabits', JSON.stringify(data.userHabits));
+      }
+      if (data.lastWeekStats) {
+        localStorage.setItem('lastWeekStats', JSON.stringify(data.lastWeekStats));
+      }
+      if (data.userStatsLastReset) {
+        localStorage.setItem('userStatsLastReset', data.userStatsLastReset);
+      }
+
+      // Restore settings
+      if (data.timeSettings) saveTimeSettings(data.timeSettings);
+      if (data.vpodColour) {
+        localStorage.setItem('vpodColour', data.vpodColour);
+        document.querySelector('.vpod-container').style.background = data.vpodColour;
+      }
+      if (data.vpodColourIdx !== undefined) localStorage.setItem('vpodColourIdx', data.vpodColourIdx);
+      if (data.eqPreset) {
+        localStorage.setItem('eqPreset', data.eqPreset);
+        if (player?.setEQPreset) player.setEQPreset(data.eqPreset);
+      }
+
+      if (typeof showHotBarMessage === 'function') showHotBarMessage('Backup restored', 2000);
+      goBack();
+    } catch (err) {
+      console.error('Import failed', err);
+      alert('Backup import failed. Invalid file.');
+    }
+  };
+  reader.readAsText(file);
 }

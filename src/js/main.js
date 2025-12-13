@@ -31,14 +31,30 @@ function clearAllAlbumCoverURLs() {
   console.log("Cleared all album cover object URLs.");
 }
 
+function applyTheme(name) {
+  const cont = document.querySelector('.vpod-container');
+  const theme = name || 'default';
+  document.body.setAttribute('data-theme', theme);
+  localStorage.setItem('themeName', theme);
+
+  if (theme === 'default') {
+    const savedColour = localStorage.getItem('vpodColour');
+    if (cont) cont.style.background = savedColour || '';
+  } else {
+    // let CSS theme background show
+    if (cont) cont.style.background = '';
+  }
+}
+window.applyTheme = applyTheme;
+
 // --- On Load ---
 
 window.onload = () => {
   clearAllAlbumCoverURLs();
-  const savedColour = localStorage.getItem('vpodColour');
+  const savedTheme = localStorage.getItem('themeName') || 'default';
   const ps = document.getElementById('hotBarPlayState');
   
-  if (savedColour) document.querySelector('.vpod-container').style.background = savedColour;
+  applyTheme(savedTheme);
   if (ps) ps.textContent = '';
 
   maybeResetWeeklyStats();
