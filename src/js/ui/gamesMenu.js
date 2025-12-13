@@ -332,6 +332,7 @@ function renderFlappy(direction = 'forward') {
         Center/Play: flap | Menu: back
       </div>
       <div id="fpScore" style="font-weight:bold;color:#0074d9;">Score: 0</div>
+      <div id="fpHigh" style="font-weight:bold;color:#888;">High: 0</div>
     </div>`,
     direction
   );
@@ -341,17 +342,23 @@ function renderFlappy(direction = 'forward') {
   let bird = { x: 50, y: 80, vy: 0 };
   let pipes = [];
   let running = true, score = 0;
+  let highScore = Number(localStorage.getItem('flappyHighScore') || 0);
   let lastFrame = 0;
   let spawnTimer = 0;
+
+  function updateScoreUI() {
+    document.getElementById('fpScore').textContent = `Score: ${score}`;
+    document.getElementById('fpHigh').textContent = `High: ${highScore}`;
+  }
 
   function reset() {
     bird = { x: 50, y: 80, vy: 0 };
     pipes = [];
     score = 0;
-    document.getElementById('fpScore').textContent = `Score: ${score}`;
     running = true;
     lastFrame = performance.now();
     spawnTimer = 0;
+    updateScoreUI();
     loop(lastFrame);
   }
 
@@ -378,20 +385,25 @@ function renderFlappy(direction = 'forward') {
     bird.vy += 0.18 * dt;
     bird.y += bird.vy * dt;
 
-    // move pipes
     pipes.forEach(p => p.x -= 2.1 * dt);
     pipes = pipes.filter(p => p.x > -40);
 
-    // collisions / score
     pipes.forEach(p => {
-      if (p.x + 30 < bird.x && !p.scored) { score += 1; p.scored = true; document.getElementById('fpScore').textContent = `Score: ${score}`; }
+      if (p.x + 30 < bird.x && !p.scored) {
+        score += 1;
+        p.scored = true;
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem('flappyHighScore', highScore);
+        }
+        updateScoreUI();
+      }
       const inX = bird.x > p.x - 8 && bird.x < p.x + 30 + 8;
       const inY = bird.y < p.top || bird.y > p.top + p.gap;
       if (inX && inY) running = false;
     });
     if (bird.y < 0 || bird.y > cvs.height) running = false;
 
-    // draw
     ctx.fillStyle = "#0b0b0b"; ctx.fillRect(0,0,cvs.width,cvs.height);
     ctx.fillStyle = "#4fc3f7"; ctx.beginPath(); ctx.arc(bird.x, bird.y, 6, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = "#4caf50";
@@ -409,6 +421,7 @@ function renderFlappy(direction = 'forward') {
       ctx.fillText("Center to restart", cvs.width/2, cvs.height/2 + 12);
     }
   }
+  updateScoreUI();
   reset();
 
   releaseGameControls = useGameControls({
