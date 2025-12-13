@@ -57,7 +57,7 @@ function renderAllSongsMenu(direction = 'forward') {
         </button>
       </div>
       <div style="margin-bottom:2px;">
-        <input id="songSearchInput" type="text" placeholder="Search songs..." style="width:92%;max-width:320px;margin-left:8px;padding:4px 10px;border-radius:8px;border:1px solid #ccc;font-size:0.95em;">
+        <input id="songSearchInput" class="songSearchInput" type="text" placeholder="Search songs...">
       </div>
       <div class="album-list" style="height:90%;">
         <div class="album-list-left" id="allSongsListContainer" style="height:100%;overflow-y:auto;">

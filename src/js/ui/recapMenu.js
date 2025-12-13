@@ -18,14 +18,40 @@ function renderWeeklyRecapMenu(direction = 'forward') {
   const mostLiked = entries
     .sort((a, b) => (b[1].weeklyLikes || 0) - (a[1].weeklyLikes || 0))[0];
 
+  // Resolve IDs to friendly titles/artists/albums
+  const tracks = app.state.tracks || [];
+  const trackById = new Map(tracks.map(t => [getTrackId(t), t]));
+  const trackByRel = new Map(tracks.filter(t => t.relativePath).map(t => [t.relativePath.toLowerCase(), t]));
+  const trackByFile = new Map(tracks.map(t => [(t.fileName || t.file?.name || '').toLowerCase(), t]));
+
+  const habitLabel = (entry) => {
+    if (!entry || !entry[1]) return '';
+    const [id] = entry;
+    const direct = trackById.get(id);
+    if (direct) {
+      return `${direct.title || 'Unknown Track'}${direct.artist ? ' — ' + direct.artist : ''}${direct.album ? ' (' + direct.album + ')' : ''}`;
+    }
+    const idLower = (id || '').toLowerCase();
+    const rel = trackByRel.get(idLower) || trackByRel.get(idLower.replace(/^[\\/]/, ''));
+    if (rel) {
+      return `${rel.title || 'Unknown Track'}${rel.artist ? ' — ' + rel.artist : ''}${rel.album ? ' (' + rel.album + ')' : ''}`;
+    }
+    const fname = idLower.split(/[\\/]/).pop();
+    const byFile = trackByFile.get(fname);
+    if (byFile) {
+      return `${byFile.title || 'Unknown Track'}${byFile.artist ? ' — ' + byFile.artist : ''}${byFile.album ? ' (' + byFile.album + ')' : ''}`;
+    }
+    return id.split('|')[0] || 'Unknown Track';
+  };
+
   const mostPlayedLabel =
-    mostPlayed && mostPlayed[1].plays > 0
-      ? `${mostPlayed[0].split('|')[0]} (${mostPlayed[1].plays} plays)`
+    mostPlayed && (mostPlayed[1].plays || 0) > 0
+      ? `${habitLabel(mostPlayed)} (${mostPlayed[1].plays} plays)`
       : "No data for last week";
 
   const mostLikedLabel =
-    mostLiked && mostLiked[1].weeklyLikes > 0
-      ? `${mostLiked[0].split('|')[0]} (${mostLiked[1].weeklyLikes} likes)`
+    mostLiked && (mostLiked[1].weeklyLikes || 0) > 0
+      ? `${habitLabel(mostLiked)} (${mostLiked[1].weeklyLikes} likes)`
       : "No data for last week";
 
   const totalUnique = entries.filter(([_, h]) => (h.plays || 0) > 0).length;
