@@ -164,9 +164,19 @@ function handleFiles(e) {
       let loaded = 0;
 
       meta.tracks.forEach(metaTrack => {
-        const file = audioFiles.find(f => f.name === metaTrack.fileName);
+        const file = audioFiles.find(f =>
+          (metaTrack.relativePath && f.webkitRelativePath === metaTrack.relativePath) ||
+          f.name === metaTrack.fileName
+        );
         if (file) {
-          stateTracks.push({ ...metaTrack, file });
+          stateTracks.push({
+            ...metaTrack,
+            file,
+            fileName: metaTrack.fileName || file.name,
+            relativePath: metaTrack.relativePath || file.webkitRelativePath || '',
+            size: metaTrack.size || file.size,
+            lastModified: metaTrack.lastModified || file.lastModified
+          });
         }
         loaded++;
         updateLoadingCounter(loaded, total);
@@ -233,7 +243,13 @@ function handleFiles(e) {
           album: albumTitle,
           trackNumber: Number.isFinite(tn) ? tn : cueTracks.length + 1,
           ...(genre ? { genre } : {}),
-          ...(year ? { year } : {})
+          ...(year ? { year } : {}),
+          ...(file ? {
+            fileName: file.name,
+            relativePath: file.webkitRelativePath || '',
+            size: file.size,
+            lastModified: file.lastModified
+          } : {})
         });
       });
     });
@@ -297,6 +313,10 @@ function handleFiles(e) {
           if (!stateTracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
             stateTracks.push({
               file,
+              fileName: file.name,
+              relativePath: file.webkitRelativePath || '',
+              size: file.size,
+              lastModified: file.lastModified,
               title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
               artist: artist || 'Unknown Artist',
               album: album || 'Unidentified Album',
@@ -324,6 +344,10 @@ function handleFiles(e) {
           if (!stateTracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
             stateTracks.push({
               file,
+              fileName: file.name,
+              relativePath: file.webkitRelativePath || '',
+              size: file.size,
+              lastModified: file.lastModified,
               title: file.name.replace(/\.(mp3|flac)$/i, ''),
               artist: 'Unknown Artist',
               album: 'Unidentified Album'
@@ -341,6 +365,7 @@ function handleFiles(e) {
               }
             });
             groupTracksByAlbum(false, folderCovers);
+            migrateHabitsToStableIds(app.state.tracks);
           }
         }
       });
@@ -414,10 +439,15 @@ function exportMetadata() {
   const allTracks = app.state.tracks;
   const data = {
     tracks: allTracks.map(t => ({
-      fileName: t.file?.name,
+      fileName: t.fileName || t.file?.name,
+      relativePath: t.relativePath || t.file?.webkitRelativePath || '',
+      size: t.size || t.file?.size,
+      lastModified: t.lastModified || t.file?.lastModified,
       title: t.title,
       artist: t.artist,
       album: t.album,
+      genre: t.genre,
+      year: t.year,
       trackNumber: t.trackNumber,
       duration: t.duration
     }))

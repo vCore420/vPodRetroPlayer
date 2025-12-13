@@ -271,7 +271,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.6.2</b><br>
+        Version: <b>2.6.3</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -303,6 +303,44 @@ function renderUserStatsMenu(direction = 'forward') {
   const mostDisliked = Object.entries(habits)
     .sort((a, b) => (b[1].dislikeCount || 0) - (a[1].dislikeCount || 0))[0];
 
+  const tracks = app.state.tracks || [];
+  const trackById = new Map(tracks.map(t => [getTrackId(t), t]));
+  const trackByRel = new Map(
+    tracks
+      .filter(t => t.relativePath)
+      .map(t => [t.relativePath.toLowerCase(), t])
+  );
+  const trackByFile = new Map(
+    tracks.map(t => [(t.fileName || t.file?.name || '').toLowerCase(), t])
+  );
+
+  const habitLabel = (entry, metricKey) => {
+    if (!entry || !entry[1] || (entry[1][metricKey] || 0) <= 0) return '';
+    const [id] = entry;
+    const tDirect = trackById.get(id);
+    if (tDirect) {
+      return `${tDirect.title || 'Unknown Track'}${tDirect.artist ? ' — ' + tDirect.artist : ''}${tDirect.album ? ' (' + tDirect.album + ')' : ''}`;
+    }
+    const idLower = (id || '').toLowerCase();
+    const rel = trackByRel.get(idLower) || trackByRel.get(idLower.replace(/^[\\/]/, ''));
+    if (rel) {
+      return `${rel.title || 'Unknown Track'}${rel.artist ? ' — ' + rel.artist : ''}${rel.album ? ' (' + rel.album + ')' : ''}`;
+    }
+    const fname = idLower.split(/[\\/]/).pop();
+    const byFile = trackByFile.get(fname);
+    if (byFile) {
+      return `${byFile.title || 'Unknown Track'}${byFile.artist ? ' — ' + byFile.artist : ''}${byFile.album ? ' (' + byFile.album + ')' : ''}`;
+    }
+    return id.split('|')[0] || 'Unknown Track';
+  };
+
+  const mostPlayedLabel   = habitLabel(mostPlayed, 'plays');
+  const mostLikedLabel    = habitLabel(mostLiked, 'likeCount');
+  const mostSkippedLabel  = habitLabel(mostSkipped, 'skips');
+  const mostDislikedLabel = habitLabel(mostDisliked, 'dislikeCount');
+
+
+
   renderScreen(
     `<div style="padding:56px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;position:relative;">
       <button id="wipeStatsBtn" title="Wipe All User Stats" style="
@@ -326,10 +364,10 @@ function renderUserStatsMenu(direction = 'forward') {
           Unique Songs Liked: <b>${uniqueLiked}</b><br>
           Unique Songs Disliked: <b>${uniqueDisliked}</b><br>
           Unique Songs Skipped: <b>${uniqueSkipped}</b><br>
-          ${mostPlayed && mostPlayed[1].plays > 0 ? `Most Played Song: <b>${mostPlayed[0].split('|')[0]}</b> (${mostPlayed[1].plays} plays)<br>` : ''}
-          ${mostLiked && mostLiked[1].likeCount > 0 ? `Most Liked Song: <b>${mostLiked[0].split('|')[0]}</b> (${mostLiked[1].likeCount} likes)<br>` : ''}
-          ${mostSkipped && mostSkipped[1].skips > 0 ? `Most Skipped Song: <b>${mostSkipped[0].split('|')[0]}</b> (${mostSkipped[1].skips} skips)<br>` : ''}
-          ${mostDisliked && mostDisliked[1].dislikeCount > 0 ? `Most Disliked Song: <b>${mostDisliked[0].split('|')[0]}</b> (${mostDisliked[1].dislikeCount} dislikes)<br>` : ''}
+          ${mostPlayed && mostPlayed[1].plays > 0 ? `Most Played Song: <b>${mostPlayedLabel}</b> (${mostPlayed[1].plays} plays)<br>` : ''}
+          ${mostLiked && mostLiked[1].likeCount > 0 ? `Most Liked Song: <b>${mostLikedLabel}</b> (${mostLiked[1].likeCount} likes)<br>` : ''}
+          ${mostSkipped && mostSkipped[1].skips > 0 ? `Most Skipped Song: <b>${mostSkippedLabel}</b> (${mostSkipped[1].skips} skips)<br>` : ''}
+          ${mostDisliked && mostDisliked[1].dislikeCount > 0 ? `Most Disliked Song: <b>${mostDislikedLabel}</b> (${mostDisliked[1].dislikeCount} dislikes)<br>` : ''}
         </div>
       </div>
     </div>`,
