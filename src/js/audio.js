@@ -219,9 +219,6 @@ const trebleEQ = audioCtx.createBiquadFilter();
 trebleEQ.type = "highshelf";
 trebleEQ.frequency.value = 3000;
 
-// Connect the filters in series
-audioSource.connect(bassEQ).connect(midEQ).connect(trebleEQ).connect(audioCtx.destination);
-
 // --- EQUALIZER PRESET MANAGEMENT ---
 function setEQPreset(preset) {
   switch (preset) {
@@ -315,4 +312,5 @@ window.player = {
   playTrackFromAlbum,
   toggleShuffle,
   setEQPreset
+
 };
