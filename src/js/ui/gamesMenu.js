@@ -387,7 +387,7 @@ function renderFlappy(direction = 'forward') {
   renderScreen(
     `<div style="padding-top:28px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">
        <div style="font-size:1.2em;font-weight:bold;">Flappy Dot</div>
-       <canvas id="fpCanvas" width="300" height="220" style="background:#0b0b0b;border:2px solid #444;border-radius:10px;"></canvas>
+       <canvas id="fpCanvas" width="300" height="220" style="background:#2a93c4;border:2px solid #444;border-radius:10px;"></canvas>
        <div style="font-size:0.9em;color:#555;text-align:center;max-width:320px;">
          Center/Play: flap | Menu: back
        </div>
@@ -472,7 +472,10 @@ function renderFlappy(direction = 'forward') {
     });
     if (bird.y < 0 || bird.y > cvs.height) running = false;
 
-    ctx.fillStyle = "#0b0b0b"; ctx.fillRect(0,0,cvs.width,cvs.height);
+    const bgGrad = ctx.createLinearGradient(0, 0, cvs.width, cvs.height);
+    bgGrad.addColorStop(0, "#2a93c4");
+    bgGrad.addColorStop(0.85, "#1b6e96");
+    ctx.fillStyle = bgGrad; ctx.fillRect(0,0,cvs.width,cvs.height);
 
     // draw pipes with depth
     pipes.forEach(p => {
@@ -526,8 +529,8 @@ function renderFlappy(direction = 'forward') {
       drawPipe(botY, cvs.height - botY, false);
 
       // shadow
-      ctx.fillStyle = "rgba(0,0,0,0.12)";
-      ctx.fillRect(x + wPipe, 0, 3, cvs.height);
+      //ctx.fillStyle = "rgba(0,0,0,0.12)";
+      //ctx.fillRect(x + wPipe, 0, 3, cvs.height);
     });
 
     ctx.save();

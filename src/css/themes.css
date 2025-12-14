@@ -276,15 +276,19 @@ body[data-theme="snakebyte"] .menu-list-song.active { background: rgba(46,143,46
 /* Flappy Sky (sky faceplate, white wheel, cyan center) */
 body[data-theme="flappysky"] .vpod-container {
   background:
-    /* pipe body */
-    linear-gradient(90deg,#2f9a54 0%,#38b565 60%,#2a7f46 100%) right 22px bottom 0px / 42px 180px no-repeat,
-    /* pipe lip */
-    linear-gradient(180deg,#49c972 0%,#2f9a54 100%) right 18px bottom calc(12px + 180px - 14px) / 50px 14px no-repeat,
+    /* lip with full outline, smaller radius */
+    url("data:image/svg+xml;utf8,<svg width='54' height='18' xmlns='http://www.w3.org/2000/svg'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0%' stop-color='%2349c972'/><stop offset='100%' stop-color='%232f9a54'/></linearGradient></defs><rect x='1' y='1' width='52' height='16' rx='2' ry='2' fill='url(%23g)' stroke='%23000' stroke-width='2'/></svg>") right 16px bottom calc(180px - 6px) / 54px 18px no-repeat,
+    /* body highlight stripe */
+    linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 100%) right 26px bottom 6px / 6px 168px no-repeat,
+    /* body side outlines (left/right only) */
+    linear-gradient(90deg, #000 0 3px, transparent 3px 39px, #000 39px 42px, transparent 42px) right 22px bottom 0px / 42px 180px no-repeat,
+    /* body fill */
+    linear-gradient(90deg, #3a6f3a 0%, #4c8c4c 25%, #357235 65%, #2a5a2a 100%) right 22px bottom 0px / 42px 180px no-repeat,
     /* bird */
     url("/src/img/flailing_bird.png") left 18px bottom 86px / 72px 56px no-repeat,
     /* sky gradient */
     linear-gradient(150deg,#071a30 0%,#0f4a82 55%,#6fe0ff 100%);
-  border: 3px solid #1e5c88;
+  border: 3px solid #1c4a1c;
   box-shadow: 0 12px 30px rgba(0,0,0,0.32);
 }
 
