@@ -206,6 +206,8 @@ function renderColourMenu(direction = 'forward') {
   ];
 
   const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
+  const gameScores = JSON.parse(localStorage.getItem('gameHighScores') || '{}');
+  const getHS = (game) => Number.isFinite(gameScores[game]) ? gameScores[game] : 0;
   const tracks = app.state.tracks || [];
   const trackById = new Map(tracks.map(t => [getTrackId(t), t]));
   const totals = Object.values(habits).reduce((acc, h, i, arr) => {
@@ -232,6 +234,24 @@ function renderColourMenu(direction = 'forward') {
     { key: 'aqua',      label: 'Aqua Glass',     preview: 'linear-gradient(160deg,#022c43 0%,#1b9aaa 55%,#72efdd 100%)', requires: { playSeconds: 86400 } }, // 24 hours
     { key: 'sunset',    label: 'Sunset Fade',    preview: 'linear-gradient(160deg,#2d0b3a 0%,#ff5f6d 55%,#ffc371 100%)', requires: { plays: 1000 } },
     { key: 'plasma',    label: 'Plasma Pulse',   preview: 'linear-gradient(160deg,#1b0036 0%,#4a148c 40%,#ff3cac 100%)', requires: { plays: 1500, likes: 500 } },
+    { key: 'aurora',    label: 'Aurora Drift',   preview: 'linear-gradient(160deg,#041427 0%,#0b3a52 45%,#35ffc5 100%)', requires: { likes: 800, plays: 2000 } },
+    { key: 'lava',      label: 'Lava Core',      preview: 'linear-gradient(160deg,#1a0300 0%,#6d1000 50%,#ff5a00 100%)', requires: { plays: 2500, dislikes: 80 } },
+    { key: 'crystal',   label: 'Crystal Ice',    preview: 'linear-gradient(160deg,#021019 0%,#0f2e4f 40%,#7be2ff 100%)', requires: { playSeconds: 200000 } },
+    { key: 'starlight', label: 'Starlight',      preview: 'linear-gradient(160deg,#060612 0%,#14143a 50%,#c7a4ff 100%)', requires: { uniquePlayed: 800, likes: 600 } },
+    { key: 'onyx',      label: 'Onyx Gold',      preview: 'linear-gradient(160deg,#060606 0%,#151515 55%,#b38b00 100%)', requires: { plays: 3000, likes: 900 } }
+  ];
+
+  const gameThemes = [
+    { key: 'brickmaster',   label: 'Brick Master',    preview: 'linear-gradient(160deg,#161616 0%,#2a2a2a 55%,#ffb347 100%)', requires: { highScore: { game:'brick', score: 180 } } },
+    { key: 'snakebyte',     label: 'Snake Byte',      preview: 'linear-gradient(160deg,#0a150c 0%,#12311b 55%,#1e6a32 100%)', requires: { highScore: { game:'snake', score: 60 } } },
+    { key: 'flappysky',     label: 'Flappy Sky',      preview: 'linear-gradient(160deg,#071a30 0%,#0f4a82 55%,#6fe0ff 100%)', requires: { highScore: { game:'flappy', score: 25 } } },
+    { key: 'pipeflight',    label: 'Pipes & Flight',  preview: 'linear-gradient(160deg,#0b0b0b 0%,#123212 55%,#3dcf74 100%)', requires: { highScore: { game:'flappy', score: 40 } } },
+    { key: 'twentyforty',   label: '2048 Tiles',      preview: 'linear-gradient(160deg,#1d1d1d 0%,#2f2f2f 50%,#f0a73b 100%)', requires: { highScore: { game:'g2048', score: 2048 } } },
+    { key: 'chessboard',    label: 'Checker Faceplate', preview: 'linear-gradient(90deg,#000 25%,#fff 25%,#fff 50%,#000 50%,#000 75%,#fff 75%,#fff 100%),linear-gradient(0deg,#000 25%,#fff 25%,#fff 50%,#000 50%,#000 75%,#fff 75%,#fff 100%);background-size:12px 12px,12px 12px;background-position:0 0,6px 6px;', requires: { highScore: { game:'chess', score: 1 } } },
+    { key: 'solitaireclub', label: 'Solitaire Green', preview: 'linear-gradient(160deg,#0a190f 0%,#114024 55%,#2fa35a 100%)', requires: { highScore: { game:'solitaire', score: 1 } } },
+    { key: 'numberwhiz',    label: 'Number Whiz',     preview: 'linear-gradient(160deg,#0e111c 0%,#1f2d52 55%,#6e8dff 100%)', requires: { highScore: { game:'number', score: 15 } } },
+    { key: 'arcadegold',    label: 'Arcade Gold',     preview: 'linear-gradient(160deg,#160d00 0%,#2f1d00 55%,#e2b23b 100%)', requires: { highScore: { game:'brick', score: 250 } } },
+    { key: 'zenrunner',     label: 'Zen Runner',      preview: 'linear-gradient(160deg,#0b0f1a 0%,#132a44 55%,#5ef1d2 100%)', requires: { highScore: { game:'snake', score: 90 } } }
   ];
 
   const unlocked = new Set(JSON.parse(localStorage.getItem('unlockedThemes') || '[]'));
@@ -244,9 +264,42 @@ function renderColourMenu(direction = 'forward') {
     if (req.skips && totals.skips < req.skips) return false;
     if (req.uniquePlayed && totals.uniquePlayed < req.uniquePlayed) return false;
     if (req.playSeconds && totals.playSeconds < req.playSeconds) return false;
+    if (req.highScore) {
+      const { game, score } = req.highScore;
+      if (!game || !score) return false;
+      if (getHS(game) < score) return false;
+    }
     return true;
   };
+  const gameLabel = {
+    flappy: 'Flappy Dot',
+    brick: 'Brick Paddle',
+    snake: 'Snake',
+    g2048: '2048 Mini',
+    chess: 'Chess',
+    solitaire: 'Solitaire',
+    number: 'Number Guess'
+  };
+  const describeReq = (req) => {
+    if (!req) return '';
+    if (req.highScore && req.highScore.game && req.highScore.score) {
+      const g = req.highScore.game;
+      const label = gameLabel[g] || g;
+      return `Get ${req.highScore.score}+ in ${label}`;
+    }
+    if (req.plays) return `${req.plays} plays`;
+    if (req.likes) return `${req.likes} likes`;
+    if (req.dislikes) return `${req.dislikes} dislikes`;
+    if (req.skips) return `${req.skips} skips`;
+    if (req.uniquePlayed) return `${req.uniquePlayed} unique plays`;
+    if (req.playSeconds) {
+      const hrs = Math.ceil(req.playSeconds / 3600);
+      return `${hrs} hours played`;
+    }
+    return 'Locked';
+  };
   rareThemes.forEach(t => { if (meetsReq(t.requires)) unlocked.add(t.key); });
+  gameThemes.forEach(t => { if (meetsReq(t.requires)) unlocked.add(t.key); });
   localStorage.setItem('unlockedThemes', JSON.stringify([...unlocked]));
 
   const currentTheme = localStorage.getItem('themeName') || 'default';
@@ -263,6 +316,15 @@ function renderColourMenu(direction = 'forward') {
       unlocked: unlocked.has(t.key),
       type: 'theme',
       idx: colourSwatches.length + i
+    })),
+    ...gameThemes.map((t, i) => ({
+      name: t.label,
+      value: t.preview,
+      key: t.key,
+      requires: t.requires,
+      unlocked: unlocked.has(t.key),
+      type: 'theme',
+      idx: colourSwatches.length + rareThemes.length + i
     }))
   ];
 
@@ -290,8 +352,12 @@ function renderColourMenu(direction = 'forward') {
               background:${it.value};box-shadow:0 2px 8px rgba(0,0,0,0.13);cursor:${locked ? 'not-allowed' : 'pointer'};
               outline:none;position:relative;overflow:hidden;">
               ${isActive ? '<i class="fa-solid fa-check" style="color:#0074d9;font-size:1.5em;"></i>' : ''}
-              ${locked ? `<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-                background:rgba(0,0,0,0.45);color:#fff;"><i class="fa-solid fa-lock"></i></span>` : ''}
+              ${locked ? `<span style="
+                position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                background:rgba(0,0,0,0.55);color:#fff;font-size:0.8em;padding:6px;text-align:center;line-height:1.2;">
+                <i class="fa-solid fa-lock" style="margin-bottom:4px;"></i>
+                ${describeReq(it.requires)}
+              </span>` : ''}
             </button>
           `;
         }).join('')}
@@ -363,14 +429,7 @@ function renderColourMenu(direction = 'forward') {
         highlight(i);
       } else {
         if (!item.unlocked && !DEV_UNLOCK_RARES) {
-          const reqText = [
-            item.requires?.plays ? `${item.requires.plays} plays` : null,
-            item.requires?.likes ? `${item.requires.likes} likes` : null,
-            item.requires?.dislikes ? `${item.requires.dislikes} dislikes` : null,
-            item.requires?.skips ? `${item.requires.skips} skips` : null,
-            item.requires?.uniquePlayed ? `${item.requires.uniquePlayed} unique played` : null,
-            item.requires?.playSeconds ? `${Math.ceil(item.requires.playSeconds / 3600)}h playtime` : null,
-          ].filter(Boolean).join(', ');
+          const reqText = describeReq(item.requires);
           alert(`Locked theme. Unlock by: ${reqText || 'keep listening!'}`);
           return;
         }
@@ -406,7 +465,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.7.5</b><br>
+        Version: <b>2.7.6</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
