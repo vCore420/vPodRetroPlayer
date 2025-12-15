@@ -13,7 +13,7 @@ A browser-based, offline-capable, retro iPod-inspired player for your **local** 
 - **Habits & Insights**: Plays/skips/likes/dislikes tracked; “Suggested” picks; Smart Mix adaptive queue; Weekly Recap; User Stats.
 - **Smart Mix (adaptive)**: Endless, refilling queue that reacts to likes/dislikes/skips in real time, caps repeat artists, boosts liked/heard artists/albums, and blocks recently skipped/disliked items.
 - **Equalizer**: 3-band EQ with presets.
-- **Themes/Colours**: Classic colours plus unlockable rare themes (plays/likes/dislikes/unique/time), with optional dev unlock flag.
+- **Themes/Colours**: Classic colours plus unlockable rare themes (plays/likes/dislikes/unique/time/games).
 - **Games**: Brick Paddle, Snake, Flappy Dot, 2048 Mini, Number Guess (disk controls; controls restored on exit).
 - **PWA**: Offline after first load; installable.
 - **Responsive**: Desktop and mobile friendly.
