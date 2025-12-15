@@ -312,5 +312,4 @@ window.player = {
   playTrackFromAlbum,
   toggleShuffle,
   setEQPreset
-
 };

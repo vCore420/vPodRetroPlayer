@@ -1,6 +1,7 @@
 // --- NOW PLAYING ---
 
 function attachNowPlayingButtonListeners() {
+  if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
   const likeBtn = document.getElementById('likeBtn');
   const dislikeBtn = document.getElementById('dislikeBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
@@ -180,6 +181,7 @@ function attachNowPlayingButtonListeners() {
 window.attachNowPlayingButtonListeners = attachNowPlayingButtonListeners;
 
 function renderNowPlayingScreen(direction = 'forward') {
+  if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
   const track = app.state.currentTrack;
   const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
   const trackId = track ? getTrackId(track) : '';

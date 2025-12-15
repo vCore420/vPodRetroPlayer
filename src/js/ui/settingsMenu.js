@@ -465,7 +465,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.8.1</b><br>
+        Version: <b>2.8.3</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -478,6 +478,8 @@ function renderAboutMenu(direction = 'forward') {
 function renderUserStatsMenu(direction = 'forward') {
   // Gather stats from suggestions.js
   const habits = JSON.parse(localStorage.getItem('userHabits')) || {};
+  const gameHS = JSON.parse(localStorage.getItem('gameHighScores') || '{}');
+  const smStats = JSON.parse(localStorage.getItem('smartMixStats') || '{"weekStarts":0,"lifetimeStarts":0}');
   const totalLifetimePlays = Object.values(habits).reduce((sum, h) => sum + (h.plays || 0), 0);
   const totalLifetimeSkips = Object.values(habits).reduce((sum, h) => sum + (h.skips || 0), 0);
   const totalLifetimeLikes = Object.values(habits).reduce((sum, h) => sum + (h.likeCount || 0), 0);
@@ -533,13 +535,13 @@ function renderUserStatsMenu(direction = 'forward') {
   const mostSkippedLabel  = habitLabel(mostSkipped, 'skips');
   const mostDislikedLabel = habitLabel(mostDisliked, 'dislikeCount');
 
+  const hsList = Object.keys(gameHS).length
+    ? Object.entries(gameHS).map(([k,v]) => `${k}: <b>${v}</b>`).join('<br>')
+    : 'No game highs yet';
 
-
-  renderScreen(
-    `<div style="padding:56px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;position:relative;">
-      <button id="wipeStatsBtn" title="Wipe All User Stats" style="
-        position:absolute;top:12px;right:18px;z-index:10;
-        background:none;border:none;cursor:pointer;font-size:1.5em;color:#d90429;">
+ renderScreen(
+    `<div style="padding:200px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;position:relative;">
+      <button id="wipeStatsBtn" title="Wipe All User Stats" style="position:absolute;top:12px;right:18px;z-index:10;background:none;border:none;cursor:pointer;font-size:1.5em;color:#d90429;">
         <i class="fa-solid fa-trash"></i>
       </button>
       <div style="font-size:1.1em;font-weight:bold;margin-bottom:6px;margin-top:18px;">User Info</div>
@@ -562,6 +564,12 @@ function renderUserStatsMenu(direction = 'forward') {
           ${mostLiked && mostLiked[1].likeCount > 0 ? `Most Liked Song: <b>${mostLikedLabel}</b> (${mostLiked[1].likeCount} likes)<br>` : ''}
           ${mostSkipped && mostSkipped[1].skips > 0 ? `Most Skipped Song: <b>${mostSkippedLabel}</b> (${mostSkipped[1].skips} skips)<br>` : ''}
           ${mostDisliked && mostDisliked[1].dislikeCount > 0 ? `Most Disliked Song: <b>${mostDislikedLabel}</b> (${mostDisliked[1].dislikeCount} dislikes)<br>` : ''}
+          <hr style="margin:6px 0;">
+          <b>Smart Mix</b><br>
+          Sessions started (lifetime): <b>${smStats.lifetimeStarts || 0}</b><br>
+          <hr style="margin:6px 0;">
+          <b>Game High Scores</b><br>
+          ${hsList}
         </div>
       </div>
     </div>`,
@@ -628,6 +636,11 @@ function exportBackup() {
     vpodColourIdx: localStorage.getItem('vpodColourIdx') || 0,
     eqPreset: localStorage.getItem('eqPreset') || 'Flat',
     lastWeekStats: JSON.parse(localStorage.getItem('lastWeekStats') || '{}'),
+    smartMixStats: JSON.parse(localStorage.getItem('smartMixStats') || '{"weekStarts":0,"lifetimeStarts":0}'),
+    gameHighScores: JSON.parse(localStorage.getItem('gameHighScores') || '{}'),
+    gameHighScoresWeekBase: localStorage.getItem('gameHighScoresWeekBase') || '{}',
+    lastWeekGameGains: localStorage.getItem('lastWeekGameGains') || '{}',
+    lastWeekSmartMixStarts: localStorage.getItem('lastWeekSmartMixStarts') || '0',
     userStatsLastReset: localStorage.getItem('userStatsLastReset') || null
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -677,6 +690,13 @@ function importBackup(file) {
         if (player?.setEQPreset) player.setEQPreset(data.eqPreset);
       }
 
+      // Restore Game and Smart Mix stats
+      if (data.smartMixStats) localStorage.setItem('smartMixStats', JSON.stringify(data.smartMixStats));
+      if (data.gameHighScores) localStorage.setItem('gameHighScores', JSON.stringify(data.gameHighScores));
+      if (data.gameHighScoresWeekBase) localStorage.setItem('gameHighScoresWeekBase', data.gameHighScoresWeekBase);
+      if (data.lastWeekGameGains) localStorage.setItem('lastWeekGameGains', data.lastWeekGameGains);
+      if (data.lastWeekSmartMixStarts) localStorage.setItem('lastWeekSmartMixStarts', data.lastWeekSmartMixStarts);
+
       if (typeof showHotBarMessage === 'function') showHotBarMessage('Backup restored', 2000);
       goBack();
     } catch (err) {
@@ -685,5 +705,4 @@ function importBackup(file) {
     }
   };
   reader.readAsText(file);
-
 }

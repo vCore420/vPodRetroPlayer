@@ -3,6 +3,13 @@
 // Data structure for user habits
 let userHabits = JSON.parse(localStorage.getItem('userHabits')) || {};
 
+function loadSmartMixStats() {
+  return JSON.parse(localStorage.getItem('smartMixStats') || '{"weekStarts":0,"lifetimeStarts":0}');
+}
+function saveSmartMixStats(obj) {
+  localStorage.setItem('smartMixStats', JSON.stringify(obj));
+}
+
 // Get/Set last stats reset timestamp
 function getLastStatsReset() {
   return parseInt(localStorage.getItem('userStatsLastReset') || '0', 10);
@@ -381,6 +388,10 @@ function refreshSmartMixTail() {
 function startSmartMixFromList(list, startIdx = 0) {
   if (!list || !list.length) return;
   app.state.smartMixActive = true;
+  const smStats = loadSmartMixStats();
+  smStats.weekStarts = (smStats.weekStarts || 0) + 1;
+  smStats.lifetimeStarts = (smStats.lifetimeStarts || 0) + 1;
+  saveSmartMixStats(smStats);
   app.state.smartMixHistory = [];
   app.state.smartMixQueue = list.slice();
   app.state.smartMixSessionSkips = [];
