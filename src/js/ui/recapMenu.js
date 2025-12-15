@@ -140,7 +140,7 @@ function maybeResetWeeklyStats() {
   const isEightAM = now.getHours() >= 8;
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1, 8, 0, 0, 0).getTime();
 
-  if (isMonday && isEightAM && lastReset < weekStart) {
+  if (now.getTime() >= weekStart && lastReset < weekStart) {
     let userHabits = JSON.parse(localStorage.getItem('userHabits') || '{}');
     localStorage.setItem('lastWeekStats', JSON.stringify(userHabits));
 
