@@ -18,6 +18,16 @@ function setLastStatsReset(ts) {
   localStorage.setItem('userStatsLastReset', ts.toString());
 }
 
+function getCurrentWeekStart() {
+  const now = new Date();
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - now.getDay() + 1, // Monday
+    8, 0, 0, 0
+  ).getTime();
+}
+
 // Get a unique track ID
 function getTrackId(track) {
   const rel = (track.file && track.file.webkitRelativePath) || track.relativePath || '';
@@ -110,6 +120,7 @@ function setTrackRating(track, rating) {
   } else if (rating === 'dislike') {
     userHabits[id].dislikeCount = (userHabits[id].dislikeCount || 0) + 1;
     userHabits[id].weeklyDislikes = (userHabits[id].weeklyDislikes || 0) + 1;
+    userHabits[id].lastDisliked = Date.now();
     userHabits[id].disliked = true;
     userHabits[id].liked = false;
   } else {
@@ -137,6 +148,35 @@ function setTrackRating(track, rating) {
 function saveUserHabits() {
   localStorage.setItem('userHabits', JSON.stringify(userHabits));
 }
+
+function ensureCurrentWeekFlags() {
+  const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
+  const weekStart = getCurrentWeekStart();
+  let changed = false;
+
+  Object.keys(habits).forEach(id => {
+    const h = habits[id];
+    if (!h) return;
+    // Clear weekly likes if they predate this week
+    if ((h.weeklyLikes || 0) > 0 && (!h.lastLiked || h.lastLiked < weekStart)) {
+      h.weeklyLikes = 0;
+      h.liked = false;
+      changed = true;
+    }
+    // Clear weekly dislikes if they predate this week (track lastDisliked below)
+    if ((h.weeklyDislikes || 0) > 0 && (!h.lastDisliked || h.lastDisliked < weekStart)) {
+      h.weeklyDislikes = 0;
+      h.disliked = false;
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    localStorage.setItem('userHabits', JSON.stringify(habits));
+    if (typeof userHabits !== 'undefined') userHabits = habits;
+  }
+}
+window.ensureCurrentWeekFlags = ensureCurrentWeekFlags;
 
 // Get suggested tracks
 function getSuggestedTracks(tracks, limit = 20) {

@@ -968,14 +968,28 @@ body::-webkit-scrollbar,
   #likeBtn, #dislikeBtn {
     font-size: 1.1em;
     margin-left: 1px;
+    padding-left: 0;
     gap: 1px;
   }
   #likeBtn i, #dislikeBtn i {
-    font-size: 1em;
+    font-size: 0.9em;
   }
   #likeCountLabel, #dislikeCountLabel {
     font-size: 0.75em;
-    min-width: 0.2em;
+    min-width: 0;
+  }
+
+  .rating-like-weekly,
+  .rating-dislike-weekly {
+    padding-right: 12px; /* add space for the dot */
+  }
+
+  .rating-like-weekly::after {
+    right: 2px;         /* was -2px */
+  }
+
+  .rating-dislike-weekly::after {
+    right: 2px;         /* was -2px */
   }
 
   #addToPlaylistBtn,
