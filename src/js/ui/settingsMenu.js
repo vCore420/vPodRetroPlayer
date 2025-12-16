@@ -465,7 +465,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.8.6</b><br>
+        Version: <b>2.8.7</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -547,7 +547,7 @@ function renderUserStatsMenu(direction = 'forward') {
     : 'No game highs yet';
 
  renderScreen(
-    `<div style="padding:200px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;position:relative;">
+    `<div style="padding:140px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;position:relative;">
       <button id="wipeStatsBtn" title="Wipe All User Stats" style="position:absolute;top:12px;right:18px;z-index:10;background:none;border:none;cursor:pointer;font-size:1.5em;color:#d90429;">
         <i class="fa-solid fa-trash"></i>
       </button>
