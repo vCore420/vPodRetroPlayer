@@ -465,7 +465,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.8.5</b><br>
+        Version: <b>2.8.6</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -510,6 +510,13 @@ function renderUserStatsMenu(direction = 'forward') {
     tracks.map(t => [(t.fileName || t.file?.name || '').toLowerCase(), t])
   );
 
+  const prettyFromPath = (id) => {
+    const base = (id || '').split(/[\\/]/).pop() || id;
+    const noExt = base.replace(/\.(mp3|flac)$/i, '');
+    const noTrackNum = noExt.replace(/^[\d\s._-]{1,6}/, '').trim();
+    return noTrackNum || noExt || base || 'Unknown Track';
+  };
+
   const habitLabel = (entry, metricKey) => {
     if (!entry || !entry[1] || (entry[1][metricKey] || 0) <= 0) return '';
     const [id] = entry;
@@ -527,7 +534,7 @@ function renderUserStatsMenu(direction = 'forward') {
     if (byFile) {
       return `${byFile.title || 'Unknown Track'}${byFile.artist ? ' — ' + byFile.artist : ''}${byFile.album ? ' (' + byFile.album + ')' : ''}`;
     }
-    return id.split('|')[0] || 'Unknown Track';
+    return prettyFromPath(entry?.[0] || '');
   };
 
   const mostPlayedLabel   = habitLabel(mostPlayed, 'plays');

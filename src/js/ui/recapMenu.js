@@ -24,6 +24,13 @@ function renderWeeklyRecapMenu(direction = 'forward') {
   const trackByRel = new Map(tracks.filter(t => t.relativePath).map(t => [t.relativePath.toLowerCase(), t]));
   const trackByFile = new Map(tracks.map(t => [(t.fileName || t.file?.name || '').toLowerCase(), t]));
 
+  const prettyFromPath = (id) => {
+    const base = (id || '').split(/[\\/]/).pop() || id;
+    const noExt = base.replace(/\.(mp3|flac)$/i, '');
+    const noTrackNum = noExt.replace(/^[\d\s._-]{1,6}/, '').trim();
+    return noTrackNum || noExt || base || 'Unknown Track';
+  };
+
   const habitLabel = (entry) => {
     if (!entry || !entry[1]) return '';
     const [id] = entry;
@@ -41,7 +48,7 @@ function renderWeeklyRecapMenu(direction = 'forward') {
     if (byFile) {
       return `${byFile.title || 'Unknown Track'}${byFile.artist ? ' — ' + byFile.artist : ''}${byFile.album ? ' (' + byFile.album + ')' : ''}`;
     }
-    return id.split('|')[0] || 'Unknown Track';
+    return prettyFromPath(id);
   };
 
   const mostPlayedLabel =
