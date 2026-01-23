@@ -1,4 +1,4 @@
-const CACHE_NAME = `vmusic-cache-2.8.7`;
+const CACHE_NAME = `vpod-cache-2.8.8`;
 const toCache = [
   "./",
   "index.html",
@@ -49,4 +49,5 @@ self.addEventListener("fetch", event => {
       response || fetch(event.request)
     )
   );
+
 });
