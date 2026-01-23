@@ -465,7 +465,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.8.8</b><br>
+        Version: <b>2.9.0</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -584,13 +584,45 @@ function renderUserStatsMenu(direction = 'forward') {
   );
 
   // Trash button handler
-  document.getElementById('wipeStatsBtn').onclick = () => {
-    if (confirm("Are you sure you want to wipe all user stats? This cannot be undone.")) {
-      localStorage.removeItem('userHabits');
-      localStorage.removeItem('lastWeekStats');
-      localStorage.removeItem('userStatsLastReset');
-      // Do NOT remove playlists!
-      renderUserStatsMenu('forward');
+  document.getElementById('wipeStatsBtn').onclick = async () => {
+    const ok = confirm("Wipe ALL vPod data (playlists, habits, settings, themes, games, cache)? This will restart the app.");
+    if (!ok) return;
+
+    try {
+      // clear app state
+      if (app?.state) {
+        app.state.tracks = [];
+        app.state.albums = {};
+        app.state.playlists = [];
+        app.state.currentTrack = null;
+        app.state.currentAlbumSongs = [];
+        app.state.currentSongIndex = -1;
+        app.state.navStack = [];
+        app.state.albumCoverURLs?.forEach(url => URL.revokeObjectURL(url));
+        app.state.albumCoverURLs = [];
+      }
+
+      // clear storage
+      localStorage.clear();
+      sessionStorage.clear?.();
+
+      // clear caches
+      if ('caches' in window) {
+        const names = await caches.keys();
+        await Promise.all(names.map(n => caches.delete(n)));
+      }
+
+      // unregister service worker
+      if (navigator.serviceWorker) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r => r.unregister()));
+      }
+
+      // reload to fresh state
+      location.reload(true);
+    } catch (err) {
+      console.error("Wipe failed:", err);
+      alert("Could not fully wipe data. Try reloading manually.");
     }
   };
 
@@ -632,15 +664,93 @@ function renderBackupMenu(direction = 'forward') {
 }
 
 // Helpers
+function normalizeBackupData(data = {}) {
+  const norm = (p = '') => (typeof normalizePath === 'function' ? normalizePath(p) : p);
+  if (Array.isArray(data.playlists)) {
+    data.playlists.forEach(pl => {
+      if (!Array.isArray(pl.tracks)) return;
+      pl.tracks = pl.tracks.map(t => ({
+        ...t,
+        relativePath: norm(t.relativePath || t.file?.webkitRelativePath || ''),
+        fileName: t.fileName || t.file?.name
+      }));
+    });
+  }
+  const habits = data.userHabits || {};
+  const newHabits = {};
+  Object.entries(habits).forEach(([k, v]) => {
+    const hasPipe = k.includes('|');
+    const nk = hasPipe ? k.toLowerCase() : norm(k).toLowerCase();
+    newHabits[nk] = v;
+  });
+  data.userHabits = newHabits;
+  return data;
+}
+
+function applyBackup(data) {
+  const clean = normalizeBackupData(data);
+
+  // Persist all user data
+  localStorage.setItem('playlists', JSON.stringify(clean.playlists || []));
+  localStorage.setItem('userHabits', JSON.stringify(clean.userHabits || {}));
+  localStorage.setItem('timeSettings', JSON.stringify(clean.timeSettings || defaultTimeSettings));
+  localStorage.setItem('vpodColour', clean.vpodColour || '');
+  localStorage.setItem('vpodColourIdx', clean.vpodColourIdx || 0);
+  if (clean.themeName) localStorage.setItem('themeName', clean.themeName);
+  if (clean.unlockedThemes) localStorage.setItem('unlockedThemes', JSON.stringify(clean.unlockedThemes));
+  localStorage.setItem('eqPreset', clean.eqPreset || 'Flat');
+  localStorage.setItem('lastWeekStats', JSON.stringify(clean.lastWeekStats || {}));
+  localStorage.setItem('smartMixStats', JSON.stringify(clean.smartMixStats || { weekStarts: 0, lifetimeStarts: 0 }));
+  localStorage.setItem('gameHighScores', JSON.stringify(clean.gameHighScores || {}));
+  localStorage.setItem('gameHighScoresWeekBase', clean.gameHighScoresWeekBase || '{}');
+  localStorage.setItem('lastWeekGameGains', clean.lastWeekGameGains || '{}');
+  localStorage.setItem('lastWeekSmartMixStarts', clean.lastWeekSmartMixStarts || '0');
+  if (clean.userStatsLastReset) localStorage.setItem('userStatsLastReset', clean.userStatsLastReset);
+
+  // Refresh in-memory state
+  app.state.playlists = clean.playlists || [];
+  window.userHabits = clean.userHabits || {};
+  app.state.smartMixActive = false;
+  app.state.smartMixQueue = null;
+  app.state.currentTrack = null;
+
+  // Reapply theme/colour/EQ
+  const theme = localStorage.getItem('themeName') || 'default';
+  applyTheme(theme);
+  setEQPreset(localStorage.getItem('eqPreset') || 'Flat');
+
+  // Reset nav/UI
+  app.state.navStack = [];
+  renderMainMenu('forward');
+  app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
+  if (typeof showHotBarMessage === 'function') showHotBarMessage('Backup restored', 1800);
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const json = JSON.parse(ev.target.result);
+      applyBackup(json);
+    } catch (err) {
+      console.error('Backup import failed', err);
+      alert('Invalid backup file.');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function exportBackup() {
   const data = {
-    version: '2.6.4',
+    version: '2.9.0',
     timestamp: Date.now(),
     playlists: app.state.playlists || [],
     userHabits: JSON.parse(localStorage.getItem('userHabits') || '{}'),
     timeSettings: getTimeSettings(),
     vpodColour: localStorage.getItem('vpodColour') || '',
     vpodColourIdx: localStorage.getItem('vpodColourIdx') || 0,
+    themeName: localStorage.getItem('themeName') || 'default',
+    unlockedThemes: JSON.parse(localStorage.getItem('unlockedThemes') || '[]'),
     eqPreset: localStorage.getItem('eqPreset') || 'Flat',
     lastWeekStats: JSON.parse(localStorage.getItem('lastWeekStats') || '{}'),
     smartMixStats: JSON.parse(localStorage.getItem('smartMixStats') || '{"weekStarts":0,"lifetimeStarts":0}'),
@@ -660,57 +770,4 @@ function exportBackup() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   if (typeof showHotBarMessage === 'function') showHotBarMessage('Backup exported', 1800);
-}
-
-function importBackup(file) {
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    try {
-      const data = JSON.parse(ev.target.result || '{}');
-
-      // Restore playlists
-      if (Array.isArray(data.playlists)) {
-        app.state.playlists = data.playlists;
-        savePlaylists();
-      }
-
-      // Restore habits/stats
-      if (data.userHabits && typeof data.userHabits === 'object') {
-        localStorage.setItem('userHabits', JSON.stringify(data.userHabits));
-      }
-      if (data.lastWeekStats) {
-        localStorage.setItem('lastWeekStats', JSON.stringify(data.lastWeekStats));
-      }
-      if (data.userStatsLastReset) {
-        localStorage.setItem('userStatsLastReset', data.userStatsLastReset);
-      }
-
-      // Restore settings
-      if (data.timeSettings) saveTimeSettings(data.timeSettings);
-      if (data.vpodColour) {
-        localStorage.setItem('vpodColour', data.vpodColour);
-        document.querySelector('.vpod-container').style.background = data.vpodColour;
-      }
-      if (data.vpodColourIdx !== undefined) localStorage.setItem('vpodColourIdx', data.vpodColourIdx);
-      if (data.eqPreset) {
-        localStorage.setItem('eqPreset', data.eqPreset);
-        if (player?.setEQPreset) player.setEQPreset(data.eqPreset);
-      }
-
-      // Restore Game and Smart Mix stats
-      if (data.smartMixStats) localStorage.setItem('smartMixStats', JSON.stringify(data.smartMixStats));
-      if (data.gameHighScores) localStorage.setItem('gameHighScores', JSON.stringify(data.gameHighScores));
-      if (data.gameHighScoresWeekBase) localStorage.setItem('gameHighScoresWeekBase', data.gameHighScoresWeekBase);
-      if (data.lastWeekGameGains) localStorage.setItem('lastWeekGameGains', data.lastWeekGameGains);
-      if (data.lastWeekSmartMixStarts) localStorage.setItem('lastWeekSmartMixStarts', data.lastWeekSmartMixStarts);
-
-      if (typeof showHotBarMessage === 'function') showHotBarMessage('Backup restored', 2000);
-      goBack();
-    } catch (err) {
-      console.error('Import failed', err);
-      alert('Backup import failed. Invalid file.');
-    }
-  };
-  reader.readAsText(file);
-
 }

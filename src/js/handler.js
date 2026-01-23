@@ -109,6 +109,12 @@ function migrateHabitsToStableIds(tracks = []) {
   }
 }
 
+function normalizePath(p = '') {
+  const dec = decodeURIComponent(p);
+  return dec.replace(/^tree\/[^/]+:music\/document\//i, '');
+}
+window.normalizePath = normalizePath;
+
 function parseTrackNumber(raw) {
   if (raw == null) return null;
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
@@ -173,7 +179,7 @@ function handleFiles(e) {
             ...metaTrack,
             file,
             fileName: metaTrack.fileName || file.name,
-            relativePath: metaTrack.relativePath || file.webkitRelativePath || '',
+            relativePath: normalizePath(metaTrack.relativePath || file.webkitRelativePath || ''),
             size: metaTrack.size || file.size,
             lastModified: metaTrack.lastModified || file.lastModified
           });
@@ -246,7 +252,7 @@ function handleFiles(e) {
           ...(year ? { year } : {}),
           ...(file ? {
             fileName: file.name,
-            relativePath: file.webkitRelativePath || '',
+            relativePath: normalizePath(file ? file.webkitRelativePath || '' : ''),
             size: file.size,
             lastModified: file.lastModified
           } : {})
@@ -314,7 +320,7 @@ function handleFiles(e) {
             stateTracks.push({
               file,
               fileName: file.name,
-              relativePath: file.webkitRelativePath || '',
+              relativePath: normalizePath(file ? file.webkitRelativePath || '' : ''),
               size: file.size,
               lastModified: file.lastModified,
               title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
@@ -345,7 +351,7 @@ function handleFiles(e) {
             stateTracks.push({
               file,
               fileName: file.name,
-              relativePath: file.webkitRelativePath || '',
+              relativePath: normalizePath(file.webkitRelativePath || ''),
               size: file.size,
               lastModified: file.lastModified,
               title: file.name.replace(/\.(mp3|flac)$/i, ''),
@@ -374,12 +380,11 @@ function handleFiles(e) {
 }
 
 function getFolderPath(file) {
-  if (!file.webkitRelativePath) return '';
-  const parts = file.webkitRelativePath.split('/');
-  parts.pop(); 
-  const folder = parts.join('/');
-  console.log("Got folder path for file:", file.name, folder);
-  return folder;
+  const rel = normalizePath(file.webkitRelativePath || '');
+  if (!rel) return '';
+  const parts = rel.split('/');
+  parts.pop();
+  return parts.join('/');
 }
 
 function makeAlbumKey(track) {
@@ -440,7 +445,7 @@ function exportMetadata() {
   const data = {
     tracks: allTracks.map(t => ({
       fileName: t.fileName || t.file?.name,
-      relativePath: t.relativePath || t.file?.webkitRelativePath || '',
+      relativePath: normalizePath(t.relativePath || t.file?.webkitRelativePath || ''),
       size: t.size || t.file?.size,
       lastModified: t.lastModified || t.file?.lastModified,
       title: t.title,

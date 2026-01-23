@@ -1,4 +1,5 @@
 // --- PLAYLISTS MENU & CREATION ---
+const normPath = (p = '') => (typeof normalizePath === 'function' ? normalizePath(p) : p);
 
 function renderPlaylistsMenu(direction = 'forward') {
   const allPlaylists = app.state.playlists;
@@ -224,7 +225,7 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
     div.onclick = () => {
       toggleTrackInCreatingPlaylist(track);
       const isNowSelected = window.creatingPlaylist.tracks.some(t =>
-        (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
+        (t.relativePath && normPath(t.relativePath) === normPath(track.file?.webkitRelativePath || track.relativePath || ''))
         (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
       );
 
@@ -262,7 +263,7 @@ function toggleTrackInCreatingPlaylist(track) {
       fileName: track.file?.name,
       album: track.album,
       artist: track.artist,
-      relativePath: track.file?.webkitRelativePath || '',
+      relativePath: normPath(track.file?.webkitRelativePath || track.relativePath || ''),
       title: track.title
     });
   }
@@ -275,7 +276,7 @@ function rebuildPlaylistSongsList({ listEl, tracksToShow, currentTrackId, isEdit
   tracksToShow.forEach((plTrack, idx) => {
     const track =
       allTracks.find(t =>
-        (t.file?.webkitRelativePath && t.file.webkitRelativePath === plTrack.relativePath) ||
+        (t.file?.webkitRelativePath && normPath(t.file.webkitRelativePath) === normPath(plTrack.relativePath)) ||
         (t.file?.name === plTrack.fileName && t.album === plTrack.album && t.artist === plTrack.artist) ||
         (t.title === plTrack.title && t.artist === plTrack.artist && t.album === plTrack.album)
       ) || plTrack;
@@ -493,7 +494,7 @@ function playPlaylistTrack(playlist, idx) {
   const trackData = playlist.tracks[idx];
 
   const match = allTracks.find(t =>
-    (t.file?.webkitRelativePath && t.file.webkitRelativePath === trackData.relativePath) ||
+    (t.file?.webkitRelativePath && normPath(t.file.webkitRelativePath) === normPath(trackData.relativePath)) ||
     (t.file?.name === trackData.fileName &&
      t.album === trackData.album &&
      t.artist === trackData.artist) ||
@@ -550,7 +551,7 @@ function addTrackToPlaylist(track, pl) {
     fileName: track.file?.name || track.fileName,
     album: track.album,
     artist: track.artist,
-    relativePath: track.file?.webkitRelativePath || track.relativePath || '',
+    relativePath: normPath(track.file?.webkitRelativePath || track.relativePath || ''),
     title: track.title
   });
   return true;
