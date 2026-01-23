@@ -465,7 +465,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
         <br>        
-        Version: <b>2.9.0</b><br>
+        Version: <b>2.9.1</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -710,11 +710,14 @@ function applyBackup(data) {
   // Refresh in-memory state
   app.state.playlists = clean.playlists || [];
   window.userHabits = clean.userHabits || {};
-  app.state.smartMixActive = false;
-  app.state.smartMixQueue = null;
-  app.state.currentTrack = null;
+  if (typeof userHabits !== 'undefined') userHabits = window.userHabits;
 
-  // Reapply theme/colour/EQ
+  // Remap habits to loaded tracks (fix likes/dislikes visibility)
+  if (app.state.tracks && app.state.tracks.length && typeof migrateHabitsToStableIds === 'function') {
+    migrateHabitsToStableIds(app.state.tracks);
+  }
+
+  // Reapply theme/colour/EQ (themes will use restored unlockedThemes)
   const theme = localStorage.getItem('themeName') || 'default';
   applyTheme(theme);
   setEQPreset(localStorage.getItem('eqPreset') || 'Flat');
@@ -723,6 +726,7 @@ function applyBackup(data) {
   app.state.navStack = [];
   renderMainMenu('forward');
   app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
+  if (typeof ensureCurrentWeekFlags === 'function') ensureCurrentWeekFlags();
   if (typeof showHotBarMessage === 'function') showHotBarMessage('Backup restored', 1800);
 }
 
@@ -742,7 +746,7 @@ function importBackup(file) {
 
 function exportBackup() {
   const data = {
-    version: '2.9.0',
+    version: '2.9.1',
     timestamp: Date.now(),
     playlists: app.state.playlists || [],
     userHabits: JSON.parse(localStorage.getItem('userHabits') || '{}'),
