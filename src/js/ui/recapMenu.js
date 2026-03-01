@@ -144,7 +144,7 @@ function maybeResetWeeklyStats() {
   const now = new Date();
   const lastReset = getLastStatsReset();
   const isMonday = now.getDay() === 1;
-  const isEightAM = now.getHours() >= 8;
+  const isEightAM = now.getHours() >= 7;
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 1, 8, 0, 0, 0).getTime();
 
   if (now.getTime() >= weekStart && lastReset < weekStart) {
