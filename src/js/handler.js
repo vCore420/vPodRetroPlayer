@@ -6,35 +6,101 @@ function updateLoadingCounter(loaded, total) {
 }
 
 function migrateHabitsToStableIds(tracks = []) {
-  const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
+  let habits;
+  try {
+    habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
+  } catch (error) {
+    console.warn('Failed to parse userHabits during migration', error);
+    habits = {};
+  }
+
   if (!tracks.length || !Object.keys(habits).length) return;
 
-  // Build lookup maps for robust matching
   const norm = (s) => (s || '').toString().trim().toLowerCase();
   const stripExt = (s) => norm(s).replace(/\.(mp3|flac)$/i, '');
 
-  const byTriple = new Map();      // title|artist|album (normalized, ext stripped)
-  const byFileTriple = new Map();  // fileName|artist|album (normalized, ext stripped)
-  const byFileOnly = new Map();    // fileName (normalized, ext stripped) when unique
+  const normalizeHabit = (habit = {}) => {
+    if (typeof syncHabitShape === 'function') {
+      return syncHabitShape(habit);
+    }
 
-  tracks.forEach(t => {
-    const titleK = stripExt(t.title || t.fileName || '');
-    const artistK = norm(t.artist || 'unknown_artist');
-    const albumK = norm(t.album || 'unknown_album');
-    const fileK = stripExt((t.file && t.file.name) || t.fileName || '');
+    return {
+      lifetimePlays: Number(habit.lifetimePlays || 0),
+      lifetimeSkips: Number(habit.lifetimeSkips || 0),
+      likeCount: Number(habit.likeCount || habit.lifetimeLikes || 0),
+      dislikeCount: Number(habit.dislikeCount || habit.lifetimeDislikes || 0),
 
-    const tripleKey = `${titleK}|${artistK}|${albumK}`;
-    const fileTripleKey = `${fileK}|${artistK}|${albumK}`;
+      weeklyPlays: Number(habit.weeklyPlays ?? habit.plays ?? 0),
+      weeklySkips: Number(habit.weeklySkips ?? habit.skips ?? 0),
+      weeklyLikes: Number(habit.weeklyLikes || 0),
+      weeklyDislikes: Number(habit.weeklyDislikes || 0),
 
-    if (!byTriple.has(tripleKey)) byTriple.set(tripleKey, t);
-    if (fileK && !byFileTriple.has(fileTripleKey)) byFileTriple.set(fileTripleKey, t);
+      likedThisWeek: Boolean(habit.likedThisWeek ?? habit.liked ?? false),
+      dislikedThisWeek: Boolean(habit.dislikedThisWeek ?? habit.disliked ?? false),
 
-    if (fileK) {
-      if (!byFileOnly.has(fileK)) {
-        byFileOnly.set(fileK, t);
+      lastPlayedAt: Number(habit.lastPlayedAt ?? habit.lastPlayed ?? 0),
+      lastLikedAt: Number(habit.lastLikedAt ?? habit.lastLiked ?? 0),
+      lastDislikedAt: Number(habit.lastDislikedAt ?? habit.lastDisliked ?? 0),
+
+      plays: Number(habit.weeklyPlays ?? habit.plays ?? 0),
+      skips: Number(habit.weeklySkips ?? habit.skips ?? 0),
+      liked: Boolean(habit.likedThisWeek ?? habit.liked ?? false),
+      disliked: Boolean(habit.dislikedThisWeek ?? habit.disliked ?? false),
+      lastPlayed: Number(habit.lastPlayedAt ?? habit.lastPlayed ?? 0),
+      lastLiked: Number(habit.lastLikedAt ?? habit.lastLiked ?? 0),
+      lastDisliked: Number(habit.lastDislikedAt ?? habit.lastDisliked ?? 0),
+      lifetimeLikes: Number(habit.likeCount || habit.lifetimeLikes || 0),
+      lifetimeDislikes: Number(habit.dislikeCount || habit.lifetimeDislikes || 0)
+    };
+  };
+
+  const mergeHabits = (targetHabit, sourceHabit) => {
+    const target = normalizeHabit(targetHabit);
+    const source = normalizeHabit(sourceHabit);
+
+    const merged = normalizeHabit({
+      lifetimePlays: target.lifetimePlays + source.lifetimePlays,
+      lifetimeSkips: target.lifetimeSkips + source.lifetimeSkips,
+      likeCount: target.likeCount + source.likeCount,
+      dislikeCount: target.dislikeCount + source.dislikeCount,
+
+      weeklyPlays: target.weeklyPlays + source.weeklyPlays,
+      weeklySkips: target.weeklySkips + source.weeklySkips,
+      weeklyLikes: target.weeklyLikes + source.weeklyLikes,
+      weeklyDislikes: target.weeklyDislikes + source.weeklyDislikes,
+
+      likedThisWeek: target.likedThisWeek || source.likedThisWeek,
+      dislikedThisWeek: target.dislikedThisWeek || source.dislikedThisWeek,
+
+      lastPlayedAt: Math.max(target.lastPlayedAt || 0, source.lastPlayedAt || 0),
+      lastLikedAt: Math.max(target.lastLikedAt || 0, source.lastLikedAt || 0),
+      lastDislikedAt: Math.max(target.lastDislikedAt || 0, source.lastDislikedAt || 0)
+    });
+
+    return merged;
+  };
+
+  const byTriple = new Map();
+  const byFileTriple = new Map();
+  const byFileOnly = new Map();
+
+  tracks.forEach(track => {
+    const titleKey = stripExt(track.title || track.fileName || '');
+    const artistKey = norm(track.artist || 'unknown_artist');
+    const albumKey = norm(track.album || 'unknown_album');
+    const fileKey = stripExt((track.file && track.file.name) || track.fileName || '');
+
+    const tripleKey = `${titleKey}|${artistKey}|${albumKey}`;
+    const fileTripleKey = `${fileKey}|${artistKey}|${albumKey}`;
+
+    if (!byTriple.has(tripleKey)) byTriple.set(tripleKey, track);
+    if (fileKey && !byFileTriple.has(fileTripleKey)) byFileTriple.set(fileTripleKey, track);
+
+    if (fileKey) {
+      if (!byFileOnly.has(fileKey)) {
+        byFileOnly.set(fileKey, track);
       } else {
-        // not unique, mark as ambiguous
-        byFileOnly.set(fileK, null);
+        byFileOnly.set(fileKey, null);
       }
     }
   });
@@ -43,9 +109,11 @@ function migrateHabitsToStableIds(tracks = []) {
   let skipped = 0;
 
   Object.keys(habits).forEach(oldId => {
-    // If already a new stable ID that matches a loaded track, keep it
-    const existingTrack = tracks.find(t => getTrackId(t) === oldId);
-    if (existingTrack) return;
+    const existingTrack = tracks.find(track => getTrackId(track) === oldId);
+    if (existingTrack) {
+      habits[oldId] = normalizeHabit(habits[oldId]);
+      return;
+    }
 
     const parts = oldId.split('|');
     const titlePart = stripExt(parts[0] || '');
@@ -54,13 +122,11 @@ function migrateHabitsToStableIds(tracks = []) {
 
     let target = null;
 
-    // 1) exact title/artist/album match (normalized)
     const tripleKey = `${titlePart}|${artistPart}|${albumPart}`;
     if (byTriple.has(tripleKey)) {
       target = byTriple.get(tripleKey);
     }
 
-    // 2) fileName/artist/album match
     if (!target) {
       const fileTripleKey = `${titlePart}|${artistPart}|${albumPart}`;
       if (byFileTriple.has(fileTripleKey)) {
@@ -68,39 +134,43 @@ function migrateHabitsToStableIds(tracks = []) {
       }
     }
 
-    // 3) unique filename-only match
     if (!target && byFileOnly.has(titlePart) && byFileOnly.get(titlePart)) {
       target = byFileOnly.get(titlePart);
     }
 
-    if (target) {
-      const newId = getTrackId(target);
-      if (!habits[newId]) {
-        habits[newId] = habits[oldId];
-        moved++;
-      } else {
-        // merge counts if both exist
-        const hOld = habits[oldId];
-        const hNew = habits[newId];
-        hNew.plays = (hNew.plays || 0) + (hOld.plays || 0);
-        hNew.skips = (hNew.skips || 0) + (hOld.skips || 0);
-        hNew.likeCount = (hNew.likeCount || 0) + (hOld.likeCount || 0);
-        hNew.dislikeCount = (hNew.dislikeCount || 0) + (hOld.dislikeCount || 0);
-        hNew.weeklyLikes = (hNew.weeklyLikes || 0) + (hOld.weeklyLikes || 0);
-        hNew.weeklyDislikes = (hNew.weeklyDislikes || 0) + (hOld.weeklyDislikes || 0);
-        if (hOld.lastLiked) {
-          hNew.lastLiked = Math.max(hNew.lastLiked || 0, hOld.lastLiked);
-        }
-        moved++;
-      }
-      delete habits[oldId];
-    } else {
+    if (!target) {
       skipped++;
+      return;
+    }
+
+    const newId = getTrackId(target);
+    const oldHabit = normalizeHabit(habits[oldId]);
+
+    if (!habits[newId]) {
+      habits[newId] = oldHabit;
+      moved++;
+    } else if (newId !== oldId) {
+      habits[newId] = mergeHabits(habits[newId], oldHabit);
+      moved++;
+    }
+
+    if (newId !== oldId) {
+      delete habits[oldId];
     }
   });
 
+  Object.keys(habits).forEach(id => {
+    habits[id] = normalizeHabit(habits[id]);
+  });
+
   localStorage.setItem('userHabits', JSON.stringify(habits));
-  if (typeof userHabits !== 'undefined') userHabits = habits; // refresh in-memory
+
+  if (typeof loadUserHabits === 'function') {
+    loadUserHabits();
+  } else {
+    window.userHabits = habits;
+    if (typeof userHabits !== 'undefined') userHabits = habits;
+  }
 
   if (moved > 0) {
     console.log(`Migrated ${moved} habit entries to stable IDs${skipped ? `; ${skipped} skipped` : ''}`);

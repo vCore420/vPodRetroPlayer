@@ -32,18 +32,121 @@ function resolveTrackFile(track) {
   if (track?.file instanceof Blob) return track.file;
   const id = track ? getTrackId(track) : null;
   if (!id) return null;
-  // look up the same track in the loaded library
+
   const match = (app.state.tracks || []).find(
     t => getTrackId(t) === id && t.file instanceof Blob
   );
   return match ? match.file : null;
 }
 
+let pendingPlaybackRetry = null;
+
+async function ensureAudioPipelineReady() {
+  if (typeof audioCtx === 'undefined') return true;
+
+  if (audioCtx.state === 'suspended') {
+    try {
+      await audioCtx.resume();
+    } catch (error) {
+      console.warn('AudioContext resume failed', error);
+      return false;
+    }
+  }
+
+  return audioCtx.state === 'running';
+}
+
+async function attemptTrackPlayback(track) {
+  const pipelineReady = await ensureAudioPipelineReady();
+  if (!pipelineReady) {
+    pendingPlaybackRetry = track;
+    return false;
+  }
+
+  try {
+    const playResult = audioPlayer.play();
+    if (playResult && typeof playResult.then === 'function') {
+      await playResult;
+    }
+    pendingPlaybackRetry = null;
+    return true;
+  } catch (error) {
+    console.warn('audioPlayer.play() failed', error);
+    pendingPlaybackRetry = track;
+    return false;
+  }
+}
+
+async function retryPendingPlayback() {
+  const pendingTrack = pendingPlaybackRetry;
+  if (!pendingTrack || !app.state.currentTrack) return;
+  if (getTrackId(pendingTrack) !== getTrackId(app.state.currentTrack)) return;
+
+  await attemptTrackPlayback(pendingTrack);
+}
+
+window.ensureAudioPipelineReady = ensureAudioPipelineReady;
+window.retryPendingPlayback = retryPendingPlayback;
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    retryPendingPlayback();
+  }
+});
+
+window.addEventListener('pageshow', () => {
+  retryPendingPlayback();
+});
+
+window.addEventListener('focus', () => {
+  retryPendingPlayback();
+});
+
+function getNextQueuedTrack() {
+  const state = app.state;
+
+  if (state.smartMixActive) {
+    ensureSmartMixBuffer(10);
+    const queue = state.smartMixQueue || state.currentAlbumSongs || [];
+    const nextIdx = state.currentSongIndex + 1;
+
+    if (nextIdx < queue.length) {
+      return {
+        track: queue[nextIdx],
+        queue,
+        opts: { smartMix: true }
+      };
+    }
+
+    state.smartMixActive = false;
+    state.smartMixQueue = null;
+    state.smartMixHistory = null;
+    return null;
+  }
+
+  const queue = state.currentAlbumSongs || [];
+  const nextIdx = state.currentSongIndex + 1;
+
+  if (
+    queue.length &&
+    state.currentSongIndex >= 0 &&
+    nextIdx < queue.length
+  ) {
+    return {
+      track: queue[nextIdx],
+      queue,
+      opts: {}
+    };
+  }
+
+  return null;
+}
+
 // Function to play a track from an album
-function playTrackFromAlbum(track, albumSongs, opts = {}) {
+async function playTrackFromAlbum(track, albumSongs, opts = {}) {
   const isSmartMix = !!opts.smartMix;
+
   if (app.state.smartMixActive && !isSmartMix) {
-    // leaving smart mix
     app.state.smartMixActive = false;
     app.state.smartMixQueue = null;
     app.state.smartMixHistory = null;
@@ -61,24 +164,21 @@ function playTrackFromAlbum(track, albumSongs, opts = {}) {
   const incomingQueue = albumSongs || [track];
   const sameQueue = state.currentAlbumSongs && queuesEqual(state.currentAlbumSongs, incomingQueue);
 
-  // Reset shuffle only when the queue actually changes
   if (!sameQueue) {
     state.isShuffleOn = false;
     state.originalAlbumSongs = null;
     state.originalSongIndex = -1;
   }
 
-  // Resolve backing File/Blob (guards missing files)
   const file = resolveTrackFile(track);
   if (!file) {
-    console.warn("No file found for track", track);
+    console.warn('No file found for track', track);
     if (typeof showHotBarMessage === 'function') {
-      showHotBarMessage("Track file not available", 2200);
+      showHotBarMessage('Track file not available', 2200);
     }
-    return;
+    return false;
   }
 
-  // Update state
   state.currentAlbumSongs = incomingQueue;
   const trackId = getTrackId(track);
   state.currentSongIndex = state.currentAlbumSongs.findIndex(t => getTrackId(t) === trackId);
@@ -87,7 +187,6 @@ function playTrackFromAlbum(track, albumSongs, opts = {}) {
   state.currentMenuIndex = state.currentSongIndex;
   state.halfPlayedMark = null;
 
-  // Show hot bar message
   if (typeof showHotBarMessage === 'function' && track) {
     const artist = track.artist || '';
     const title = track.title || 'Unknown Track';
@@ -95,61 +194,46 @@ function playTrackFromAlbum(track, albumSongs, opts = {}) {
     showHotBarMessage(label, 2500);
   }
 
-  // Track play for suggestions
   if (window.logTrackPlay) window.logTrackPlay(track);
 
-  // Revoke previous Object URL (if any), then create a fresh one
+  await ensureAudioPipelineReady();
+
   if (currentAudioObjectUrl) {
     URL.revokeObjectURL(currentAudioObjectUrl);
     currentAudioObjectUrl = null;
   }
-  
-  // Play the track
+
   const url = URL.createObjectURL(file);
   currentAudioObjectUrl = url;
   audioPlayer.src = url;
-  audioPlayer.play();
+  audioPlayer.load();
+
+  const started = await attemptTrackPlayback(track);
+  if (!started && typeof showHotBarMessage === 'function') {
+    showHotBarMessage('Playback paused by browser. Reopen app to resume.', 2600);
+  }
+
   setScrollingSong(state.currentMenuIndex);
 
-  // Update Media Session metadata
   if (window.updateMediaSessionMetadata) window.updateMediaSessionMetadata();
 
-  // Re-render Now Playing screen if active
   const activeScreen = document.querySelector('.screen-content.screen-active');
   if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
     renderNowPlayingScreen();
-    console.log("Re-rendering Now Playing screen for new track:", track.title);
+    console.log('Re-rendering Now Playing screen for new track:', track.title);
   }
+
+  return started;
 }
 
-// Clear and revoke the current audio URL
-function clearCurrentAudioUrl() {
-  if (currentAudioObjectUrl) {
-    URL.revokeObjectURL(currentAudioObjectUrl);
-    currentAudioObjectUrl = null;
-  }
-  audioPlayer.src = '';
-}
-
-window.clearCurrentAudioUrl = clearCurrentAudioUrl;
-
-function formatTime(sec) {
-  sec = Math.floor(sec);
-  const min = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${min}:${s.toString().padStart(2, '0')}`;
-}
-
-// Play, Pause, Ended interactions 
 audioPlayer.addEventListener('play', () => {
   const icon = playPauseBtn.querySelector('i');
   const ps = document.getElementById('hotBarPlayState');
 
-  if (icon) icon.className = "fa-solid fa-pause";
+  if (icon) icon.className = 'fa-solid fa-pause';
   if (ps) ps.innerHTML = '<i class="fa-solid fa-play"></i>';
 
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-
+  ensureAudioPipelineReady();
   updateMediaSessionMetadata();
   updateNowPlayingProgress();
 });
@@ -158,7 +242,7 @@ audioPlayer.addEventListener('pause', () => {
   const icon = playPauseBtn.querySelector('i');
   const ps = document.getElementById('hotBarPlayState');
 
-  if (icon) icon.className = "fa-solid fa-play";
+  if (icon) icon.className = 'fa-solid fa-play';
   if (ps) {
     ps.innerHTML = audioPlayer.currentTime > 0
       ? '<i class="fa-solid fa-pause"></i>'
@@ -168,37 +252,26 @@ audioPlayer.addEventListener('pause', () => {
   updateNowPlayingProgress();
 });
 
-audioPlayer.addEventListener('ended', () => {
-  const state = app.state;
-  if (state.smartMixActive) {
-    ensureSmartMixBuffer(10);
-    const nextIdx = state.currentSongIndex + 1;
-    const q = state.smartMixQueue || state.currentAlbumSongs || [];
-    if (nextIdx < q.length) {
-      playTrackFromAlbum(q[nextIdx], q, { smartMix: true });
-    } else {
-      // no more candidates
-      state.smartMixActive = false;
-      state.smartMixQueue = null;
-      state.smartMixHistory = null;
+audioPlayer.addEventListener('ended', async () => {
+  const next = getNextQueuedTrack();
+
+  if (next) {
+    const started = await playTrackFromAlbum(next.track, next.queue, next.opts);
+
+    if (!started) {
+      console.warn('Auto-advance failed to start next track');
     }
     return;
   }
 
-  if (
-    state.currentAlbumSongs.length &&
-    state.currentSongIndex >= 0 &&
-    state.currentSongIndex < state.currentAlbumSongs.length - 1
-  ) {
-    playTrackFromAlbum(state.currentAlbumSongs[state.currentSongIndex + 1], state.currentAlbumSongs);
-  } else {
-    const icon = playPauseBtn.querySelector('i');
-    if (icon) icon.className = "fa-solid fa-play";
-    state.currentTrack = null;
-    state.currentSongIndex = -1;
-    const ps = document.getElementById('hotBarPlayState');
-    if (ps) ps.innerHTML = '';
-  }
+  const icon = playPauseBtn.querySelector('i');
+  if (icon) icon.className = 'fa-solid fa-play';
+
+  app.state.currentTrack = null;
+  app.state.currentSongIndex = -1;
+
+  const ps = document.getElementById('hotBarPlayState');
+  if (ps) ps.innerHTML = '';
 });
 
 // --- AUDIO CONTEXT & EQ SETUP ---

@@ -1,13 +1,49 @@
 // --- NOW PLAYING ---
 
+function getNowPlayingHabit(track) {
+  if (!track) return syncHabitShape({});
+  if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
+  if (typeof ensureCurrentWeekFlags === 'function') ensureCurrentWeekFlags();
+
+  const habits = typeof loadUserHabits === 'function'
+    ? loadUserHabits()
+    : (window.userHabits || {});
+  const trackId = getTrackId(track);
+  return syncHabitShape(habits[trackId] || {});
+}
+
+function updateNowPlayingRatingUi(track) {
+  const likeLabel = document.getElementById('likeCountLabel');
+  const dislikeLabel = document.getElementById('dislikeCountLabel');
+  const habit = getNowPlayingHabit(track);
+
+  const likeCount = Number(habit.likeCount || 0);
+  const dislikeCount = Number(habit.dislikeCount || 0);
+  const weeklyLikes = Number(habit.weeklyLikes || 0);
+  const weeklyDislikes = Number(habit.weeklyDislikes || 0);
+
+  if (likeLabel) {
+    likeLabel.textContent = String(likeCount);
+    likeLabel.className = likeCount > 0
+      ? (weeklyLikes > 0 ? 'rating-count rating-like rating-like-weekly' : 'rating-count rating-like')
+      : 'rating-count';
+  }
+
+  if (dislikeLabel) {
+    dislikeLabel.textContent = String(dislikeCount);
+    dislikeLabel.className = dislikeCount > 0
+      ? (weeklyDislikes > 0 ? 'rating-count rating-dislike rating-dislike-weekly' : 'rating-count rating-dislike')
+      : 'rating-count';
+  }
+}
+
 function attachNowPlayingButtonListeners() {
   if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
   if (typeof ensureCurrentWeekFlags === 'function') ensureCurrentWeekFlags();
+
   const likeBtn = document.getElementById('likeBtn');
   const dislikeBtn = document.getElementById('dislikeBtn');
   const shuffleBtn = document.getElementById('shuffleBtn');
-  const likeLabel = document.getElementById('likeCountLabel');
-  const dislikeLabel = document.getElementById('dislikeCountLabel');
   const resetBtn = document.getElementById('resetTrackRatingsBtn');
   const queueBtn = document.getElementById('queueBtn');
   const addBtn = document.getElementById('addToPlaylistBtn');
@@ -17,34 +53,8 @@ function attachNowPlayingButtonListeners() {
       const track = app.state.currentTrack;
       if (!track) return;
 
-      // 1) Persist stats first (updates weeklyLikes + likeCount)
       if (window.setTrackRating) window.setTrackRating(track, 'like');
-
-      // 2) Re-read habits from storage
-      const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-      const trackId = getTrackId(track);
-      const habit = habits[trackId] || {};
-      const likeCount = habit.likeCount || 0;
-      const weeklyLikes = habit.weeklyLikes || 0;
-
-      // 3) Update label text + classes based on latest data
-      if (likeLabel) {
-        likeLabel.textContent = String(likeCount);
-
-        likeLabel.classList.add('rating-count');
-
-        if (likeCount > 0) {
-          likeLabel.classList.add('rating-like');
-        } else {
-          likeLabel.classList.remove('rating-like');
-        }
-
-        if (weeklyLikes > 0) {
-          likeLabel.classList.add('rating-like-weekly');
-        } else {
-          likeLabel.classList.remove('rating-like-weekly');
-        }
-      }
+      updateNowPlayingRatingUi(track);
 
       const originalColor = likeBtn.style.color || '#888';
       likeBtn.style.color = '#0074d9';
@@ -53,40 +63,14 @@ function attachNowPlayingButtonListeners() {
       }, 200);
     };
   }
-  
+
   if (dislikeBtn) {
     dislikeBtn.onclick = () => {
       const track = app.state.currentTrack;
       if (!track) return;
 
-      // 1) Persist stats first (updates weeklyDislikes + dislikeCount)
       if (window.setTrackRating) window.setTrackRating(track, 'dislike');
-
-      // 2) Re-read habits from storage
-      const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-      const trackId = getTrackId(track);
-      const habit = habits[trackId] || {};
-      const dislikeCount = habit.dislikeCount || 0;
-      const weeklyDislikes = habit.weeklyDislikes || 0;
-
-      // 3) Update label text + classes based on latest data
-      if (dislikeLabel) {
-        dislikeLabel.textContent = String(dislikeCount);
-
-        dislikeLabel.classList.add('rating-count');
-
-        if (dislikeCount > 0) {
-          dislikeLabel.classList.add('rating-dislike');
-        } else {
-          dislikeLabel.classList.remove('rating-dislike');
-        }
-
-        if (weeklyDislikes > 0) {
-          dislikeLabel.classList.add('rating-dislike-weekly');
-        } else {
-          dislikeLabel.classList.remove('rating-dislike-weekly');
-        }
-      }
+      updateNowPlayingRatingUi(track);
 
       const originalColor = dislikeBtn.style.color || '#888';
       dislikeBtn.style.color = '#d90429';
@@ -102,32 +86,13 @@ function attachNowPlayingButtonListeners() {
       if (!track) return;
 
       const ok = window.confirm(
-        `Reset likes and dislikes for:\n\n"${track.title}" by ${track.artist || 'Unknown Artist'}?`
+        `Reset all stats for this song:\n\n"${track.title}" by ${track.artist || 'Unknown Artist'}?\n\nThis clears plays, skips, likes, dislikes, and weekly data for this track only.`
       );
       if (!ok) return;
 
       if (window.resetTrackRatings) window.resetTrackRatings(track);
+      updateNowPlayingRatingUi(track);
 
-      // Re-read habits and update UI to empty state
-      const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-      const trackId = getTrackId(track);
-      const habit = habits[trackId] || {};
-      const likeCount = habit.likeCount || 0;
-      const dislikeCount = habit.dislikeCount || 0;
-      const weeklyLikes = habit.weeklyLikes || 0;
-      const weeklyDislikes = habit.weeklyDislikes || 0;
-
-      if (likeLabel) {
-        likeLabel.textContent = String(likeCount);
-        likeLabel.classList.add('rating-count');
-        likeLabel.classList.remove('rating-like', 'rating-like-weekly');
-      }
-      if (dislikeLabel) {
-        dislikeLabel.textContent = String(dislikeCount);
-        dislikeLabel.classList.add('rating-count');
-        dislikeLabel.classList.remove('rating-dislike', 'rating-dislike-weekly');
-      }
-      
       resetBtn.style.color = '#0074d9';
       setTimeout(() => {
         resetBtn.style.color = '#b0b0b0';
@@ -173,8 +138,8 @@ function attachNowPlayingButtonListeners() {
       if (!wrap || !canvas) return;
       const on = wrap.style.display === 'none';
       wrap.style.display = on ? 'block' : 'none';
-       vizBtn.style.color = on ? '#0074d9' : '#888';
-       if (on) startNowPlayingViz(canvas); else stopNowPlayingViz();
+      vizBtn.style.color = on ? '#0074d9' : '#888';
+      if (on) startNowPlayingViz(canvas); else stopNowPlayingViz();
     };
   }
 }
@@ -184,32 +149,30 @@ window.attachNowPlayingButtonListeners = attachNowPlayingButtonListeners;
 function renderNowPlayingScreen(direction = 'forward') {
   if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
   if (typeof ensureCurrentWeekFlags === 'function') ensureCurrentWeekFlags();
-  const track = app.state.currentTrack;
-  const habits = JSON.parse(localStorage.getItem('userHabits') || '{}');
-  const trackId = track ? getTrackId(track) : '';
-  const habit = track ? habits[trackId] || {} : {};
 
-  const likeCount = habit.likeCount || 0;
-  const dislikeCount = habit.dislikeCount || 0;
-  const weeklyLikes = habit.weeklyLikes || 0;
-  const weeklyDislikes = habit.weeklyDislikes || 0;
+  const track = app.state.currentTrack;
+  const habit = getNowPlayingHabit(track);
+
+  const likeCount = Number(habit.likeCount || 0);
+  const dislikeCount = Number(habit.dislikeCount || 0);
+  const weeklyLikes = Number(habit.weeklyLikes || 0);
+  const weeklyDislikes = Number(habit.weeklyDislikes || 0);
 
   const likeClass =
     likeCount > 0
-      ? (weeklyLikes > 0 ? 'rating-count rating-like rating-like-weekly'
-                         : 'rating-count rating-like')
+      ? (weeklyLikes > 0 ? 'rating-count rating-like rating-like-weekly' : 'rating-count rating-like')
       : 'rating-count';
+
   const dislikeClass =
     dislikeCount > 0
-      ? (weeklyDislikes > 0 ? 'rating-count rating-dislike rating-dislike-weekly'
-                            : 'rating-count rating-dislike')
+      ? (weeklyDislikes > 0 ? 'rating-count rating-dislike rating-dislike-weekly' : 'rating-count rating-dislike')
       : 'rating-count';
 
   renderScreen(
     `<div class="nowplaying-container">
       <div id="resetTrackRatings" style="display:flex;align-items:center;justify-content:space-between;margin:0 12px 0 0;">
         <span></span>
-        <button id="resetTrackRatingsBtn" title="Reset likes/dislikes for this song"
+        <button id="resetTrackRatingsBtn" title="Reset all stats for this song"
           style="background:none;border:none;color:#b0b0b0;font-size:1.1em;cursor:pointer;padding:2px 0;">
           <i class="fa-solid fa-rotate-right"></i>
         </button>
@@ -265,8 +228,9 @@ function renderNowPlayingScreen(direction = 'forward') {
         </div>
         <span id="nowplayingRemaining">0:00</span>
       </div>
-    </div>
-  `, direction);
+    </div>`,
+    direction
+  );
 
   updateHotBarTime();
   updateNowPlayingProgress();

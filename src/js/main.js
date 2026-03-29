@@ -79,40 +79,62 @@ if ('mediaSession' in navigator) {
   }
   window.updateMediaSessionMetadata = updateMediaSessionMetadata;
 
-  navigator.mediaSession.setActionHandler('play', () => {
-    audioPlayer.play();
+  navigator.mediaSession.setActionHandler('play', async () => {
+    try {
+      if (typeof retryPendingPlayback === 'function') {
+        await retryPendingPlayback();
+        if (!audioPlayer.paused) return;
+      }
+
+      if (typeof ensureAudioPipelineReady === 'function') {
+        const ready = await ensureAudioPipelineReady();
+        if (!ready) return;
+      }
+
+      const playResult = audioPlayer.play();
+      if (playResult && typeof playResult.then === 'function') {
+        await playResult;
+      }
+    } catch (error) {
+      console.warn('MediaSession play failed', error);
+    }
   });
 
   navigator.mediaSession.setActionHandler('pause', () => {
     audioPlayer.pause();
   });
 
-  navigator.mediaSession.setActionHandler('previoustrack', () => {
-    const songs = app.state.currentAlbumSongs;
-    let idx = app.state.currentSongIndex;
+  navigator.mediaSession.setActionHandler('previoustrack', async () => {
+    const songs = app.state.currentAlbumSongs || [];
+    const idx = app.state.currentSongIndex;
     const track = app.state.currentTrack;
+
     if (songs.length && idx > 0) {
       if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
         window.logTrackSkip(track);
       }
-      playTrackFromAlbum(songs[idx - 1], songs, { smartMix: app.state.smartMixActive });
+      await playTrackFromAlbum(songs[idx - 1], songs, { smartMix: app.state.smartMixActive });
     }
   });
 
-  navigator.mediaSession.setActionHandler('nexttrack', () => {
-    const songs = app.state.currentAlbumSongs;
-    let idx = app.state.currentSongIndex;
+  navigator.mediaSession.setActionHandler('nexttrack', async () => {
+    const songs = app.state.currentAlbumSongs || [];
+    const idx = app.state.currentSongIndex;
     const track = app.state.currentTrack;
+
     if (songs.length && idx < songs.length - 1) {
       if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
         window.logTrackSkip(track);
       }
-      playTrackFromAlbum(songs[idx + 1], songs, { smartMix: app.state.smartMixActive });
-    } else if (app.state.smartMixActive) {
+      await playTrackFromAlbum(songs[idx + 1], songs, { smartMix: app.state.smartMixActive });
+      return;
+    }
+
+    if (app.state.smartMixActive) {
       ensureSmartMixBuffer(10);
-      const q = app.state.smartMixQueue || songs;
-      if (idx < q.length - 1) {
-        playTrackFromAlbum(q[idx + 1], q, { smartMix: true });
+      const queue = app.state.smartMixQueue || songs;
+      if (idx < queue.length - 1) {
+        await playTrackFromAlbum(queue[idx + 1], queue, { smartMix: true });
       }
     }
   });
@@ -128,17 +150,55 @@ if ('mediaSession' in navigator) {
 
 // -- Service Worker --
 
+let hasShownUpdateNotification = false;
+
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js').then(reg => {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      showUpdateNotification();
-    });
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('service-worker.js');
+
+      const notifyUpdate = () => {
+        if (hasShownUpdateNotification) return;
+        hasShownUpdateNotification = true;
+        showUpdateNotification();
+      };
+
+      if (reg.waiting) {
+        notifyUpdate();
+      }
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+
+        newWorker.addEventListener('statechange', () => {
+          if (
+            newWorker.state === 'installed' &&
+            navigator.serviceWorker.controller
+          ) {
+            notifyUpdate();
+          }
+        });
+      });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hasShownUpdateNotification) return;
+        hasShownUpdateNotification = true;
+        window.location.reload();
+      });
+    } catch (error) {
+      console.warn('Service worker registration failed', error);
+    }
   });
-} 
+}
 
 function showUpdateNotification() {
+  const existing = document.getElementById('updateNotification');
+  if (existing) return;
+
   const notif = document.createElement('div');
-  notif.textContent = "vMusic updated! Refresh for latest features.";
+  notif.id = 'updateNotification';
+  notif.textContent = 'vMusic updated! Refreshing...';
   notif.style = `
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
     background:#0074d9;color:#fff;padding:12px 28px;border-radius:18px;
@@ -146,6 +206,6 @@ function showUpdateNotification() {
     transition:opacity 0.4s;
   `;
   document.body.appendChild(notif);
-  setTimeout(() => notif.style.opacity = "0", 3500);
-  setTimeout(() => notif.remove(), 4000);
+  setTimeout(() => notif.style.opacity = '0', 1200);
+  setTimeout(() => notif.remove(), 1600);
 }

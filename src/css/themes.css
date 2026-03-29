@@ -413,6 +413,216 @@ body[data-theme="zenrunner"] .vpod-disk-center { background: linear-gradient(150
 body[data-theme="zenrunner"] .menu-list li.active,
 body[data-theme="zenrunner"] .menu-list-song.active { background: rgba(79,241,196,0.20); }
 
+/* Porcelain Signal (warm porcelain shell, charcoal screen, signal-red center) */
+body[data-theme="gridglow"] .vpod-container {
+  background: linear-gradient(150deg,#f6f0e6 0%,#ddd4c5 58%,#ff6b4a 100%);
+  border: 3px solid #b8aa95;
+  box-shadow: 0 12px 30px rgba(64,38,24,0.22), inset 0 1px 0 rgba(255,255,255,0.55);
+}
+body[data-theme="gridglow"] .vpod-screen {
+  background:
+    linear-gradient(rgba(255,107,74,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,107,74,0.06) 1px, transparent 1px),
+    linear-gradient(180deg,#221d1a 0%,#151210 100%);
+  background-size: 12px 12px, 12px 12px, auto;
+  border-color:#ff6b4a;
+  color:#f6efe7;
+}
+body[data-theme="gridglow"] .vpod-disk {
+  background: radial-gradient(circle at 58% 38%,#fffdf8 60%,#e8dfd0 100%);
+  border-color:#b49a79;
+  box-shadow: 0 0 12px rgba(64,38,24,0.16);
+}
+body[data-theme="gridglow"] .vpod-disk-btn {
+  color:#6a5648;
+}
+body[data-theme="gridglow"] .vpod-disk-center {
+  background: linear-gradient(150deg,#f56c4a 0%,#ca4d30 85%);
+  color:#fff7f1;
+}
+body[data-theme="gridglow"] .menu-list li.active,
+body[data-theme="gridglow"] .menu-list-song.active {
+  background: rgba(255,107,74,0.20);
+  color:#fff5ef;
+}
+
+/* Hazard Run (industrial black/yellow shell, steel screen, warning accents) */
+body[data-theme="hyperlane"] .vpod-container {
+  background:
+    repeating-linear-gradient(135deg,#171717 0 18px,#171717 18px,#f7d447 18px 36px);
+  border: 3px solid #2e2e2e;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.42), inset 0 0 0 2px rgba(255,255,255,0.05);
+}
+body[data-theme="hyperlane"] .vpod-screen {
+  background: linear-gradient(180deg,#1f2428 0%,#15191d 100%);
+  border-color:#f7d447;
+  color:#f8f3d4;
+}
+body[data-theme="hyperlane"] .vpod-disk {
+  background: radial-gradient(circle at 58% 38%,#585d63 0%,#2f3438 70%,#202427 100%);
+  border-color:#111;
+  box-shadow: 0 0 12px rgba(0,0,0,0.28);
+}
+body[data-theme="hyperlane"] .vpod-disk-btn {
+  color:#ffe481;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+}
+body[data-theme="hyperlane"] .vpod-disk-center {
+  background: linear-gradient(150deg,#f7d447 0%,#bb991f 85%);
+  color:#221a00;
+}
+body[data-theme="hyperlane"] .menu-list li.active,
+body[data-theme="hyperlane"] .menu-list-song.active {
+  background: rgba(247,212,71,0.22);
+  color:#fff8d6;
+}
+
+/* Catacomb Brass (torchlit bronze shell, sepia screen, dark center) */
+body[data-theme="catacomb"] .vpod-container {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255,205,120,0.16) 0%, rgba(255,205,120,0) 24%),
+    linear-gradient(160deg, #110c0a 0%, #2a1b14 45%, #7d5728 100%);
+  border: 3px solid #4b3219;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.42), 0 0 0 3px rgba(114,78,36,0.22) inset;
+}
+body[data-theme="catacomb"] .vpod-screen {
+  background: linear-gradient(180deg, #1a1411 0%, #241a15 100%);
+  border-color: #7f5a27;
+  box-shadow: 0 2px 8px 2px rgba(0,0,0,0.18) inset;
+}
+body[data-theme="catacomb"] #hotBar {
+  background: rgba(42,27,20,0.92);
+  border-bottom-color: #6f4c22;
+  color: #f2dfbc;
+}
+body[data-theme="catacomb"] .vpod-disk {
+  background: radial-gradient(circle at 56% 36%, #cfb07b 0%, #9c733d 62%, #6c491f 100%);
+  border-color: #553515;
+  box-shadow: 0 0 14px rgba(0,0,0,0.25), 0 1px 5px rgba(0,0,0,0.16);
+}
+body[data-theme="catacomb"] .vpod-disk-center {
+  background: linear-gradient(150deg, #2b201b 0%, #130e0c 85%);
+  border-color: #6f4c22;
+  color: #f4e3c2;
+}
+body[data-theme="catacomb"] .vpod-disk-btn {
+  color: #f0ddb6;
+  text-shadow: 0 1px 2px rgba(52,32,12,0.65);
+}
+body[data-theme="catacomb"] .menu-list li.active,
+body[data-theme="catacomb"] .menu-list-song.active {
+  background: rgba(174,123,49,0.24);
+  color: #fff0d1;
+}
+
+/* Pocket Grove (handheld moss shell, cream screen, berry-red center) */
+body[data-theme="pocketgrove"] .vpod-container {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.18) 0 12px, rgba(255,255,255,0) 12px 24px),
+    linear-gradient(160deg, #d4d7b6 0%, #91b06e 52%, #456e52 100%);
+  border: 3px solid #6b7f55;
+  box-shadow: 0 10px 28px rgba(42,63,36,0.28), 0 0 0 3px rgba(245,238,204,0.35) inset;
+}
+body[data-theme="pocketgrove"] .vpod-screen {
+  background: linear-gradient(180deg, #eef0db 0%, #dce7c2 100%);
+  border-color: #739163;
+}
+body[data-theme="pocketgrove"] #hotBar {
+  background: rgba(236,240,214,0.96);
+  border-bottom-color: #a9b88d;
+  color: #314834;
+}
+body[data-theme="pocketgrove"] .vpod-disk {
+  background: radial-gradient(circle at 58% 38%, #f3edd2 0%, #d5d7b5 60%, #acbb84 100%);
+  border-color: #6d8758;
+}
+body[data-theme="pocketgrove"] .vpod-disk-center {
+  background: linear-gradient(150deg, #cc5a58 0%, #8b3f4c 85%);
+  border-color: #6b3140;
+  color: #fff8ec;
+}
+body[data-theme="pocketgrove"] .vpod-disk-btn {
+  color: #41583f;
+  text-shadow: none;
+}
+body[data-theme="pocketgrove"] .menu-list li.active,
+body[data-theme="pocketgrove"] .menu-list-song.active {
+  background: rgba(115,145,99,0.20);
+  color: #2d4736;
+}
+
+/* Moon Crypt (cold slate shell, moonlit silver screen, icy center) */
+body[data-theme="mooncrypt"] .vpod-container {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(235,244,255,0.22) 0%, rgba(235,244,255,0) 18%),
+    linear-gradient(160deg, #0d1218 0%, #2f4358 48%, #bac9d8 100%);
+  border: 3px solid #405668;
+  box-shadow: 0 12px 30px rgba(7,12,19,0.42), 0 0 0 3px rgba(198,214,229,0.16) inset;
+}
+body[data-theme="mooncrypt"] .vpod-screen {
+  background: linear-gradient(180deg, #131b24 0%, #1d2632 100%);
+  border-color: #71879c;
+}
+body[data-theme="mooncrypt"] #hotBar {
+  background: rgba(25,34,44,0.94);
+  border-bottom-color: #61778b;
+  color: #e6eef7;
+}
+body[data-theme="mooncrypt"] .vpod-disk {
+  background: radial-gradient(circle at 58% 38%, #ecf3fa 0%, #cfd8e3 62%, #92a0b0 100%);
+  border-color: #607487;
+}
+body[data-theme="mooncrypt"] .vpod-disk-center {
+  background: linear-gradient(150deg, #8ec2e8 0%, #4e7da7 85%);
+  border-color: #426789;
+  color: #f8fcff;
+}
+body[data-theme="mooncrypt"] .vpod-disk-btn {
+  color: #dce7f2;
+  text-shadow: 0 1px 2px rgba(20,30,40,0.45);
+}
+body[data-theme="mooncrypt"] .menu-list li.active,
+body[data-theme="mooncrypt"] .menu-list-song.active {
+  background: rgba(152,191,225,0.22);
+  color: #edf5fd;
+}
+
+/* Capsule Pop (toy-box cream shell, bold blue body, bright red center) */
+body[data-theme="capsulepop"] .vpod-container {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.18) 0 10px, rgba(255,255,255,0) 10px 20px),
+    linear-gradient(160deg, #fff6de 0%, #ffd25f 42%, #3970d6 100%);
+  border: 3px solid #b58c2d;
+  box-shadow: 0 12px 28px rgba(60,73,120,0.25), 0 0 0 3px rgba(255,255,255,0.3) inset;
+}
+body[data-theme="capsulepop"] .vpod-screen {
+  background: linear-gradient(180deg, #fdf6e5 0%, #f6edcf 100%);
+  border-color: #6589d9;
+}
+body[data-theme="capsulepop"] #hotBar {
+  background: rgba(255,246,224,0.96);
+  border-bottom-color: #d7c384;
+  color: #314068;
+}
+body[data-theme="capsulepop"] .vpod-disk {
+  background: radial-gradient(circle at 58% 38%, #fefefe 0%, #f2ecd6 62%, #e1d39b 100%);
+  border-color: #7a8fc9;
+}
+body[data-theme="capsulepop"] .vpod-disk-center {
+  background: linear-gradient(150deg, #ef5d57 0%, #bf384f 85%);
+  border-color: #8f2942;
+  color: #fff9f0;
+}
+body[data-theme="capsulepop"] .vpod-disk-btn {
+  color: #47614c;
+  text-shadow: none;
+}
+body[data-theme="capsulepop"] .menu-list li.active,
+body[data-theme="capsulepop"] .menu-list-song.active {
+  background: rgba(61,112,216,0.16);
+  color: #22345a;
+}
+
 /* Checker Faceplate (Chessboard) */
 body[data-theme="chessboard"] .vpod-container {
   background:

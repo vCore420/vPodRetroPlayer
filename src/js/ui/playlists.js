@@ -58,11 +58,19 @@ function renderPlaylistsMenu(direction = 'forward') {
 }
 
 function getLikedTracks() {
-  const allTracks = app.state.tracks;
+  if (typeof ensureCurrentWeekFlags === 'function') {
+    ensureCurrentWeekFlags();
+  }
+
+  const habits = typeof loadUserHabits === 'function'
+    ? loadUserHabits()
+    : (window.userHabits || {});
+
+  const allTracks = app.state.tracks || [];
   return allTracks.filter(track => {
     const trackId = getTrackId(track);
-    const habit = userHabits[trackId];
-    return habit && habit.likeCount > 0;
+    const habit = habits[trackId];
+    return habit && Number(habit.likeCount || 0) > 0;
   });
 }
 
@@ -179,6 +187,20 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
 
   app.state.currentMenuIndex = 0;
 
+  const isSamePlaylistTrack = (playlistTrack, track) => {
+    const playlistPath = normPath(playlistTrack.relativePath || '');
+    const trackPath = normPath(track.file?.webkitRelativePath || track.relativePath || '');
+
+    return (
+      (playlistPath && playlistPath === trackPath) ||
+      (
+        playlistTrack.fileName === (track.file?.name || track.fileName) &&
+        playlistTrack.album === track.album &&
+        playlistTrack.artist === track.artist
+      )
+    );
+  };
+
   renderScreen(
     `<div class="album-list">
       <div class="album-list-left" id="playlistSongsSelectContainer" data-playlist-select="true">
@@ -197,9 +219,8 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
   const currentTrackId = currentTrack ? getTrackId(currentTrack) : null;
 
   albumObj.songs.forEach((track, idx) => {
-    const isSelected = window.creatingPlaylist.tracks.some(t =>
-      (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
-      (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
+    const isSelected = window.creatingPlaylist.tracks.some(playlistTrack =>
+      isSamePlaylistTrack(playlistTrack, track)
     );
 
     const isNowPlaying =
@@ -224,9 +245,9 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
 
     div.onclick = () => {
       toggleTrackInCreatingPlaylist(track);
-      const isNowSelected = window.creatingPlaylist.tracks.some(t =>
-        (t.relativePath && normPath(t.relativePath) === normPath(track.file?.webkitRelativePath || track.relativePath || ''))
-        (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
+
+      const isNowSelected = window.creatingPlaylist.tracks.some(playlistTrack =>
+        isSamePlaylistTrack(playlistTrack, track)
       );
 
       const updatedSelectedIcon = isNowSelected
@@ -240,6 +261,7 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
         </span>
       `;
     };
+
     songsList.appendChild(div);
   });
 
@@ -251,16 +273,32 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
 }
 
 function toggleTrackInCreatingPlaylist(track) {
-  const pl = window.creatingPlaylist;
-  const idx = pl.tracks.findIndex(t =>
-    (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
-    (t.fileName === track.file?.name && t.album === track.album && t.artist === track.artist)
+  const playlist = window.creatingPlaylist;
+  if (!playlist || !Array.isArray(playlist.tracks)) return;
+
+  const isSamePlaylistTrack = (playlistTrack, currentTrack) => {
+    const playlistPath = normPath(playlistTrack.relativePath || '');
+    const trackPath = normPath(currentTrack.file?.webkitRelativePath || currentTrack.relativePath || '');
+
+    return (
+      (playlistPath && playlistPath === trackPath) ||
+      (
+        playlistTrack.fileName === (currentTrack.file?.name || currentTrack.fileName) &&
+        playlistTrack.album === currentTrack.album &&
+        playlistTrack.artist === currentTrack.artist
+      )
+    );
+  };
+
+  const idx = playlist.tracks.findIndex(playlistTrack =>
+    isSamePlaylistTrack(playlistTrack, track)
   );
+
   if (idx >= 0) {
-    pl.tracks.splice(idx, 1);
+    playlist.tracks.splice(idx, 1);
   } else {
-    pl.tracks.push({
-      fileName: track.file?.name,
+    playlist.tracks.push({
+      fileName: track.file?.name || track.fileName,
       album: track.album,
       artist: track.artist,
       relativePath: normPath(track.file?.webkitRelativePath || track.relativePath || ''),
@@ -271,18 +309,37 @@ function toggleTrackInCreatingPlaylist(track) {
 
 function rebuildPlaylistSongsList({ listEl, tracksToShow, currentTrackId, isEditable, editOn, playlistIdx }) {
   listEl.innerHTML = '';
-  const allTracks = app.state.tracks;
+  const allTracks = app.state.tracks || [];
 
-  tracksToShow.forEach((plTrack, idx) => {
+  const isSameLoadedTrack = (loadedTrack, candidateTrack) => {
+    const loadedPath = normPath(loadedTrack.file?.webkitRelativePath || loadedTrack.relativePath || '');
+    const candidatePath = normPath(candidateTrack.relativePath || '');
+
+    return (
+      (loadedPath && candidatePath && loadedPath === candidatePath) ||
+      (
+        (loadedTrack.file?.name || loadedTrack.fileName) === candidateTrack.fileName &&
+        loadedTrack.album === candidateTrack.album &&
+        loadedTrack.artist === candidateTrack.artist
+      ) ||
+      (
+        loadedTrack.title === candidateTrack.title &&
+        loadedTrack.artist === candidateTrack.artist &&
+        loadedTrack.album === candidateTrack.album
+      )
+    );
+  };
+
+  tracksToShow.forEach((playlistTrack, idx) => {
     const track =
-      allTracks.find(t =>
-        (t.file?.webkitRelativePath && normPath(t.file.webkitRelativePath) === normPath(plTrack.relativePath)) ||
-        (t.file?.name === plTrack.fileName && t.album === plTrack.album && t.artist === plTrack.artist) ||
-        (t.title === plTrack.title && t.artist === plTrack.artist && t.album === plTrack.album)
-      ) || plTrack;
+      allTracks.find(loadedTrack => isSameLoadedTrack(loadedTrack, playlistTrack)) ||
+      playlistTrack;
 
     const isNowPlaying = currentTrackId && getTrackId(track) === currentTrackId;
-    const nowPlayingLabel = isNowPlaying ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>` : '';
+    const nowPlayingLabel = isNowPlaying
+      ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
+      : '';
+
     const displayTitle = track.title || track.fileName || '';
     const displayArtist = track.artist || '';
 
@@ -296,6 +353,7 @@ function rebuildPlaylistSongsList({ listEl, tracksToShow, currentTrackId, isEdit
         ${editOn ? ' <span style="color:#0074d9;font-size:0.9em;">(edit)</span>' : ''}
       </span>
     `;
+
     div.onclick = () => {
       if (isEditable && editOn) {
         showPlaylistTrackActions(playlistIdx, idx);
@@ -303,12 +361,17 @@ function rebuildPlaylistSongsList({ listEl, tracksToShow, currentTrackId, isEdit
         playPlaylistTrack({ tracks: tracksToShow }, idx);
       }
     };
+
     listEl.appendChild(div);
   });
 
   window.updateHighlightedSong = () =>
     masterHighlight({ containerSelector: '#playlistSongsList', itemsSelector: '.menu-list-song' });
-  if (typeof window.updateHighlightedSong === 'function') window.updateHighlightedSong();
+
+  if (typeof window.updateHighlightedSong === 'function') {
+    window.updateHighlightedSong();
+  }
+
   const items = listEl.querySelectorAll('.menu-list-song');
   if (items[app.state.currentMenuIndex]) {
     items[app.state.currentMenuIndex].classList.add('active');
@@ -490,41 +553,39 @@ function showPlaylistTrackActions(playlistIdx, trackIdx) {
 window.showPlaylistTrackActions = showPlaylistTrackActions;
 
 function playPlaylistTrack(playlist, idx) {
-  const allTracks = app.state.tracks;
-  const trackData = playlist.tracks[idx];
+  const allTracks = app.state.tracks || [];
+  const playlistTrack = playlist.tracks[idx];
+  if (!playlistTrack) return;
 
-  const match = allTracks.find(t =>
-    (t.file?.webkitRelativePath && normPath(t.file.webkitRelativePath) === normPath(trackData.relativePath)) ||
-    (t.file?.name === trackData.fileName &&
-     t.album === trackData.album &&
-     t.artist === trackData.artist) ||
-    (t.title === trackData.title &&
-     t.artist === trackData.artist &&
-     t.album === trackData.album)
-  );
+  const isSameLoadedTrack = (loadedTrack, candidateTrack) => {
+    const loadedPath = normPath(loadedTrack.file?.webkitRelativePath || loadedTrack.relativePath || '');
+    const candidatePath = normPath(candidateTrack.relativePath || '');
+
+    return (
+      (loadedPath && candidatePath && loadedPath === candidatePath) ||
+      (
+        (loadedTrack.file?.name || loadedTrack.fileName) === candidateTrack.fileName &&
+        loadedTrack.album === candidateTrack.album &&
+        loadedTrack.artist === candidateTrack.artist
+      ) ||
+      (
+        loadedTrack.title === candidateTrack.title &&
+        loadedTrack.artist === candidateTrack.artist &&
+        loadedTrack.album === candidateTrack.album
+      )
+    );
+  };
+
+  const match = allTracks.find(track => isSameLoadedTrack(track, playlistTrack));
 
   if (match) {
-    const mapped = playlist.tracks.map(plTrack =>
-      allTracks.find(t =>
-        (t.file?.webkitRelativePath && t.file.webkitRelativePath === plTrack.relativePath) ||
-        (t.file?.name === plTrack.fileName &&
-         t.album === plTrack.album &&
-         t.artist === plTrack.artist) ||
-        (t.title === plTrack.title &&
-         t.artist === plTrack.artist &&
-         t.album === plTrack.album)
-      )
-    ).filter(Boolean);
+    const mapped = playlist.tracks
+      .map(candidateTrack => allTracks.find(track => isSameLoadedTrack(track, candidateTrack)))
+      .filter(Boolean);
 
     app.state.currentAlbumSongs = mapped;
-    app.state.currentSongIndex = app.state.currentAlbumSongs.findIndex(t =>
-      (t.file?.webkitRelativePath && t.file.webkitRelativePath === trackData.relativePath) ||
-      (t.file?.name === trackData.fileName &&
-       t.album === trackData.album &&
-       t.artist === trackData.artist) ||
-      (t.title === trackData.title &&
-       t.artist === trackData.artist &&
-       t.album === trackData.album)
+    app.state.currentSongIndex = app.state.currentAlbumSongs.findIndex(track =>
+      isSameLoadedTrack(track, playlistTrack)
     );
 
     playTrackFromAlbum(match, app.state.currentAlbumSongs);
@@ -536,13 +597,25 @@ function playPlaylistTrack(playlist, idx) {
 // --- Add to playlist from Now Playing Menu --- 
 
 function trackAlreadyInPlaylist(track, pl) {
-  return pl.tracks.some(t =>
-    (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || track.relativePath || '')) ||
-    (t.fileName === (track.file?.name || track.fileName) &&
-     t.album === track.album &&
-     t.artist === track.artist) ||
-    (t.title === track.title && t.artist === track.artist && t.album === track.album)
-  );
+  const trackPath = normPath(track.file?.webkitRelativePath || track.relativePath || '');
+
+  return pl.tracks.some(playlistTrack => {
+    const playlistPath = normPath(playlistTrack.relativePath || '');
+
+    return (
+      (playlistPath && playlistPath === trackPath) ||
+      (
+        playlistTrack.fileName === (track.file?.name || track.fileName) &&
+        playlistTrack.album === track.album &&
+        playlistTrack.artist === track.artist
+      ) ||
+      (
+        playlistTrack.title === track.title &&
+        playlistTrack.artist === track.artist &&
+        playlistTrack.album === track.album
+      )
+    );
+  });
 }
 
 function addTrackToPlaylist(track, pl) {

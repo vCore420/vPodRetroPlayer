@@ -2,22 +2,26 @@
 
 function isRecapWindow() {
   if (typeof DEBUG_RECAP_ALWAYS_ON !== 'undefined' && DEBUG_RECAP_ALWAYS_ON) return true;
+  if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
+
   const now = new Date();
-  return now.getDay() === 1 && now.getHours() >= 8 && now.getHours() < 20;
+  return now.getDay() === 1;
 }
 
 function renderMainMenu(direction = 'forward') {
+  if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
+
   const hotBar = document.getElementById('hotBar');
   if (hotBar && hotBar.style.display === 'none') {
     hotBar.style.display = '';
   }
-  
+
   app.state.currentMenuIndex = 0;
 
   const menuItems = [
     { label: "Load Music", action: renderLoadMusic },
     { label: "Now Playing", action: renderNowPlayingScreen },
-    { label: "Playlists", action: renderPlaylistsMenu }, 
+    { label: "Playlists", action: renderPlaylistsMenu },
     { label: "Artists", action: renderArtistsMenu },
     { label: "Albums", action: renderAlbumsMenu },
     { label: "All Songs", action: renderAllSongsMenu },
@@ -40,7 +44,7 @@ function renderMainMenu(direction = 'forward') {
       } else {
         goTo(item.action);
       }
-    },
+    }
   }, direction);
 
   masterHighlight({

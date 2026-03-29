@@ -332,6 +332,32 @@ body, html {
   z-index: 1;
 }
 
+.game-screen-shell {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.game-screen-shell--compact {
+  padding-top: 6px;
+  gap: 6px;
+}
+
+.game-screen-shell--tight {
+  padding-top: 6px;
+  gap: 6px;
+}
+
+.game-screen-shell--form {
+  justify-content: center;
+  gap: 12px;
+}
+
 .carousel-album-center {
   z-index: 10;
   filter: brightness(1) blur(0px);
