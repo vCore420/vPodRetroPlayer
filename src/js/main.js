@@ -82,8 +82,8 @@ if ('mediaSession' in navigator) {
   navigator.mediaSession.setActionHandler('play', async () => {
     try {
       if (typeof retryPendingPlayback === 'function') {
-        await retryPendingPlayback();
-        if (!audioPlayer.paused) return;
+        const resumed = await retryPendingPlayback('media-session-play');
+        if (resumed || !audioPlayer.paused) return;
       }
 
       if (typeof ensureAudioPipelineReady === 'function') {
@@ -101,6 +101,9 @@ if ('mediaSession' in navigator) {
   });
 
   navigator.mediaSession.setActionHandler('pause', () => {
+    if (typeof clearPendingPlaybackRetry === 'function') {
+      clearPendingPlaybackRetry();
+    }
     audioPlayer.pause();
   });
 

@@ -48,25 +48,24 @@ function renderAllSongsMenu(direction = 'forward') {
   }
 
   renderScreen(
-    `<div style="display:flex;flex-direction:column;height:90%;">
-      <div style="position:relative;display:flex;align-items:center;justify-content:center;margin-bottom:4px;height:38px;">
-        <span style="font-size:1.1em;font-weight:bold;display:block;margin:0 auto;">All Songs</span>
-        <button id="sortSongsBtn" title="Sort Songs"
-          style="position:absolute;right:0;top:50%;transform:translateY(-50%);font-size:1.3em;background:none;border:none;color:#0074d9;cursor:pointer;">
-          <i class="fa-solid fa-arrow-down-a-z"></i>
-        </button>
-      </div>
-      <div style="margin-bottom:2px;">
-        <input id="songSearchInput" class="songSearchInput" type="text" placeholder="Search songs...">
-      </div>
-      <div class="album-list" style="height:90%;">
-        <div class="album-list-left" id="allSongsListContainer" style="height:100%;overflow-y:auto;">
+    `<div class="album-list all-songs-layout">
+        <div class="album-list-left all-songs-pane" id="allSongsListContainer">
+          <div class="all-songs-pane-header">
+            <div class="all-songs-toolbar">
+              <span class="all-songs-title">All Songs</span>
+              <button id="sortSongsBtn" class="all-songs-sort-btn" title="Sort Songs">
+                <i class="fa-solid fa-arrow-down-a-z"></i>
+              </button>
+            </div>
+            <div class="all-songs-search-wrap">
+              <input id="songSearchInput" class="songSearchInput" type="text" placeholder="Search songs...">
+            </div>
+          </div>
           <div id="allSongsList"></div>
         </div>
         <div class="album-list-right" id="allSongsArtContainer">
           <img id="allSongsArt" src="src/img/default-cover.png" class="album-cover" alt="Album Cover">
         </div>
-      </div>
     </div>`,
     direction
   );

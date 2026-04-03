@@ -122,12 +122,25 @@ function attachDiskControlListeners() {
     goBack();
   };
 
-  document.getElementById('playPauseBtn').onclick = () => {
+  document.getElementById('playPauseBtn').onclick = async () => {
     if (!audioPlayer.src) return;
+
     const icon = playPauseBtn.querySelector('i');
+
+    if (typeof clearPendingPlaybackRetry === 'function') {
+      clearPendingPlaybackRetry();
+    }
+
     if (audioPlayer.paused) {
-      audioPlayer.play();
-      if (icon) icon.className = "fa-solid fa-pause";
+      try {
+        const playResult = audioPlayer.play();
+        if (playResult && typeof playResult.then === 'function') {
+          await playResult;
+        }
+        if (icon) icon.className = "fa-solid fa-pause";
+      } catch (error) {
+        console.warn('Manual play failed', error);
+      }
     } else {
       audioPlayer.pause();
       if (icon) icon.className = "fa-solid fa-play";
@@ -273,6 +286,7 @@ function attachDiskControlListeners() {
 
       // 7. Fallback: normal menu logic
       let menu =
+        document.getElementById('suggestedList') ||
         document.getElementById('allSongsList') ||
         document.getElementById('songsList') ||
         document.querySelector('.album-list-left') ||
@@ -301,6 +315,12 @@ function attachDiskControlListeners() {
 // Menu Scrolling Logic
 function scrollMenu(direction) {
   console.log("Scrolling menu, direction:", direction);
+
+  const statsScreen = document.querySelector('.stats-screen');
+  if (statsScreen) {
+    statsScreen.scrollTop += direction * 48;
+    return;
+  }
 
   // Games menu scroll
   if (typeof window.onGameScroll === 'function') {
@@ -351,6 +371,7 @@ function scrollMenu(direction) {
   }
   // Normal menu logic
   let menu =
+    document.getElementById('suggestedList') ||
     document.getElementById('allSongsList') ||
     document.getElementById('songsList') ||
     document.getElementById('albumCarousel') ||
@@ -360,7 +381,9 @@ function scrollMenu(direction) {
 
   // Get items for the active menu
   let items;
-  if (menu.id === 'allSongsList') {
+  if (menu.id === 'suggestedList') {
+    items = Array.from(menu.querySelectorAll('.menu-list-song'));
+  } else if (menu.id === 'allSongsList') {
     items = Array.from(menu.querySelectorAll('.menu-list-song'));
   } else if (menu.id === 'songsList') {
     items = Array.from(menu.querySelectorAll('.menu-list-song'));
@@ -395,6 +418,10 @@ function scrollMenu(direction) {
   }
 
   // Update album art for All Songs menu
+  if (menu.id === 'suggestedList') {
+    return;
+  }
+
   if (menu.id === 'allSongsList') {
     const allAlbums = app.state.albums;
     const list = window.allSongsCurrentList || app.state.tracks || [];
@@ -406,7 +433,7 @@ function scrollMenu(direction) {
     }
   }
 
-  // Carousel logic for albums
+   // Carousel logic for albums
   if (menu.id === 'albumCarousel') {
     let albumNames = [];
     const allAlbums = app.state.albums;
@@ -418,8 +445,7 @@ function scrollMenu(direction) {
     ) {
       const artistKey = stack[stack.length - 1].args[1];
       albumNames = Object.keys(allAlbums).filter(
-        key =>
-          (allAlbums[key].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
+        key => (allAlbums[key].artist || 'Unknown Artist').trim().toLowerCase() === artistKey
       );
     } else if (
       stack.length > 0 &&
@@ -436,7 +462,7 @@ function scrollMenu(direction) {
       );
     }
 
-    setCarouselAlbum(app.state.currentMenuIndex, albumNames);
+    queueCarouselAlbum(app.state.currentMenuIndex, albumNames);
     return;
   }
 

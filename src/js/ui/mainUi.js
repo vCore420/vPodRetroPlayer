@@ -133,6 +133,20 @@ function showHotBarMessage(text, duration = 2500) {
 window.showHotBarMessage = showHotBarMessage;
 
 // Render Album Carousel Screen
+function preloadCarouselCovers(albumKeys, centerIdx, radius = 2) {
+  const allAlbums = app.state.albums || {};
+  const start = Math.max(0, centerIdx - radius);
+  const end = Math.min(albumKeys.length - 1, centerIdx + radius);
+
+  for (let i = start; i <= end; i++) {
+    const cover = allAlbums[albumKeys[i]]?.cover;
+    if (!cover) continue;
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = cover;
+  }
+}
+
 function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone, selectedIdx = 0 }, direction = 'forward') {
   const allAlbums = app.state.albums;
 
@@ -146,27 +160,55 @@ function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone
 
   const carousel = document.getElementById('albumCarousel');
   carousel.innerHTML = '';
+
   albumsList.forEach((album, idx) => {
-    const albumObj = allAlbums[album];
+    const albumObj = allAlbums[album] || {};
+    const cover = albumObj.cover || 'src/img/default-cover.png';
+
     const div = document.createElement('div');
     div.className = 'carousel-album';
+
     div.innerHTML = `
       <div class="carousel-cover-reflect">
-        <img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">
-        <img src="${albumObj.cover}" class="reflection" alt="Reflection">
+        <img
+          src="${cover}"
+          class="carousel-cover"
+          alt="Album Cover"
+          decoding="async"
+          fetchpriority="${Math.abs(idx - selectedIdx) <= 1 ? 'high' : 'low'}"
+          draggable="false"
+        >
+        <img
+          src="${cover}"
+          class="reflection"
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          draggable="false"
+        >
       </div>
     `;
+
+    const coverImg = div.querySelector('.carousel-cover');
+    const onLoaded = () => div.classList.add('carousel-album-loaded');
+    coverImg.addEventListener('load', onLoaded, { once: true });
+    if (coverImg.complete) onLoaded();
+
     div.onclick = () => {
       app.state.currentMenuIndex = idx;
-      onAlbumClick(album, app.state.currentMenuIndex);
+      onAlbumClick(album, idx);
     };
+
     carousel.appendChild(div);
   });
+
   setCarouselAlbum(selectedIdx, albumsList);
+  preloadCarouselCovers(albumsList, selectedIdx);
+
   if (showDone && onDone) {
     document.getElementById('donePlaylistBtn').onclick = onDone;
   }
-  setCarouselAlbum(selectedIdx, albumsList);
+
   app.state.currentMenuIndex = selectedIdx;
 }
 

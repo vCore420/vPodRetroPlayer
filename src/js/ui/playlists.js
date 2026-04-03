@@ -16,7 +16,7 @@ function renderPlaylistsMenu(direction = 'forward') {
         <span style="font-size:1.2em;font-weight:bold;display:block;margin:0 auto;">Playlists</span>
       </div>
       <ul class="menu-list" id="playlistsList" style="margin-top:18px;">
-        <li data-liked="true" style="color:#0074d9;font-weight:bold;"><i class="fa-solid fa-heart"></i> Liked Songs</li>
+        <li data-liked="true" class="liked-playlist-row"><i class="fa-solid fa-heart"></i> Liked Songs</li>
         ${allPlaylists.length === 0 ? '' : allPlaylists.map((pl, idx) =>
           `<li data-idx="${idx}">${pl.name}</li>`
         ).join('')}
@@ -146,18 +146,41 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
   carousel.innerHTML = '';
   albumKeys.forEach((albumKey, idx) => {
     const albumObj = allAlbums[albumKey];
+    const cover = albumObj.cover || 'src/img/default-cover.png';
+
     const div = document.createElement('div');
     div.className = 'carousel-album';
+
     div.innerHTML = `
       <div class="carousel-cover-reflect">
-        <img src="${albumObj.cover}" class="carousel-cover" alt="Album Cover">
-        <img src="${albumObj.cover}" class="reflection" alt="Reflection">
+        <img
+          src="${cover}"
+          class="carousel-cover"
+          alt="Album Cover"
+          decoding="async"
+          draggable="false"
+        >
+        <img
+          src="${cover}"
+          class="reflection"
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          draggable="false"
+        >
       </div>
     `;
+
+    const coverImg = div.querySelector('.carousel-cover');
+    const onLoaded = () => div.classList.add('carousel-album-loaded');
+    coverImg.addEventListener('load', onLoaded, { once: true });
+    if (coverImg.complete) onLoaded();
+
     div.onclick = () => {
       window.creatingPlaylist.selectedAlbum = albumKey;
       goTo(renderSongSelectionForPlaylist, albumKey, idx);
     };
+
     carousel.appendChild(div);
   });
   

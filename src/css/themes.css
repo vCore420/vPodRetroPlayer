@@ -18,10 +18,9 @@ body[data-theme="contrast"] .vpod-screen {
   background: #0b1020;
   border-color: #1f2a44;
 }
-body[data-theme="contrast"] .menu-list li.active,
-body[data-theme="contrast"] .menu-list-song.active {
-  background: #173a7a;
-  color: #f0f8ff;
+body[data-theme="contrast"] {
+  --vpod-highlight-bg: #173a7a;
+  --vpod-highlight-fg: #f0f8ff;
 }
 
 /* U2 Red/Black */
@@ -36,10 +35,9 @@ body[data-theme="u2"] .vpod-screen {
   border-color: #2a0a0a;
 }
 
-body[data-theme="u2"] .menu-list li.active,
-body[data-theme="u2"] .menu-list-song.active {
-  background: rgba(214, 16, 32, 0.22);
-  color: #f7f0e9;
+body[data-theme="u2"] {
+  --vpod-highlight-bg: rgba(214, 16, 32, 0.22);
+  --vpod-highlight-fg: #f7f0e9;
 }
 
 /* Scroll wheel */
@@ -76,9 +74,9 @@ body[data-theme="midnight"] .vpod-container {
 body[data-theme="midnight"] .vpod-screen {
   background: linear-gradient(180deg, #0c1426 0%, #0a0f1d 100%);
 }
-body[data-theme="midnight"] .menu-list li.active,
-body[data-theme="midnight"] .menu-list-song.active {
-  background: rgba(0,180,255,0.18);
+body[data-theme="midnight"] {
+  --vpod-highlight-bg: rgba(0,180,255,0.18);
+  --vpod-highlight-fg: #f0f8ff;
 }
 
 /* Neon Wave */
@@ -89,9 +87,9 @@ body[data-theme="neonwave"] .vpod-container {
 body[data-theme="neonwave"] .vpod-screen {
   background: linear-gradient(180deg, #120a24 0%, #1f0f3a 100%);
 }
-body[data-theme="neonwave"] .menu-list li.active,
-body[data-theme="neonwave"] .menu-list-song.active {
-  background: rgba(255,126,226,0.18);
+body[data-theme="neonwave"] {
+  --vpod-highlight-bg: rgba(255,126,226,0.18);
+  --vpod-highlight-fg: #fff4fc;
 }
 
 /* Carbon */
@@ -102,9 +100,9 @@ body[data-theme="carbon"] .vpod-container {
 body[data-theme="carbon"] .vpod-screen {
   background: linear-gradient(180deg, #111 0%, #1b1b1b 100%);
 }
-body[data-theme="carbon"] .menu-list li.active,
-body[data-theme="carbon"] .menu-list-song.active {
-  background: rgba(70, 70, 70, 0.08);
+body[data-theme="carbon"] {
+  --vpod-highlight-bg: rgba(70, 70, 70, 0.28);
+  --vpod-highlight-fg: #f4f4f4;
 }
 
 /* Deep Forest */
@@ -115,10 +113,9 @@ body[data-theme="forest"] .vpod-container {
 body[data-theme="forest"] .vpod-screen {
   background: linear-gradient(180deg, #0c2417 0%, #12452b 100%);
 }
-body[data-theme="forest"] .menu-list li.active,
-body[data-theme="forest"] .menu-list-song.active {
-  background: rgba(31,106,59,0.2);
-  color: #e9fff0;
+body[data-theme="forest"] {
+  --vpod-highlight-bg: rgba(31,106,59,0.2);
+  --vpod-highlight-fg: #e9fff0;
 }
 
 /* Aqua Glass */
@@ -129,9 +126,9 @@ body[data-theme="aqua"] .vpod-container {
 body[data-theme="aqua"] .vpod-screen {
   background: linear-gradient(180deg, #05314a 0%, #0c4962 100%);
 }
-body[data-theme="aqua"] .menu-list li.active,
-body[data-theme="aqua"] .menu-list-song.active {
-  background: rgba(114,239,221,0.2);
+body[data-theme="aqua"] {
+  --vpod-highlight-bg: rgba(114,239,221,0.2);
+  --vpod-highlight-fg: #083744;
 }
 
 /* Sunset Fade */
@@ -142,10 +139,9 @@ body[data-theme="sunset"] .vpod-container {
 body[data-theme="sunset"] .vpod-screen {
   background: linear-gradient(180deg, #2c0f24 0%, #4a1a30 100%);
 }
-body[data-theme="sunset"] .menu-list li.active,
-body[data-theme="sunset"] .menu-list-song.active {
-  background: rgba(255,99,122,0.18);
-  color: #fff3ec;
+body[data-theme="sunset"] {
+  --vpod-highlight-bg: rgba(255,99,122,0.18);
+  --vpod-highlight-fg: #fff3ec;
 }
 
 /* Plasma Pulse */
@@ -156,9 +152,9 @@ body[data-theme="plasma"] .vpod-container {
 body[data-theme="plasma"] .vpod-screen {
   background: linear-gradient(180deg, #18002f 0%, #2b0c4e 100%);
 }
-body[data-theme="plasma"] .menu-list li.active,
-body[data-theme="plasma"] .menu-list-song.active {
-  background: rgba(255,60,172,0.18);
+body[data-theme="plasma"] {
+  --vpod-highlight-bg: rgba(255,60,172,0.18);
+  --vpod-highlight-fg: #fff3fb;
 }
 
 /* Aurora Drift */
@@ -171,9 +167,9 @@ body[data-theme="aurora"] .vpod-screen {
   background: linear-gradient(180deg, #071626 0%, #0c2238 100%);
   border-color: #124a62;
 }
-body[data-theme="aurora"] .menu-list li.active,
-body[data-theme="aurora"] .menu-list-song.active {
-  background: rgba(53,255,197,0.20);
+body[data-theme="aurora"] {
+  --vpod-highlight-bg: rgba(53,255,197,0.20);
+  --vpod-highlight-fg: #ecfff8;
 }
 
 /* Lava Core */
@@ -185,10 +181,9 @@ body[data-theme="lava"] .vpod-screen {
   background: linear-gradient(180deg, #1c0c0a 0%, #2e0f0c 100%);
   border-color: #6d1000;
 }
-body[data-theme="lava"] .menu-list li.active,
-body[data-theme="lava"] .menu-list-song.active {
-  background: rgba(255,90,0,0.20);
-  color: #fff2e6;
+body[data-theme="lava"] {
+  --vpod-highlight-bg: rgba(255,90,0,0.20);
+  --vpod-highlight-fg: #fff2e6;
 }
 
 /* Crystal Ice */
@@ -200,9 +195,9 @@ body[data-theme="crystal"] .vpod-screen {
   background: linear-gradient(180deg, #0b1c2b 0%, #0f2a40 100%);
   border-color: #1d5a7a;
 }
-body[data-theme="crystal"] .menu-list li.active,
-body[data-theme="crystal"] .menu-list-song.active {
-  background: rgba(123,226,255,0.20);
+body[data-theme="crystal"] {
+  --vpod-highlight-bg: rgba(123,226,255,0.20);
+  --vpod-highlight-fg: #08324a;
 }
 
 /* Starlight */
@@ -214,9 +209,9 @@ body[data-theme="starlight"] .vpod-screen {
   background: linear-gradient(180deg, #0a0a1d 0%, #151533 100%);
   border-color: #2e2e60;
 }
-body[data-theme="starlight"] .menu-list li.active,
-body[data-theme="starlight"] .menu-list-song.active {
-  background: rgba(199,164,255,0.20);
+body[data-theme="starlight"] {
+  --vpod-highlight-bg: rgba(199,164,255,0.20);
+  --vpod-highlight-fg: #faf5ff;
 }
 
 /* Onyx Gold */
@@ -228,9 +223,9 @@ body[data-theme="onyx"] .vpod-screen {
   background: linear-gradient(180deg, #0b0b0b 0%, #161616 100%);
   border-color: #5a4300;
 }
-body[data-theme="onyx"] .menu-list li.active,
-body[data-theme="onyx"] .menu-list-song.active {
-  background: rgba(179,139,0,0.20);
+body[data-theme="onyx"] {
+  --vpod-highlight-bg: rgba(179,139,0,0.20);
+  --vpod-highlight-fg: #fff6d8;
 }
 
 /* Game Unlockable Themes */
@@ -252,8 +247,10 @@ body[data-theme="brickmaster"] .vpod-disk {
   box-shadow: 0 0 12px rgba(0,0,0,0.22);
 }
 body[data-theme="brickmaster"] .vpod-disk-center { background: linear-gradient(150deg,#c87c1f 0%,#8d5716 85%); color:#2b1a00; }
-body[data-theme="brickmaster"] .menu-list li.active,
-body[data-theme="brickmaster"] .menu-list-song.active { background: rgba(255,179,71,0.22); }
+body[data-theme="brickmaster"] {
+  --vpod-highlight-bg: rgba(255,179,71,0.22);
+  --vpod-highlight-fg: #fff3e0;
+}
 
 /* Snake Byte (dark jungle, lime cues, silver wheel) */
 body[data-theme="snakebyte"] .vpod-container {
@@ -270,8 +267,10 @@ body[data-theme="snakebyte"] .vpod-disk {
   border-color:#1d5f1d;
 }
 body[data-theme="snakebyte"] .vpod-disk-center { background: linear-gradient(145deg,#2e8f2e 0%,#1c5f1c 85%); color:#e9ffe9; }
-body[data-theme="snakebyte"] .menu-list li.active,
-body[data-theme="snakebyte"] .menu-list-song.active { background: rgba(46,143,46,0.22); color:#e9ffe9; }
+body[data-theme="snakebyte"] {
+  --vpod-highlight-bg: rgba(46,143,46,0.22);
+  --vpod-highlight-fg: #e9ffe9;
+}
 
 /* Flappy Sky (sky faceplate, white wheel, cyan center) */
 body[data-theme="flappysky"] .vpod-container {
@@ -302,8 +301,10 @@ body[data-theme="flappysky"] .vpod-disk {
   box-shadow: 0 0 14px rgba(0,0,0,0.23),0 1px 6px rgba(0,0,0,0.18);
 }
 body[data-theme="flappysky"] .vpod-disk-center { background: linear-gradient(150deg,#2a93c4 0%,#1b6e96 85%); color:#e9f9ff; }
-body[data-theme="flappysky"] .menu-list li.active,
-body[data-theme="flappysky"] .menu-list-song.active { background: rgba(91,213,255,0.22); }
+body[data-theme="flappysky"] {
+  --vpod-highlight-bg: rgba(91,213,255,0.22);
+  --vpod-highlight-fg: #e9f9ff;
+}
 
 /* Pipes & Flight (green pipes, dark body, light wheel) */
 body[data-theme="pipeflight"] .vpod-container {
@@ -320,8 +321,10 @@ body[data-theme="pipeflight"] .vpod-disk {
   border-color:#1f7038;
 }
 body[data-theme="pipeflight"] .vpod-disk-center { background: linear-gradient(150deg,#1f7f3e 0%,#15572b 85%); color:#e9fff1; }
-body[data-theme="pipeflight"] .menu-list li.active,
-body[data-theme="pipeflight"] .menu-list-song.active { background: rgba(57,196,99,0.22); color:#e9fff1; }
+body[data-theme="pipeflight"] {
+  --vpod-highlight-bg: rgba(57,196,99,0.22);
+  --vpod-highlight-fg: #e9fff1;
+}
 
 /* 2048 Tiles (amber faceplate, charcoal screen, silver wheel) */
 body[data-theme="twentyforty"] .vpod-container {
@@ -338,8 +341,10 @@ body[data-theme="twentyforty"] .vpod-disk {
   border-color:#a05f18;
 }
 body[data-theme="twentyforty"] .vpod-disk-center { background: linear-gradient(150deg,#c0781f 0%,#8c5514 85%); color:#fff7ea; }
-body[data-theme="twentyforty"] .menu-list li.active,
-body[data-theme="twentyforty"] .menu-list-song.active { background: rgba(240,167,59,0.22); color:#fff7ea; }
+body[data-theme="twentyforty"] {
+  --vpod-highlight-bg: rgba(240,167,59,0.22);
+  --vpod-highlight-fg: #fff7ea;
+}
 
 /* Solitaire Green (felt body, pale wheel) */
 body[data-theme="solitaireclub"] .vpod-container {
@@ -356,8 +361,10 @@ body[data-theme="solitaireclub"] .vpod-disk {
   border-color:#1c5f1c;
 }
 body[data-theme="solitaireclub"] .vpod-disk-center { background: linear-gradient(150deg,#1c5f1c 0%,#144414 85%); color:#e9ffe9; }
-body[data-theme="solitaireclub"] .menu-list li.active,
-body[data-theme="solitaireclub"] .menu-list-song.active { background: rgba(46,143,46,0.22); color:#e9ffe9; }
+body[data-theme="solitaireclub"] {
+  --vpod-highlight-bg: rgba(46,143,46,0.22);
+  --vpod-highlight-fg: #e9ffe9;
+}
 
 /* Number Whiz (navy body, electric blue center, light wheel) */
 body[data-theme="numberwhiz"] .vpod-container {
@@ -374,8 +381,10 @@ body[data-theme="numberwhiz"] .vpod-disk {
   border-color:#2b3f9a;
 }
 body[data-theme="numberwhiz"] .vpod-disk-center { background: linear-gradient(150deg,#3a52c4 0%,#273684 85%); color:#eef1ff; }
-body[data-theme="numberwhiz"] .menu-list li.active,
-body[data-theme="numberwhiz"] .menu-list-song.active { background: rgba(95,124,255,0.20); }
+body[data-theme="numberwhiz"] {
+  --vpod-highlight-bg: rgba(95,124,255,0.20);
+  --vpod-highlight-fg: #eef1ff;
+}
 
 /* Arcade Gold (amber body, graphite wheel) */
 body[data-theme="arcadegold"] .vpod-container {
@@ -392,8 +401,10 @@ body[data-theme="arcadegold"] .vpod-disk {
   border-color:#7a520c;
 }
 body[data-theme="arcadegold"] .vpod-disk-center { background: linear-gradient(150deg,#a4730f 0%,#704c0b 85%); color:#fff6dd; }
-body[data-theme="arcadegold"] .menu-list li.active,
-body[data-theme="arcadegold"] .menu-list-song.active { background: rgba(212,160,23,0.22); }
+body[data-theme="arcadegold"] {
+  --vpod-highlight-bg: rgba(212,160,23,0.22);
+  --vpod-highlight-fg: #fff6dd;
+}
 
 /* Zen Runner (cool teal body, light wheel, deep teal center) */
 body[data-theme="zenrunner"] .vpod-container {
@@ -410,8 +421,10 @@ body[data-theme="zenrunner"] .vpod-disk {
   border-color:#1c7f63;
 }
 body[data-theme="zenrunner"] .vpod-disk-center { background: linear-gradient(150deg,#1fae86 0%,#15785f 85%); color:#e8fff8; }
-body[data-theme="zenrunner"] .menu-list li.active,
-body[data-theme="zenrunner"] .menu-list-song.active { background: rgba(79,241,196,0.20); }
+body[data-theme="zenrunner"] {
+  --vpod-highlight-bg: rgba(79,241,196,0.20);
+  --vpod-highlight-fg: #e8fff8;
+}
 
 /* Porcelain Signal (warm porcelain shell, charcoal screen, signal-red center) */
 body[data-theme="gridglow"] .vpod-container {
@@ -440,10 +453,9 @@ body[data-theme="gridglow"] .vpod-disk-center {
   background: linear-gradient(150deg,#f56c4a 0%,#ca4d30 85%);
   color:#fff7f1;
 }
-body[data-theme="gridglow"] .menu-list li.active,
-body[data-theme="gridglow"] .menu-list-song.active {
-  background: rgba(255,107,74,0.20);
-  color:#fff5ef;
+body[data-theme="gridglow"] {
+  --vpod-highlight-bg: rgba(255,107,74,0.20);
+  --vpod-highlight-fg: #fff5ef;
 }
 
 /* Hazard Run (industrial black/yellow shell, steel screen, warning accents) */
@@ -471,10 +483,9 @@ body[data-theme="hyperlane"] .vpod-disk-center {
   background: linear-gradient(150deg,#f7d447 0%,#bb991f 85%);
   color:#221a00;
 }
-body[data-theme="hyperlane"] .menu-list li.active,
-body[data-theme="hyperlane"] .menu-list-song.active {
-  background: rgba(247,212,71,0.22);
-  color:#fff8d6;
+body[data-theme="hyperlane"] {
+  --vpod-highlight-bg: rgba(247,212,71,0.22);
+  --vpod-highlight-fg: #fff8d6;
 }
 
 /* Catacomb Brass (torchlit bronze shell, sepia screen, dark center) */
@@ -509,10 +520,9 @@ body[data-theme="catacomb"] .vpod-disk-btn {
   color: #f0ddb6;
   text-shadow: 0 1px 2px rgba(52,32,12,0.65);
 }
-body[data-theme="catacomb"] .menu-list li.active,
-body[data-theme="catacomb"] .menu-list-song.active {
-  background: rgba(174,123,49,0.24);
-  color: #fff0d1;
+body[data-theme="catacomb"] {
+  --vpod-highlight-bg: rgba(174,123,49,0.24);
+  --vpod-highlight-fg: #fff0d1;
 }
 
 /* Pocket Grove (handheld moss shell, cream screen, berry-red center) */
@@ -545,10 +555,9 @@ body[data-theme="pocketgrove"] .vpod-disk-btn {
   color: #41583f;
   text-shadow: none;
 }
-body[data-theme="pocketgrove"] .menu-list li.active,
-body[data-theme="pocketgrove"] .menu-list-song.active {
-  background: rgba(115,145,99,0.20);
-  color: #2d4736;
+body[data-theme="pocketgrove"] {
+  --vpod-highlight-bg: rgba(115,145,99,0.20);
+  --vpod-highlight-fg: #2d4736;
 }
 
 /* Moon Crypt (cold slate shell, moonlit silver screen, icy center) */
@@ -581,10 +590,9 @@ body[data-theme="mooncrypt"] .vpod-disk-btn {
   color: #dce7f2;
   text-shadow: 0 1px 2px rgba(20,30,40,0.45);
 }
-body[data-theme="mooncrypt"] .menu-list li.active,
-body[data-theme="mooncrypt"] .menu-list-song.active {
-  background: rgba(152,191,225,0.22);
-  color: #edf5fd;
+body[data-theme="mooncrypt"] {
+  --vpod-highlight-bg: rgba(152,191,225,0.22);
+  --vpod-highlight-fg: #edf5fd;
 }
 
 /* Capsule Pop (toy-box cream shell, bold blue body, bright red center) */
@@ -617,10 +625,9 @@ body[data-theme="capsulepop"] .vpod-disk-btn {
   color: #47614c;
   text-shadow: none;
 }
-body[data-theme="capsulepop"] .menu-list li.active,
-body[data-theme="capsulepop"] .menu-list-song.active {
-  background: rgba(61,112,216,0.16);
-  color: #22345a;
+body[data-theme="capsulepop"] {
+  --vpod-highlight-bg: rgba(61,112,216,0.16);
+  --vpod-highlight-fg: #22345a;
 }
 
 /* Checker Faceplate (Chessboard) */
@@ -651,8 +658,7 @@ body[data-theme="chessboard"] .vpod-disk-center {
 }
 
 /* Visible highlight for lists in chessboard */
-body[data-theme="chessboard"] .menu-list li.active,
-body[data-theme="chessboard"] .menu-list-song.active {
-  background: rgba(200, 200, 200, 0.28);
-  color: #111;
+body[data-theme="chessboard"] {
+  --vpod-highlight-bg: rgba(200, 200, 200, 0.28);
+  --vpod-highlight-fg: #111;
 }

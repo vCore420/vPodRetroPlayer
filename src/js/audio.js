@@ -39,7 +39,40 @@ function resolveTrackFile(track) {
   return match ? match.file : null;
 }
 
+const PLAYBACK_RETRY_WINDOW_MS = 15000;
 let pendingPlaybackRetry = null;
+
+function setPendingPlaybackRetry(track, reason) {
+  if (!track) return;
+  pendingPlaybackRetry = {
+    trackId: getTrackId(track),
+    reason,
+    createdAt: Date.now()
+  };
+}
+
+function clearPendingPlaybackRetry() {
+  pendingPlaybackRetry = null;
+}
+
+function getRetryablePendingTrack() {
+  if (!pendingPlaybackRetry || !app.state.currentTrack) return null;
+
+  const isExpired =
+    Date.now() - pendingPlaybackRetry.createdAt > PLAYBACK_RETRY_WINDOW_MS;
+
+  if (isExpired) {
+    clearPendingPlaybackRetry();
+    return null;
+  }
+
+  if (pendingPlaybackRetry.trackId !== getTrackId(app.state.currentTrack)) {
+    clearPendingPlaybackRetry();
+    return null;
+  }
+
+  return app.state.currentTrack;
+}
 
 async function ensureAudioPipelineReady() {
   if (typeof audioCtx === 'undefined') return true;
@@ -59,7 +92,7 @@ async function ensureAudioPipelineReady() {
 async function attemptTrackPlayback(track) {
   const pipelineReady = await ensureAudioPipelineReady();
   if (!pipelineReady) {
-    pendingPlaybackRetry = track;
+    setPendingPlaybackRetry(track, 'audio-context-suspended');
     return false;
   }
 
@@ -68,38 +101,45 @@ async function attemptTrackPlayback(track) {
     if (playResult && typeof playResult.then === 'function') {
       await playResult;
     }
-    pendingPlaybackRetry = null;
+
+    clearPendingPlaybackRetry();
     return true;
   } catch (error) {
     console.warn('audioPlayer.play() failed', error);
-    pendingPlaybackRetry = track;
+
+    if (error?.name === 'NotAllowedError') {
+      setPendingPlaybackRetry(track, 'autoplay-blocked');
+    } else {
+      clearPendingPlaybackRetry();
+    }
+
     return false;
   }
 }
 
-async function retryPendingPlayback() {
-  const pendingTrack = pendingPlaybackRetry;
-  if (!pendingTrack || !app.state.currentTrack) return;
-  if (getTrackId(pendingTrack) !== getTrackId(app.state.currentTrack)) return;
+async function retryPendingPlayback(trigger = 'unknown') {
+  const pendingTrack = getRetryablePendingTrack();
+  if (!pendingTrack) return false;
 
-  await attemptTrackPlayback(pendingTrack);
+  if (
+    trigger !== 'media-session-play' &&
+    pendingPlaybackRetry.reason !== 'autoplay-blocked' &&
+    pendingPlaybackRetry.reason !== 'audio-context-suspended'
+  ) {
+    return false;
+  }
+
+  return attemptTrackPlayback(pendingTrack);
 }
 
 window.ensureAudioPipelineReady = ensureAudioPipelineReady;
 window.retryPendingPlayback = retryPendingPlayback;
+window.clearPendingPlaybackRetry = clearPendingPlaybackRetry;
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
-    retryPendingPlayback();
+    retryPendingPlayback('visibilitychange');
   }
-});
-
-window.addEventListener('pageshow', () => {
-  retryPendingPlayback();
-});
-
-window.addEventListener('focus', () => {
-  retryPendingPlayback();
 });
 
 function getNextQueuedTrack() {
@@ -239,6 +279,8 @@ audioPlayer.addEventListener('play', () => {
 });
 
 audioPlayer.addEventListener('pause', () => {
+  clearPendingPlaybackRetry();
+
   const icon = playPauseBtn.querySelector('i');
   const ps = document.getElementById('hotBarPlayState');
 
@@ -253,6 +295,8 @@ audioPlayer.addEventListener('pause', () => {
 });
 
 audioPlayer.addEventListener('ended', async () => {
+  clearPendingPlaybackRetry();
+
   const next = getNextQueuedTrack();
 
   if (next) {

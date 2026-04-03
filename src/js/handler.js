@@ -25,15 +25,15 @@ function migrateHabitsToStableIds(tracks = []) {
     }
 
     return {
-      lifetimePlays: Number(habit.lifetimePlays || 0),
-      lifetimeSkips: Number(habit.lifetimeSkips || 0),
-      likeCount: Number(habit.likeCount || habit.lifetimeLikes || 0),
-      dislikeCount: Number(habit.dislikeCount || habit.lifetimeDislikes || 0),
+      lifetimePlays: Number(habit.lifetimePlays ?? 0),
+      lifetimeSkips: Number(habit.lifetimeSkips ?? 0),
+      likeCount: Number(habit.likeCount ?? habit.lifetimeLikes ?? 0),
+      dislikeCount: Number(habit.dislikeCount ?? habit.lifetimeDislikes ?? 0),
 
       weeklyPlays: Number(habit.weeklyPlays ?? habit.plays ?? 0),
       weeklySkips: Number(habit.weeklySkips ?? habit.skips ?? 0),
-      weeklyLikes: Number(habit.weeklyLikes || 0),
-      weeklyDislikes: Number(habit.weeklyDislikes || 0),
+      weeklyLikes: Number(habit.weeklyLikes ?? 0),
+      weeklyDislikes: Number(habit.weeklyDislikes ?? 0),
 
       likedThisWeek: Boolean(habit.likedThisWeek ?? habit.liked ?? false),
       dislikedThisWeek: Boolean(habit.dislikedThisWeek ?? habit.disliked ?? false),
@@ -49,8 +49,8 @@ function migrateHabitsToStableIds(tracks = []) {
       lastPlayed: Number(habit.lastPlayedAt ?? habit.lastPlayed ?? 0),
       lastLiked: Number(habit.lastLikedAt ?? habit.lastLiked ?? 0),
       lastDisliked: Number(habit.lastDislikedAt ?? habit.lastDisliked ?? 0),
-      lifetimeLikes: Number(habit.likeCount || habit.lifetimeLikes || 0),
-      lifetimeDislikes: Number(habit.dislikeCount || habit.lifetimeDislikes || 0)
+      lifetimeLikes: Number(habit.likeCount ?? habit.lifetimeLikes ?? 0),
+      lifetimeDislikes: Number(habit.dislikeCount ?? habit.lifetimeDislikes ?? 0)
     };
   };
 

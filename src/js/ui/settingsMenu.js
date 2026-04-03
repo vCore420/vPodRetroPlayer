@@ -501,9 +501,9 @@ function renderAboutMenu(direction = 'forward') {
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">About vRetro Player</div>
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
-        vRetro Player is a web-based local music player inspired by the ipod classic with some modern features.<br>
+        vRetro Player is a web-based local music player inspired by the 7th Gen iPod Classic with some modern features.<br>
         <br>        
-        Version: <b>2.9.2</b><br>
+        Version: <b>2.9.3</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
@@ -516,6 +516,12 @@ function renderAboutMenu(direction = 'forward') {
 function renderUserStatsMenu(direction = 'forward') {
   if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
   if (typeof ensureCurrentWeekFlags === 'function') ensureCurrentWeekFlags();
+
+  let serial = localStorage.getItem('vpodSerial');
+  if (!serial) {
+    serial = Math.floor(Math.random() * 1e8).toString(16);
+    localStorage.setItem('vpodSerial', serial);
+  }
 
   const habitsSource = typeof loadUserHabits === 'function'
     ? loadUserHabits()
@@ -540,6 +546,10 @@ function renderUserStatsMenu(direction = 'forward') {
     ? loadSmartMixStats()
     : { weekStarts: 0, lifetimeStarts: 0 };
 
+  const tracks = app.state.tracks || [];
+  const playlists = app.state.playlists || [];
+  const trackById = new Map(tracks.map(track => [getTrackId(track), track]));
+
   const totals = Object.values(habits).reduce((acc, habit) => {
     acc.weeklyPlays += Number(habit.weeklyPlays || 0);
     acc.weeklySkips += Number(habit.weeklySkips || 0);
@@ -551,6 +561,11 @@ function renderUserStatsMenu(direction = 'forward') {
     acc.lifetimeLikes += Number(habit.likeCount || 0);
     acc.lifetimeDislikes += Number(habit.dislikeCount || 0);
 
+    const track = trackById.get(habit.trackId || '') || null;
+    const duration = track && Number.isFinite(track.duration) ? Number(track.duration) : 0;
+    acc.weeklySeconds += Number(habit.weeklyPlays || 0) * duration;
+    acc.lifetimeSeconds += Number(habit.lifetimePlays || 0) * duration;
+
     return acc;
   }, {
     weeklyPlays: 0,
@@ -560,7 +575,9 @@ function renderUserStatsMenu(direction = 'forward') {
     lifetimePlays: 0,
     lifetimeSkips: 0,
     lifetimeLikes: 0,
-    lifetimeDislikes: 0
+    lifetimeDislikes: 0,
+    weeklySeconds: 0,
+    lifetimeSeconds: 0
   });
 
   const weeklyUniquePlayed = Object.values(habits).filter(habit => (habit.weeklyPlays || 0) > 0).length;
@@ -584,9 +601,6 @@ function renderUserStatsMenu(direction = 'forward') {
   const mostLikedLifetime = topEntryBy('likeCount');
   const mostSkippedLifetime = topEntryBy('lifetimeSkips');
   const mostDislikedLifetime = topEntryBy('dislikeCount');
-
-  const tracks = app.state.tracks || [];
-  const trackById = new Map(tracks.map(track => [getTrackId(track), track]));
   const trackByRel = new Map(
     tracks
       .filter(track => track.relativePath)
@@ -652,53 +666,184 @@ function renderUserStatsMenu(direction = 'forward') {
     : 'No lifetime dislike data yet';
 
   const hsList = Object.keys(gameHS).length
-    ? Object.entries(gameHS).map(([key, value]) => `${key}: <b>${value}</b>`).join('<br>')
-    : 'No game highs yet';
+    ? Object.entries(gameHS)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([key, value]) => ({ key, value }))
+    : [];
+
+  const formatPlayTime = (seconds) => {
+    const totalMinutes = Math.round(Number(seconds || 0) / 60);
+    if (totalMinutes < 60) return `${totalMinutes} min`;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+  };
+
+  const formatStat = (value) => Number(value || 0).toLocaleString();
+  const libraryCoverage = tracks.length
+    ? Math.round((lifetimeUniquePlayed / tracks.length) * 100)
+    : 0;
+
+  const weeklyMetrics = [
+    { label: 'Plays', value: formatStat(totals.weeklyPlays) },
+    { label: 'Unique', value: formatStat(weeklyUniquePlayed) },
+    { label: 'Likes', value: formatStat(totals.weeklyLikes) },
+    { label: 'Skips', value: formatStat(totals.weeklySkips) },
+    { label: 'Listening', value: formatPlayTime(totals.weeklySeconds) },
+    { label: 'Smart Mix', value: formatStat(smStats.weekStarts || 0) }
+  ];
+
+  const lifetimeMetrics = [
+    { label: 'Plays', value: formatStat(totals.lifetimePlays) },
+    { label: 'Library', value: `${libraryCoverage}%` },
+    { label: 'Likes', value: formatStat(totals.lifetimeLikes) },
+    { label: 'Skips', value: formatStat(totals.lifetimeSkips) },
+    { label: 'Dislikes', value: formatStat(totals.lifetimeDislikes) },
+    { label: 'Listening', value: formatPlayTime(totals.lifetimeSeconds) }
+  ];
+
+  const renderMetricGrid = (metrics) => metrics.map(metric => `
+    <div class="stats-metric-tile">
+      <span class="stats-metric-value">${metric.value}</span>
+      <span class="stats-metric-label">${metric.label}</span>
+    </div>
+  `).join('');
+
+  const renderScoreRows = () => {
+    if (!hsList.length) {
+      return `<div class="stats-note">No game high scores saved yet.</div>`;
+    }
+
+    return hsList.map(({ key, value }) => `
+      <div class="stats-row-item">
+        <span>${key}</span>
+        <strong>${formatStat(value)}</strong>
+      </div>
+    `).join('');
+  };
 
   renderScreen(
-    `<div style="padding:104px 0 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;position:relative;">
-      <button id="wipeStatsBtn" title="Wipe All User Stats" style="position:absolute;top:12px;right:18px;z-index:10;background:none;border:none;cursor:pointer;font-size:1.5em;color:#d90429;">
-        <i class="fa-solid fa-trash"></i>
-      </button>
-      <div style="font-size:1.1em;font-weight:bold;margin-bottom:6px;margin-top:18px;">User Info</div>
-      <div style="padding:10px 18px;max-width:340px;">
-        <div style="font-size:1em;color:#222;">
-          Name: <b>vPod User</b><br>
-          Model: <b>vPod Classic</b><br>
-          Serial: <b>#${(localStorage.getItem('vpodSerial') || (Math.floor(Math.random() * 1e8).toString(16)))}</b><br>
-          <hr style="margin:6px 0;">
-          <b>This Week</b><br>
-          Total Songs Played: <b>${totals.weeklyPlays}</b><br>
-          Total Songs Skipped: <b>${totals.weeklySkips}</b><br>
-          Total Songs Liked: <b>${totals.weeklyLikes}</b><br>
-          Total Songs Disliked: <b>${totals.weeklyDislikes}</b><br>
-          Unique Songs Played: <b>${weeklyUniquePlayed}</b><br>
-          Unique Songs Liked: <b>${weeklyUniqueLiked}</b><br>
-          Unique Songs Disliked: <b>${weeklyUniqueDisliked}</b><br>
-          Unique Songs Skipped: <b>${weeklyUniqueSkipped}</b><br>
-          Most Played Song: <b>${mostPlayedWeekLabel}</b><br>
-          Most Liked Song: <b>${mostLikedWeekLabel}</b><br>
-          Smart Mix sessions started: <b>${smStats.weekStarts || 0}</b><br>
-          <hr style="margin:6px 0;">
-          <b>Lifetime Stats</b><br>
-          Total Songs Played: <b>${totals.lifetimePlays}</b><br>
-          Total Songs Skipped: <b>${totals.lifetimeSkips}</b><br>
-          Total Songs Liked: <b>${totals.lifetimeLikes}</b><br>
-          Total Songs Disliked: <b>${totals.lifetimeDislikes}</b><br>
-          Unique Songs Played: <b>${lifetimeUniquePlayed}</b><br>
-          Unique Songs Liked: <b>${lifetimeUniqueLiked}</b><br>
-          Unique Songs Disliked: <b>${lifetimeUniqueDisliked}</b><br>
-          Unique Songs Skipped: <b>${lifetimeUniqueSkipped}</b><br>
-          Most Played Song: <b>${mostPlayedLifetimeLabel}</b><br>
-          Most Liked Song: <b>${mostLikedLifetimeLabel}</b><br>
-          Most Skipped Song: <b>${mostSkippedLifetimeLabel}</b><br>
-          Most Disliked Song: <b>${mostDislikedLifetimeLabel}</b><br>
-          <hr style="margin:6px 0;">
-          <b>Smart Mix</b><br>
-          Sessions started (lifetime): <b>${smStats.lifetimeStarts || 0}</b><br>
-          <hr style="margin:6px 0;">
-          <b>Game High Scores</b><br>
-          ${hsList}
+    `<div class="stats-screen">
+      <div class="stats-hero-card">
+        <div class="stats-hero-top">
+          <div>
+            <div class="user-stats-title">User Stats</div>
+            <div class="user-stats-subtitle">A clear view of your vPod listening history.</div>
+          </div>
+          <button id="wipeStatsBtn" class="stats-danger-btn" title="Wipe All User Stats">
+            <i class="fa-solid fa-trash"></i>
+            <span>Wipe Data</span>
+          </button>
+        </div>
+
+        <div class="stats-device-grid">
+          <div class="stats-device-item">
+            <span class="stats-device-label">Name</span>
+            <strong>vPod User</strong>
+          </div>
+          <div class="stats-device-item">
+            <span class="stats-device-label">Model</span>
+            <strong>vPod Classic</strong>
+          </div>
+          <div class="stats-device-item">
+            <span class="stats-device-label">Serial</span>
+            <strong>#${serial}</strong>
+          </div>
+          <div class="stats-device-item">
+            <span class="stats-device-label">Library</span>
+            <strong>${formatStat(tracks.length)} songs</strong>
+          </div>
+          <div class="stats-device-item">
+            <span class="stats-device-label">Playlists</span>
+            <strong>${formatStat(playlists.length)}</strong>
+          </div>
+          <div class="stats-device-item">
+            <span class="stats-device-label">Tracked Songs</span>
+            <strong>${formatStat(Object.keys(habits).length)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="user-stats-box">
+        <div class="stats-section-title">This Week</div>
+        <div class="stats-metric-grid">${renderMetricGrid(weeklyMetrics)}</div>
+        <div class="stats-spotlight-list">
+          <div class="stats-spotlight-item">
+            <span class="stats-spotlight-label">Top played</span>
+            <span class="stats-spotlight-value">${mostPlayedWeekLabel}</span>
+          </div>
+          <div class="stats-spotlight-item">
+            <span class="stats-spotlight-label">Top liked</span>
+            <span class="stats-spotlight-value">${mostLikedWeekLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="user-stats-box">
+        <div class="stats-section-title">Lifetime</div>
+        <div class="stats-metric-grid">${renderMetricGrid(lifetimeMetrics)}</div>
+        <div class="stats-spotlight-list">
+          <div class="stats-spotlight-item">
+            <span class="stats-spotlight-label">Most played</span>
+            <span class="stats-spotlight-value">${mostPlayedLifetimeLabel}</span>
+          </div>
+          <div class="stats-spotlight-item">
+            <span class="stats-spotlight-label">Most liked</span>
+            <span class="stats-spotlight-value">${mostLikedLifetimeLabel}</span>
+          </div>
+          <div class="stats-spotlight-item">
+            <span class="stats-spotlight-label">Most skipped</span>
+            <span class="stats-spotlight-value">${mostSkippedLifetimeLabel}</span>
+          </div>
+          <div class="stats-spotlight-item">
+            <span class="stats-spotlight-label">Most disliked</span>
+            <span class="stats-spotlight-value">${mostDislikedLifetimeLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="user-stats-box user-stats-box--compact">
+        <div class="stats-section-title">Extras</div>
+        <div class="stats-row-list">
+          <div class="stats-row-item">
+            <span>Weekly dislikes</span>
+            <strong>${formatStat(totals.weeklyDislikes)}</strong>
+          </div>
+          <div class="stats-row-item">
+            <span>Unique liked this week</span>
+            <strong>${formatStat(weeklyUniqueLiked)}</strong>
+          </div>
+          <div class="stats-row-item">
+            <span>Unique skipped this week</span>
+            <strong>${formatStat(weeklyUniqueSkipped)}</strong>
+          </div>
+          <div class="stats-row-item">
+            <span>Unique disliked this week</span>
+            <strong>${formatStat(weeklyUniqueDisliked)}</strong>
+          </div>
+          <div class="stats-row-item">
+            <span>Smart Mix lifetime starts</span>
+            <strong>${formatStat(smStats.lifetimeStarts || 0)}</strong>
+          </div>
+          <div class="stats-row-item">
+            <span>Lifetime unique liked</span>
+            <strong>${formatStat(lifetimeUniqueLiked)}</strong>
+          </div>
+          <div class="stats-row-item">
+            <span>Lifetime unique skipped</span>
+            <strong>${formatStat(lifetimeUniqueSkipped)}</strong>
+          </div>
+          <div class="stats-row-item">
+            <span>Lifetime unique disliked</span>
+            <strong>${formatStat(lifetimeUniqueDisliked)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="user-stats-box user-stats-box--compact">
+        <div class="stats-section-title">Game High Scores</div>
+        <div class="stats-row-list">
+          ${renderScoreRows()}
         </div>
       </div>
     </div>`,
@@ -742,10 +887,6 @@ function renderUserStatsMenu(direction = 'forward') {
     }
   };
 
-  if (!localStorage.getItem('vpodSerial')) {
-    const serial = Math.floor(Math.random() * 1e8).toString(16);
-    localStorage.setItem('vpodSerial', serial);
-  }
 }
 
 function renderBackupMenu(direction = 'forward') {

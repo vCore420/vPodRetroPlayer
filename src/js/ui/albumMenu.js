@@ -64,53 +64,89 @@ function renderAlbumSongsMenu(direction = 'forward', albumKey, albumIdx = 0, art
 
 // -- Album Carousel --
 
+let pendingCarouselFrame = null;
+let pendingCarouselIdx = 0;
+let pendingCarouselKeys = [];
+
+function queueCarouselAlbum(idx, albumKeys) {
+  pendingCarouselIdx = idx;
+  pendingCarouselKeys = albumKeys;
+
+  if (pendingCarouselFrame) return;
+
+  pendingCarouselFrame = requestAnimationFrame(() => {
+    pendingCarouselFrame = null;
+    setCarouselAlbum(pendingCarouselIdx, pendingCarouselKeys);
+    if (typeof preloadCarouselCovers === 'function') {
+      preloadCarouselCovers(pendingCarouselKeys, pendingCarouselIdx);
+    }
+  });
+}
+
 function setCarouselAlbum(idx, albumKeys) {
   const carousel = document.getElementById('albumCarousel');
   const title = document.getElementById('albumTitle');
+  if (!carousel || !title) return;
+
   const visibleRange = 5;
 
   Array.from(carousel.children).forEach((el, i) => {
     const offset = i - idx;
-    el.className = 'carousel-album';
+
+    el.classList.remove(
+      'carousel-album-center',
+      'carousel-album-left',
+      'carousel-album-right'
+    );
+
+    if (!el.classList.contains('carousel-album')) {
+      el.classList.add('carousel-album');
+    }
+
     el.style.zIndex = '';
     el.style.opacity = '';
     el.style.filter = '';
     el.style.transform = '';
+    el.style.visibility = '';
+    el.style.pointerEvents = '';
 
     if (offset === 0) {
       el.classList.add('carousel-album-center');
-      el.style.transform = `translate(-50%, -50%) scale(1.25) rotateY(0deg)`;
+      el.style.transform = 'translate(-50%, -50%) scale(1.25) rotateY(0deg)';
       el.style.zIndex = 10;
       el.style.opacity = 1;
-      el.style.filter = 'brightness(1) blur(0px)';
+      el.style.filter = 'brightness(1)';
       el.style.visibility = 'visible';
       el.style.pointerEvents = 'auto';
     } else if (offset < 0 && Math.abs(offset) <= visibleRange) {
+      const distance = Math.abs(offset);
+      const spacing = 80 * distance;
       el.classList.add('carousel-album-left');
-      const spacing = 80 * Math.abs(offset);
-      el.style.transform = `translate(calc(-50% - ${spacing}px), -50%) scale(${1 - 0.1 * Math.abs(offset)}) rotateY(55deg)`;
-      el.style.zIndex = 5 - Math.abs(offset);
-      el.style.opacity = 0.7 - 0.1 * Math.abs(offset);
-      el.style.filter = 'brightness(0.85) blur(0.5px)';
+      el.style.transform = `translate(calc(-50% - ${spacing}px), -50%) scale(${1 - 0.1 * distance}) rotateY(55deg)`;
+      el.style.zIndex = 5 - distance;
+      el.style.opacity = 0.7 - 0.1 * distance;
+      el.style.filter = 'brightness(0.85)';
       el.style.visibility = 'visible';
       el.style.pointerEvents = 'auto';
     } else if (offset > 0 && Math.abs(offset) <= visibleRange) {
+      const distance = Math.abs(offset);
+      const spacing = 80 * distance;
       el.classList.add('carousel-album-right');
-      const spacing = 80 * Math.abs(offset);
-      el.style.transform = `translate(calc(-50% + ${spacing}px), -50%) scale(${1 - 0.1 * Math.abs(offset)}) rotateY(-55deg)`;
-      el.style.zIndex = 5 - Math.abs(offset);
-      el.style.opacity = 0.7 - 0.1 * Math.abs(offset);
-      el.style.filter = 'brightness(0.85) blur(0.5px)';
+      el.style.transform = `translate(calc(-50% + ${spacing}px), -50%) scale(${1 - 0.1 * distance}) rotateY(-55deg)`;
+      el.style.zIndex = 5 - distance;
+      el.style.opacity = 0.7 - 0.1 * distance;
+      el.style.filter = 'brightness(0.85)';
       el.style.visibility = 'visible';
       el.style.pointerEvents = 'auto';
     } else {
-      // Hide albums outside the visible range
       el.style.opacity = 0;
       el.style.visibility = 'hidden';
       el.style.pointerEvents = 'none';
-      el.style.transform = 'translate(-50%, -50%) scale(0.7) rotateY(0deg)';
+      el.style.transform = 'translate(-50%, -50%) scale(0.7)';
+      el.style.filter = 'brightness(0.85)';
     }
   });
+
   const albumObj = app.state.albums[albumKeys[idx]] || {};
   title.textContent = albumObj.title || '';
 }

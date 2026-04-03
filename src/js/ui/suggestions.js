@@ -7,6 +7,68 @@ const USER_STATS_SCHEMA_KEY = 'userStatsSchemaVersion';
 const USER_STATS_SCHEMA_VERSION = 1;
 const LAST_WEEK_STATS_KEY = 'lastWeekStats';
 const LAST_WEEK_SMART_MIX_STARTS_KEY = 'lastWeekSmartMixStarts';
+const SUGGESTED_TUNE_MODE_KEY = 'suggestedTuneMode';
+
+const SUGGESTED_TUNE_MODES = {
+  familiar: {
+    key: 'familiar',
+    label: 'Familiar',
+    subtitle: 'More of what already fits you',
+    exploreWeight: 0.75,
+    affinityWeight: 1.3,
+    recencyWeight: 1.15,
+    diversityArtistCap: 3,
+    diversityAlbumCap: 2,
+    quickSkipPenalty: 5,
+    deepSkipPenalty: 1.4
+  },
+  balanced: {
+    key: 'balanced',
+    label: 'Balanced',
+    subtitle: 'A mix of safe picks and rediscoveries',
+    exploreWeight: 1,
+    affinityWeight: 1,
+    recencyWeight: 1,
+    diversityArtistCap: 2,
+    diversityAlbumCap: 2,
+    quickSkipPenalty: 4,
+    deepSkipPenalty: 1.15
+  },
+  discovery: {
+    key: 'discovery',
+    label: 'Discovery',
+    subtitle: 'More variety and low-play songs',
+    exploreWeight: 1.45,
+    affinityWeight: 0.82,
+    recencyWeight: 0.8,
+    diversityArtistCap: 1,
+    diversityAlbumCap: 1,
+    quickSkipPenalty: 3.2,
+    deepSkipPenalty: 0.9
+  }
+};
+
+function getSuggestedTuneMode() {
+  const mode = localStorage.getItem(SUGGESTED_TUNE_MODE_KEY) || 'balanced';
+  return SUGGESTED_TUNE_MODES[mode] ? mode : 'balanced';
+}
+
+function setSuggestedTuneMode(mode) {
+  const nextMode = SUGGESTED_TUNE_MODES[mode] ? mode : 'balanced';
+  localStorage.setItem(SUGGESTED_TUNE_MODE_KEY, nextMode);
+  return nextMode;
+}
+
+function cycleSuggestedTuneMode() {
+  const order = ['familiar', 'balanced', 'discovery'];
+  const current = getSuggestedTuneMode();
+  const next = order[(order.indexOf(current) + 1) % order.length];
+  return setSuggestedTuneMode(next);
+}
+
+function getSuggestedTuneConfig(mode = getSuggestedTuneMode()) {
+  return SUGGESTED_TUNE_MODES[mode] || SUGGESTED_TUNE_MODES.balanced;
+}
 
 function readJson(key, fallback) {
   try {
@@ -74,20 +136,25 @@ function createEmptyHabit() {
 
 function syncHabitShape(habit = {}) {
   const synced = {
-    lifetimePlays: Number(habit.lifetimePlays || 0),
-    lifetimeSkips: Number(habit.lifetimeSkips || 0),
-    likeCount: Number(habit.likeCount || habit.lifetimeLikes || 0),
-    dislikeCount: Number(habit.dislikeCount || habit.lifetimeDislikes || 0),
+    lifetimePlays: Number(habit.lifetimePlays ?? 0),
+    lifetimeSkips: Number(habit.lifetimeSkips ?? 0),
+    lifetimeQuickSkips: Number(habit.lifetimeQuickSkips ?? 0),
+    lifetimeDeepSkips: Number(habit.lifetimeDeepSkips ?? 0),
+    likeCount: Number(habit.likeCount ?? habit.lifetimeLikes ?? 0),
+    dislikeCount: Number(habit.dislikeCount ?? habit.lifetimeDislikes ?? 0),
 
     weeklyPlays: Number(habit.weeklyPlays ?? habit.plays ?? 0),
     weeklySkips: Number(habit.weeklySkips ?? habit.skips ?? 0),
-    weeklyLikes: Number(habit.weeklyLikes || 0),
-    weeklyDislikes: Number(habit.weeklyDislikes || 0),
+    weeklyQuickSkips: Number(habit.weeklyQuickSkips ?? 0),
+    weeklyDeepSkips: Number(habit.weeklyDeepSkips ?? 0),
+    weeklyLikes: Number(habit.weeklyLikes ?? 0),
+    weeklyDislikes: Number(habit.weeklyDislikes ?? 0),
 
     likedThisWeek: Boolean(habit.likedThisWeek ?? habit.liked ?? false),
     dislikedThisWeek: Boolean(habit.dislikedThisWeek ?? habit.disliked ?? false),
 
     lastPlayedAt: Number(habit.lastPlayedAt ?? habit.lastPlayed ?? 0),
+    lastSkipAt: Number(habit.lastSkipAt ?? 0),
     lastLikedAt: Number(habit.lastLikedAt ?? habit.lastLiked ?? 0),
     lastDislikedAt: Number(habit.lastDislikedAt ?? habit.lastDisliked ?? 0)
   };
@@ -98,6 +165,7 @@ function syncHabitShape(habit = {}) {
   synced.liked = synced.likedThisWeek;
   synced.disliked = synced.dislikedThisWeek;
   synced.lastPlayed = synced.lastPlayedAt;
+  synced.lastSkip = synced.lastSkipAt;
   synced.lastLiked = synced.lastLikedAt;
   synced.lastDisliked = synced.lastDislikedAt;
   synced.lifetimeLikes = synced.likeCount;
@@ -169,6 +237,8 @@ function buildLastWeekStatsSnapshot(habits) {
     snapshot[id] = {
       plays: habit.weeklyPlays,
       skips: habit.weeklySkips,
+      weeklyQuickSkips: habit.weeklyQuickSkips,
+      weeklyDeepSkips: habit.weeklyDeepSkips,
       weeklyLikes: habit.weeklyLikes,
       weeklyDislikes: habit.weeklyDislikes,
       liked: habit.likedThisWeek,
@@ -187,6 +257,8 @@ function clearWeeklyHabitStats(habit) {
     ...habit,
     weeklyPlays: 0,
     weeklySkips: 0,
+    weeklyQuickSkips: 0,
+    weeklyDeepSkips: 0,
     weeklyLikes: 0,
     weeklyDislikes: 0,
     likedThisWeek: false,
@@ -289,9 +361,26 @@ function logTrackSkip(track) {
 
   const id = getTrackId(track);
   const habit = getOrCreateHabit(id);
+  const sameTrack = app.state.currentTrack && getTrackId(app.state.currentTrack) === id;
+  const duration = sameTrack
+    ? Number(audioPlayer.duration || track.duration || 0)
+    : Number(track.duration || 0);
+  const currentTime = sameTrack ? Number(audioPlayer.currentTime || 0) : 0;
+  const progress = duration > 0 ? (currentTime / duration) : 0;
+  const quickSkip = (duration > 0 && progress <= 0.2) || (duration <= 0 && currentTime <= 15);
+  const deepSkip = (duration > 0 && progress >= 0.55) || app.state.halfPlayedMark === id;
 
   habit.lifetimeSkips += 1;
   habit.weeklySkips += 1;
+  habit.lastSkipAt = Date.now();
+
+  if (quickSkip) {
+    habit.lifetimeQuickSkips += 1;
+    habit.weeklyQuickSkips += 1;
+  } else if (deepSkip) {
+    habit.lifetimeDeepSkips += 1;
+    habit.weeklyDeepSkips += 1;
+  }
 
   saveUserHabits();
 
@@ -364,11 +453,54 @@ window.finalizeWeekIfNeeded = finalizeWeekIfNeeded;
 
 initializeUserStatsStorage();
 
-// Get suggested tracks
-function getSuggestedTracks(tracks, limit = 20) {
+function getRecommendationTier(score) {
+  if (score >= 12) return 'Strong Match';
+  if (score >= 7) return 'Good Fit';
+  if (score >= 4) return 'Fresh Pick';
+  return 'Wildcard';
+}
+
+function getStableSuggestionJitter(trackId, nonce = 0) {
+  let hash = 0;
+  const input = `${trackId}:${nonce}`;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) - hash) + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return (Math.abs(hash) % 1000) / 1000;
+}
+
+function createReason(weight, label) {
+  return { weight, label };
+}
+
+function summarizeReasons(reasons = []) {
+  const ordered = reasons
+    .slice()
+    .sort((a, b) => b.weight - a.weight)
+    .map(reason => reason.label)
+    .filter((label, index, arr) => arr.indexOf(label) === index);
+
+  return ordered.slice(0, 2);
+}
+
+function getSuggestionExplanation(tier, reasonLabels = []) {
+  const filtered = reasonLabels.filter(label => {
+    if (tier === 'Fresh Pick' && (label === 'Fresh pick' || label === 'Underplayed')) return false;
+    return true;
+  });
+
+  return filtered[0] || '';
+}
+
+function getSuggestedRecommendations(tracks, options = {}) {
   finalizeWeekIfNeeded();
   const now = Date.now();
   const habits = loadUserHabits();
+  const limit = Number(options.limit || 20);
+  const modeKey = options.mode || getSuggestedTuneMode();
+  const tune = getSuggestedTuneConfig(modeKey);
+  const refreshNonce = Number(options.refreshNonce || 0);
 
   const trackById = new Map(tracks.map(t => [getTrackId(t), t]));
   const norm = (s = '') => s.trim().toLowerCase();
@@ -399,15 +531,55 @@ function getSuggestedTracks(tracks, limit = 20) {
     const id = getTrackId(track);
     const habit = syncHabitShape(habits[id] || {});
     let score = 0;
+    const reasons = [];
+    const artistNorm = norm(track.artist);
+    const albumNorm = norm(track.album);
+    const genreNorm = norm(track.genre);
 
-    if ((habit.lifetimePlays || 0) < 3) score += 4 - (habit.lifetimePlays || 0);
-    score += (habit.likeCount || 0) * 2;
-    score += (habit.weeklyLikes || 0) * 3;
-    score += recencyScore(habit);
+    const lowPlayBonus = Math.max(0, 4 - (habit.lifetimePlays || 0)) * tune.exploreWeight;
+    if ((habit.lifetimePlays || 0) < 3) {
+      score += lowPlayBonus;
+      reasons.push(createReason(lowPlayBonus, (habit.lifetimePlays || 0) === 0 ? 'Fresh pick' : 'Underplayed'));
+    }
 
-    if (seedArtists.has(norm(track.artist))) score += 2;
-    if (seedAlbums.has(norm(track.album))) score += 1;
-    if (seedGenres.has(norm(track.genre))) score += 2;
+    const likeBonus = (habit.likeCount || 0) * 2 * tune.affinityWeight;
+    if (likeBonus > 0) {
+      score += likeBonus;
+      reasons.push(createReason(likeBonus, 'You liked this before'));
+    }
+
+    const weeklyLikeBonus = (habit.weeklyLikes || 0) * 3 * tune.affinityWeight;
+    if (weeklyLikeBonus > 0) {
+      score += weeklyLikeBonus;
+      reasons.push(createReason(weeklyLikeBonus, 'Liked this week'));
+    }
+
+    const recentBonus = recencyScore(habit) * tune.recencyWeight;
+    if (recentBonus > 0) {
+      score += recentBonus;
+      reasons.push(createReason(recentBonus, 'Recent positive signal'));
+    }
+
+    if (seedArtists.has(artistNorm)) {
+      const artistBonus = 2 * tune.affinityWeight;
+      score += artistBonus;
+      reasons.push(createReason(artistBonus, 'Artist you like'));
+    }
+    if (seedAlbums.has(albumNorm)) {
+      const albumBonus = 1 * tune.affinityWeight;
+      score += albumBonus;
+      reasons.push(createReason(albumBonus, 'Album you revisit'));
+    }
+    if (seedGenres.has(genreNorm)) {
+      const genreBonus = 2 * tune.affinityWeight;
+      score += genreBonus;
+      reasons.push(createReason(genreBonus, 'Genre match'));
+    }
+
+    const quickSkipPenalty = (habit.lifetimeQuickSkips || 0) * tune.quickSkipPenalty;
+    const deepSkipPenalty = (habit.lifetimeDeepSkips || 0) * tune.deepSkipPenalty;
+    if (quickSkipPenalty > 0) score -= quickSkipPenalty;
+    if (deepSkipPenalty > 0) score -= deepSkipPenalty;
 
     if ((habit.dislikeCount || 0) > 0 || (habit.weeklyDislikes || 0) > 0 || habit.dislikedThisWeek) {
       score -= 8;
@@ -415,53 +587,93 @@ function getSuggestedTracks(tracks, limit = 20) {
 
     if ((habit.lifetimePlays || 0) > 10) score -= 2;
 
-    return { track, score, habit };
+    if ((habit.lifetimePlays || 0) > 8 && (habit.likeCount || 0) === 0) {
+      score -= 1.5;
+    }
+
+    score += getStableSuggestionJitter(id, refreshNonce);
+
+    const summaryReasons = summarizeReasons(reasons);
+
+    return {
+      track,
+      score,
+      habit,
+      reasons,
+      reasonLabels: summaryReasons,
+      tier: getRecommendationTier(score)
+    };
   });
 
   const filtered = scored.filter(obj =>
     (obj.habit.lifetimePlays || 0) < 10 &&
     !obj.habit.likedThisWeek &&
     !obj.habit.dislikedThisWeek &&
-    (obj.habit.dislikeCount || 0) === 0
+    (obj.habit.dislikeCount || 0) === 0 &&
+    (obj.habit.lifetimeQuickSkips || 0) < 3 &&
+    !((obj.habit.lifetimeSkips || 0) >= 5 && (obj.habit.likeCount || 0) === 0)
   );
 
   filtered.sort((a, b) => b.score - a.score);
 
+  const picked = [];
+  const artistSeen = new Map();
+  const albumSeen = new Map();
+
+  filtered.forEach(obj => {
+    if (picked.length >= limit) return;
+
+    const artistKey = norm(obj.track.artist);
+    const albumKey = norm(obj.track.album);
+    const artistCount = artistSeen.get(artistKey) || 0;
+    const albumCount = albumSeen.get(albumKey) || 0;
+    const allowOverflow = picked.length < 5;
+
+    if (!allowOverflow) {
+      if (artistKey && artistCount >= tune.diversityArtistCap) return;
+      if (albumKey && albumCount >= tune.diversityAlbumCap) return;
+    }
+
+    picked.push(obj);
+    if (artistKey) artistSeen.set(artistKey, artistCount + 1);
+    if (albumKey) albumSeen.set(albumKey, albumCount + 1);
+  });
+
   console.log("Top Suggestions:");
-  filtered.slice(0, 5).forEach(obj => {
+  picked.slice(0, 5).forEach(obj => {
     console.log(
       `${obj.track.title} (${obj.track.artist}) | Score: ${obj.score}`,
       obj.habit
     );
   });
 
-  return filtered.slice(0, limit).map(obj => obj.track);
+  return picked.slice(0, limit).map(obj => ({
+    ...obj,
+    explanation: getSuggestionExplanation(obj.tier, obj.reasonLabels)
+  }));
+}
+
+// Get suggested tracks
+function getSuggestedTracks(tracks, limit = 20, options = {}) {
+  return getSuggestedRecommendations(tracks, { ...options, limit }).map(item => item.track);
 }
 
 function resetTrackRatings(track) {
   finalizeWeekIfNeeded();
 
   const id = getTrackId(track);
-  const habit = getOrCreateHabit(id);
+  loadUserHabits();
 
-  habit.lifetimePlays = 0;
-  habit.lifetimeSkips = 0;
-  habit.likeCount = 0;
-  habit.dislikeCount = 0;
+  if (userHabits[id]) {
+    delete userHabits[id];
+    saveUserHabits();
+  }
 
-  habit.weeklyPlays = 0;
-  habit.weeklySkips = 0;
-  habit.weeklyLikes = 0;
-  habit.weeklyDislikes = 0;
-
-  habit.likedThisWeek = false;
-  habit.dislikedThisWeek = false;
-
-  habit.lastPlayedAt = 0;
-  habit.lastLikedAt = 0;
-  habit.lastDislikedAt = 0;
-
-  saveUserHabits();
+  const lastWeekStats = readJson(LAST_WEEK_STATS_KEY, {});
+  if (lastWeekStats[id]) {
+    delete lastWeekStats[id];
+    localStorage.setItem(LAST_WEEK_STATS_KEY, JSON.stringify(lastWeekStats));
+  }
 }
 
 // Debug summary
@@ -498,45 +710,202 @@ window.logTrackPlay = logTrackPlay;
 window.logTrackSkip = logTrackSkip;
 window.setTrackRating = setTrackRating;
 window.getSuggestedTracks = getSuggestedTracks;
+window.getSuggestedRecommendations = getSuggestedRecommendations;
 window.resetTrackRatings = resetTrackRatings;
 
 // -- SUGGESTED SONGS MENU ---
 
 function renderSuggestedMenu(direction = 'forward') {
-  const allTracks = app.state.tracks;
-  const allAlbums = app.state.albums;
+  const allTracks = app.state.tracks || [];
+  const allAlbums = app.state.albums || {};
 
-  const suggested = window.getSuggestedTracks
-    ? window.getSuggestedTracks(allTracks, 20)
-    : [];
+  app.state.suggestedRefreshNonce = Number(app.state.suggestedRefreshNonce || 0);
+
+  const buildSuggestedState = () => {
+    const mode = getSuggestedTuneMode();
+    const tune = getSuggestedTuneConfig(mode);
+    const suggested = window.getSuggestedRecommendations
+      ? window.getSuggestedRecommendations(allTracks, {
+          limit: 20,
+          mode,
+          refreshNonce: app.state.suggestedRefreshNonce
+        })
+      : [];
+
+    return { mode, tune, suggested };
+  };
+
+  let { mode: tuneMode, tune, suggested } = buildSuggestedState();
 
   if (!suggested.length) {
     renderScreen(
-      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
-        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">Suggested Songs</div>
-        <div style="font-size:1em;color:#444;text-align:center;">
-          Not enough listening data yet.<br>
-          Play, like, or skip songs to get suggestions!
+      `<div class="suggested-empty-state">
+        <div class="suggested-empty-icon"><i class="fa-solid fa-star"></i></div>
+        <div class="suggested-empty-title">Suggested Songs</div>
+        <div class="suggested-empty-copy">
+          Your recommendations will improve as you listen.<br>
+          Play songs through, like what fits, and skip what you want less of.
         </div>
+        <div class="suggested-empty-steps">
+          <div>1. Play a few songs fully</div>
+          <div>2. Like tracks you want more of</div>
+          <div>3. Skip early when something is not for you</div>
+        </div>
+        <button id="suggestedEmptyTuneBtn" class="suggested-action-btn suggested-action-btn--secondary">
+          Mode: ${tune.label}
+        </button>
       </div>`,
       direction
     );
+
+    const emptyTuneBtn = document.getElementById('suggestedEmptyTuneBtn');
+    if (emptyTuneBtn) {
+      emptyTuneBtn.onclick = () => {
+        cycleSuggestedTuneMode();
+        renderSuggestedMenu(direction);
+      };
+    }
     return;
   }
 
   app.state.currentMenuIndex = 0;
 
-  renderSongList({
-    songs: suggested,
-    onSongClick: (track, idx) => {
-      app.state.currentMenuIndex = idx;
-      playTrackFromAlbum(track, suggested);
-    },
-    albumCover: allAlbums[suggested[0]?.albumKey || suggested[0]?.album]?.cover
-  }, direction);
+  renderScreen(
+    `<div class="album-list suggested-layout">
+      <div class="album-list-left suggested-pane" id="suggestedListContainer">
+        <div class="suggested-pane-header">
+          <div class="suggested-pane-heading">
+            <div class="suggested-pane-title">Suggested</div>
+            <div class="suggested-pane-subtitle" id="suggestedSubtitle">${tune.subtitle}</div>
+          </div>
+          <div class="suggested-pane-actions">
+            <button id="suggestedTuneBtn" class="suggested-action-btn suggested-action-btn--secondary">${tune.label}</button>
+            <button id="suggestedRefreshBtn" class="suggested-action-btn" title="Refresh Recommendations">
+              <i class="fa-solid fa-shuffle"></i>
+              <span>Shuffle</span>
+            </button>
+          </div>
+        </div>
+        <div id="suggestedList"></div>
+      </div>
+      <div class="album-list-right suggested-art-pane" id="suggestedArtContainer">
+        <img id="suggestedArt" src="${allAlbums[suggested[0]?.track?.albumKey || suggested[0]?.track?.album]?.cover || 'src/img/default-cover.png'}" class="album-cover" alt="Album Cover">
+      </div>
+    </div>`,
+    direction
+  );
 
-  if (typeof window.updateHighlightedSong === 'function') {
-    window.updateHighlightedSong();
+  const suggestedList = document.getElementById('suggestedList');
+  const suggestedSubtitle = document.getElementById('suggestedSubtitle');
+  const suggestedTuneBtn = document.getElementById('suggestedTuneBtn');
+  const suggestedRefreshBtn = document.getElementById('suggestedRefreshBtn');
+  const suggestedArt = document.getElementById('suggestedArt');
+
+  const renderSuggestedHighlight = () => {
+    const idx = app.state.currentMenuIndex;
+    const rows = Array.from(suggestedList.querySelectorAll('.menu-list-song'));
+    rows.forEach((row, rowIdx) => row.classList.toggle('active', rowIdx === idx));
+
+    const current = suggested[idx] || suggested[0];
+    if (!current) return;
+
+    const albumObj = allAlbums[current.track.albumKey || current.track.album] || {};
+
+    if (suggestedArt) suggestedArt.src = albumObj.cover || 'src/img/default-cover.png';
+  };
+
+  const renderSuggestedRows = () => {
+    suggestedList.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    suggested.forEach((item, idx) => {
+      const track = item.track;
+      const isNowPlaying = app.state.currentTrack && getTrackId(app.state.currentTrack) === getTrackId(track);
+      const nowPlayingLabel = isNowPlaying
+        ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
+        : '';
+
+      const row = document.createElement('div');
+      row.className = 'menu-list-song suggested-song-row';
+      row.dataset.idx = idx;
+      row.innerHTML = `
+        ${nowPlayingLabel}
+        <div class="suggested-song-copy">
+          <div class="suggested-song-topline">
+            <span class="suggested-song-title">${track.title || 'Unknown Track'}</span>
+            <span class="suggested-tier-pill">${item.tier}</span>
+          </div>
+          <div class="suggested-song-meta">${track.artist || 'Unknown Artist'}${track.album ? ` • ${track.album}` : ''}</div>
+          ${item.explanation ? `<div class="suggested-song-reason">${item.explanation}</div>` : ''}
+        </div>
+      `;
+
+      row.onclick = () => {
+        app.state.currentMenuIndex = idx;
+        renderSuggestedHighlight();
+        playTrackFromAlbum(track, suggested.map(entry => entry.track));
+      };
+
+      fragment.appendChild(row);
+    });
+
+    suggestedList.appendChild(fragment);
+
+    requestAnimationFrame(() => {
+      renderSuggestedHighlight();
+
+      if (!suggestedList.children.length) {
+        renderSuggestedMenu('forward');
+      }
+    });
+  };
+
+  const refreshSuggestedView = ({ resetIndex = true, bumpNonce = false } = {}) => {
+    if (bumpNonce) {
+      app.state.suggestedRefreshNonce = Number(app.state.suggestedRefreshNonce || 0) + 1;
+    }
+
+    const nextState = buildSuggestedState();
+    tuneMode = nextState.mode;
+    tune = nextState.tune;
+    suggested = nextState.suggested;
+
+    if (!suggested.length) {
+      renderSuggestedMenu('forward');
+      return;
+    }
+
+    if (resetIndex) {
+      app.state.currentMenuIndex = 0;
+      suggestedList.scrollTop = 0;
+    } else if (app.state.currentMenuIndex >= suggested.length) {
+      app.state.currentMenuIndex = Math.max(0, suggested.length - 1);
+    }
+
+    if (suggestedSubtitle) suggestedSubtitle.textContent = tune.subtitle;
+    if (suggestedTuneBtn) suggestedTuneBtn.textContent = tune.label;
+    renderSuggestedRows();
+  };
+
+  if (suggestedRefreshBtn) {
+    suggestedRefreshBtn.onclick = () => {
+      refreshSuggestedView({ resetIndex: true, bumpNonce: true });
+    };
+  }
+
+  if (suggestedTuneBtn) {
+    suggestedTuneBtn.onclick = () => {
+    cycleSuggestedTuneMode();
+      refreshSuggestedView({ resetIndex: true, bumpNonce: true });
+    };
+  }
+
+  window.updateHighlightedSong = () => renderSuggestedHighlight();
+  renderSuggestedRows();
+
+  const rows = suggestedList.querySelectorAll('.menu-list-song');
+  if (rows[0]) {
+    rows[0].scrollIntoView({ block: 'nearest' });
   }
 }
 
