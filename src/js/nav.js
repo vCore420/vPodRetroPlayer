@@ -286,6 +286,7 @@ function attachDiskControlListeners() {
 
       // 7. Fallback: normal menu logic
       let menu =
+        document.getElementById('smartMixList') ||
         document.getElementById('suggestedList') ||
         document.getElementById('allSongsList') ||
         document.getElementById('songsList') ||
@@ -371,6 +372,7 @@ function scrollMenu(direction) {
   }
   // Normal menu logic
   let menu =
+    document.getElementById('smartMixList') ||
     document.getElementById('suggestedList') ||
     document.getElementById('allSongsList') ||
     document.getElementById('songsList') ||
@@ -381,7 +383,9 @@ function scrollMenu(direction) {
 
   // Get items for the active menu
   let items;
-  if (menu.id === 'suggestedList') {
+  if (menu.id === 'smartMixList') {
+    items = Array.from(menu.querySelectorAll('.menu-list-song'));
+  } else if (menu.id === 'suggestedList') {
     items = Array.from(menu.querySelectorAll('.menu-list-song'));
   } else if (menu.id === 'allSongsList') {
     items = Array.from(menu.querySelectorAll('.menu-list-song'));

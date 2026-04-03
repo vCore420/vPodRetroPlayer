@@ -161,6 +161,8 @@ function getNextQueuedTrack() {
     state.smartMixActive = false;
     state.smartMixQueue = null;
     state.smartMixHistory = null;
+    state.smartMixTrackMeta = null;
+    state.smartMixSessionNote = null;
     return null;
   }
 
@@ -190,6 +192,8 @@ async function playTrackFromAlbum(track, albumSongs, opts = {}) {
     app.state.smartMixActive = false;
     app.state.smartMixQueue = null;
     app.state.smartMixHistory = null;
+    app.state.smartMixTrackMeta = null;
+    app.state.smartMixSessionNote = null;
   } else if (isSmartMix) {
     app.state.smartMixActive = true;
     app.state.smartMixQueue = app.state.smartMixQueue || albumSongs || [];

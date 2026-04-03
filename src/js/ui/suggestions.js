@@ -8,6 +8,7 @@ const USER_STATS_SCHEMA_VERSION = 1;
 const LAST_WEEK_STATS_KEY = 'lastWeekStats';
 const LAST_WEEK_SMART_MIX_STARTS_KEY = 'lastWeekSmartMixStarts';
 const SUGGESTED_TUNE_MODE_KEY = 'suggestedTuneMode';
+const SMART_MIX_MODE_KEY = 'smartMixMode';
 
 const SUGGESTED_TUNE_MODES = {
   familiar: {
@@ -48,6 +49,107 @@ const SUGGESTED_TUNE_MODES = {
   }
 };
 
+const SMART_MIX_MODE_ORDER = ['warmup', 'blend', 'leftturn'];
+
+const SMART_MIX_MODES = {
+  warmup: {
+    key: 'warmup',
+    label: 'More Like This',
+    subtitle: 'Mostly familiar songs from artists and albums you already enjoy',
+    affinityWeight: 1.28,
+    exploreWeight: 0.82,
+    diversityArtistCap: 3,
+    diversityAlbumCap: 2,
+    chapterSize: 3,
+    sequence: ['familiar', 'familiar', 'blend', 'recovery']
+  },
+  blend: {
+    key: 'blend',
+    label: 'Balanced Mix',
+    subtitle: 'A balanced mix of favorites, nearby picks and a few fresher songs',
+    affinityWeight: 1,
+    exploreWeight: 1,
+    diversityArtistCap: 2,
+    diversityAlbumCap: 2,
+    chapterSize: 3,
+    sequence: ['familiar', 'blend', 'blend', 'discovery']
+  },
+  leftturn: {
+    key: 'leftturn',
+    label: 'Mix It Up',
+    subtitle: 'More variety, deeper cuts and more adventurous changes',
+    affinityWeight: 0.84,
+    exploreWeight: 1.38,
+    diversityArtistCap: 1,
+    diversityAlbumCap: 1,
+    chapterSize: 3,
+    sequence: ['blend', 'discovery', 'discovery', 'recovery']
+  }
+};
+
+const SMART_MIX_LANES = {
+  familiar: {
+    key: 'familiar',
+    label: 'More Like This',
+    summary: 'More songs close to what you already like.',
+    artistWeight: 4.6,
+    albumWeight: 2.8,
+    genreWeight: 2.2,
+    likeWeight: 2.4,
+    heardWeight: 2.1,
+    lowPlayWeight: 0.8,
+    underplayedWeight: 0.55,
+    quickSkipPenalty: 5.4,
+    deepSkipPenalty: 1.8,
+    repeatPenalty: 5.1
+  },
+  blend: {
+    key: 'blend',
+    label: 'Keep the Feel',
+    summary: 'Keeping the same feel with nearby artists and genres.',
+    artistWeight: 3.2,
+    albumWeight: 2.1,
+    genreWeight: 2.6,
+    likeWeight: 2,
+    heardWeight: 1.7,
+    lowPlayWeight: 1.05,
+    underplayedWeight: 0.9,
+    quickSkipPenalty: 4.1,
+    deepSkipPenalty: 1.3,
+    repeatPenalty: 4.3
+  },
+  discovery: {
+    key: 'discovery',
+    label: 'Fresh Picks',
+    summary: 'A few fresher picks that still fit your taste.',
+    artistWeight: 1.8,
+    albumWeight: 1.2,
+    genreWeight: 2.8,
+    likeWeight: 1.55,
+    heardWeight: 1.1,
+    lowPlayWeight: 1.7,
+    underplayedWeight: 1.28,
+    quickSkipPenalty: 3.2,
+    deepSkipPenalty: 0.95,
+    repeatPenalty: 3.8
+  },
+  recovery: {
+    key: 'recovery',
+    label: 'Back to Favorites',
+    summary: 'Returning to safer picks after trying something new.',
+    artistWeight: 3.8,
+    albumWeight: 2.4,
+    genreWeight: 1.9,
+    likeWeight: 2.5,
+    heardWeight: 2.3,
+    lowPlayWeight: 0.7,
+    underplayedWeight: 0.45,
+    quickSkipPenalty: 5,
+    deepSkipPenalty: 1.4,
+    repeatPenalty: 4.8
+  }
+};
+
 function getSuggestedTuneMode() {
   const mode = localStorage.getItem(SUGGESTED_TUNE_MODE_KEY) || 'balanced';
   return SUGGESTED_TUNE_MODES[mode] ? mode : 'balanced';
@@ -68,6 +170,27 @@ function cycleSuggestedTuneMode() {
 
 function getSuggestedTuneConfig(mode = getSuggestedTuneMode()) {
   return SUGGESTED_TUNE_MODES[mode] || SUGGESTED_TUNE_MODES.balanced;
+}
+
+function getSmartMixMode() {
+  const mode = localStorage.getItem(SMART_MIX_MODE_KEY) || 'blend';
+  return SMART_MIX_MODES[mode] ? mode : 'blend';
+}
+
+function setSmartMixMode(mode) {
+  const nextMode = SMART_MIX_MODES[mode] ? mode : 'blend';
+  localStorage.setItem(SMART_MIX_MODE_KEY, nextMode);
+  return nextMode;
+}
+
+function cycleSmartMixMode() {
+  const current = getSmartMixMode();
+  const next = SMART_MIX_MODE_ORDER[(SMART_MIX_MODE_ORDER.indexOf(current) + 1) % SMART_MIX_MODE_ORDER.length];
+  return setSmartMixMode(next);
+}
+
+function getSmartMixModeConfig(mode = getSmartMixMode()) {
+  return SMART_MIX_MODES[mode] || SMART_MIX_MODES.blend;
 }
 
 function readJson(key, fallback) {
@@ -434,12 +557,24 @@ function setTrackRating(track, rating) {
     app.state.smartMixSkipArtists = app.state.smartMixSkipArtists || [];
     const artist = (track.artist || '').trim().toLowerCase();
     const tid = getTrackId(track);
-    if (artist) {
-      app.state.smartMixSkipArtists.unshift(artist);
-      app.state.smartMixSkipArtists = app.state.smartMixSkipArtists.slice(0, 12);
-    }
     if (!app.state.smartMixHistory.includes(tid)) app.state.smartMixHistory.push(tid);
-    if (!app.state.smartMixSessionSkips.includes(tid)) app.state.smartMixSessionSkips.push(tid);
+
+    if (rating === 'like') {
+      if (artist) {
+        app.state.smartMixSkipArtists = (app.state.smartMixSkipArtists || []).filter(name => name !== artist);
+      }
+      app.state.smartMixSessionSkips = (app.state.smartMixSessionSkips || []).filter(id => id !== tid);
+      refreshSmartMixTail?.();
+      ensureSmartMixBuffer?.(10);
+    } else if (rating === 'dislike') {
+      if (artist) {
+        app.state.smartMixSkipArtists.unshift(artist);
+        app.state.smartMixSkipArtists = app.state.smartMixSkipArtists.slice(0, 12);
+      }
+      if (!app.state.smartMixSessionSkips.includes(tid)) app.state.smartMixSessionSkips.push(tid);
+      refreshSmartMixTail?.();
+      ensureSmartMixBuffer?.(10);
+    }
   }
 }
 
@@ -933,6 +1068,281 @@ function markDeepListen(track) {
 }
 window.markDeepListen = markDeepListen;
 
+function getSmartMixLaneConfig(lane = 'blend') {
+  return SMART_MIX_LANES[lane] || SMART_MIX_LANES.blend;
+}
+
+function getSmartMixExplanation(laneLabel, reasons = []) {
+  if (!reasons.length) return laneLabel;
+  return `${laneLabel}: ${reasons.slice(0, 2).join(' • ')}`;
+}
+
+function buildSmartMixChapterPlan(limit, modeConfig) {
+  const plan = [];
+  const sequence = modeConfig.sequence || ['blend'];
+  const chapterSize = Math.max(1, Number(modeConfig.chapterSize || 3));
+  let chapter = 0;
+
+  while (plan.length < limit) {
+    const lane = sequence[chapter % sequence.length] || 'blend';
+    for (let pick = 0; pick < chapterSize && plan.length < limit; pick++) {
+      plan.push({ lane, chapter: chapter + 1 });
+    }
+    chapter += 1;
+  }
+
+  return plan;
+}
+
+function resolveSmartMixSeedTrack(tracks, habits, explicitSeed) {
+  if (explicitSeed) return explicitSeed;
+  if (app.state.currentTrack) return app.state.currentTrack;
+
+  const trackById = new Map(tracks.map(track => [getTrackId(track), track]));
+
+  const topLike = Object.entries(habits)
+    .sort((a, b) => (b[1].likeCount || 0) - (a[1].likeCount || 0))
+    .find(([id]) => trackById.has(id));
+  if (topLike) return trackById.get(topLike[0]);
+
+  const topPlay = Object.entries(habits)
+    .sort((a, b) => (b[1].lifetimePlays || 0) - (a[1].lifetimePlays || 0))
+    .find(([id]) => trackById.has(id));
+  if (topPlay) return trackById.get(topPlay[0]);
+
+  return tracks[0] || null;
+}
+
+function storeSmartMixEntries(entries, { append = false } = {}) {
+  const nextMeta = append ? { ...(app.state.smartMixTrackMeta || {}) } : {};
+
+  entries.forEach((entry, index) => {
+    const track = entry.track || entry;
+    if (!track) return;
+
+    const id = getTrackId(track);
+    const lane = entry.lane || 'blend';
+    const laneConfig = getSmartMixLaneConfig(lane);
+
+    nextMeta[id] = {
+      lane,
+      laneLabel: entry.laneLabel || laneConfig.label,
+      laneSummary: entry.laneSummary || laneConfig.summary,
+      explanation: entry.explanation || laneConfig.summary,
+      chapter: Number(entry.chapter || Math.floor(index / 3) + 1),
+      score: Number(entry.score || 0)
+    };
+  });
+
+  app.state.smartMixTrackMeta = nextMeta;
+}
+
+function getStoredSmartMixEntry(track, index = 0) {
+  const meta = (app.state.smartMixTrackMeta || {})[getTrackId(track)] || {};
+  const lane = meta.lane || 'blend';
+  const laneConfig = getSmartMixLaneConfig(lane);
+
+  return {
+    track,
+    lane,
+    laneLabel: meta.laneLabel || laneConfig.label,
+    laneSummary: meta.laneSummary || laneConfig.summary,
+    explanation: meta.explanation || laneConfig.summary,
+    chapter: Number(meta.chapter || Math.floor(index / 3) + 1),
+    score: Number(meta.score || 0)
+  };
+}
+
+function getSmartMixActiveEntries(limit = 24) {
+  const queue = app.state.smartMixQueue || [];
+  return queue.slice(0, limit).map((track, index) => getStoredSmartMixEntry(track, index));
+}
+
+function syncSmartMixSessionNote(entries, modeConfig = getSmartMixModeConfig()) {
+  const current = entries && entries.length ? entries[0] : null;
+  app.state.smartMixSessionNote = current?.laneSummary || modeConfig.subtitle;
+}
+
+function clearSmartMixSessionLearning() {
+  app.state.smartMixSessionSkips = [];
+  app.state.smartMixSkipArtists = [];
+  app.state.smartMixLikedArtists = [];
+  app.state.smartMixLikedAlbums = [];
+  app.state.smartMixHeardArtists = [];
+  app.state.smartMixRefreshNonce = Number(app.state.smartMixRefreshNonce || 0) + 1;
+
+  if (app.state.smartMixActive) {
+    refreshSmartMixTail();
+    ensureSmartMixBuffer(10);
+  }
+}
+
+function getSmartMixRecommendations(tracks, options = {}) {
+  if (!tracks || !tracks.length) return [];
+
+  finalizeWeekIfNeeded();
+
+  const habits = loadUserHabits();
+  const norm = s => (s || '').trim().toLowerCase();
+  const modeKey = options.mode || getSmartMixMode();
+  const modeConfig = getSmartMixModeConfig(modeKey);
+  const refreshNonce = Number(options.refreshNonce || 0);
+  const sessionSkips = new Set(options.sessionSkips || app.state.smartMixSessionSkips || []);
+  const skipArtists = new Set((options.skipArtists || app.state.smartMixSkipArtists || []).map(norm));
+  const likedArtists = new Set((options.likedArtists || app.state.smartMixLikedArtists || []).map(norm));
+  const likedAlbums = new Set((options.likedAlbums || app.state.smartMixLikedAlbums || []).map(norm));
+  const heardArtists = new Set((options.heardArtists || app.state.smartMixHeardArtists || []).map(norm));
+  const excludeIds = new Set(options.excludeIds || []);
+  const recentQueue = options.recentQueue || app.state.smartMixQueue || [];
+  const recentWindow = recentQueue.slice(Math.max(0, recentQueue.length - 8));
+  const recentArtistCounts = new Map();
+  const recentAlbumCounts = new Map();
+
+  recentWindow.forEach(track => {
+    const artistKey = norm(track.artist);
+    const albumKey = norm(track.album);
+    if (artistKey) recentArtistCounts.set(artistKey, (recentArtistCounts.get(artistKey) || 0) + 1);
+    if (albumKey) recentAlbumCounts.set(albumKey, (recentAlbumCounts.get(albumKey) || 0) + 1);
+  });
+
+  const seed = resolveSmartMixSeedTrack(tracks, habits, options.seedTrack);
+  if (!seed) return [];
+
+  const seedArtist = norm(seed.artist);
+  const seedAlbum = norm(seed.album);
+  const seedGenre = norm(seed.genre);
+
+  const chapterPlan = buildSmartMixChapterPlan(Number(options.limit || 18), modeConfig);
+  const picked = [];
+  const usedIds = new Set(excludeIds);
+  const artistSeen = new Map();
+  const albumSeen = new Map();
+
+  chapterPlan.forEach(step => {
+    if (picked.length >= Number(options.limit || 18)) return;
+
+    const laneConfig = getSmartMixLaneConfig(step.lane);
+
+    const scored = tracks
+      .filter(track => !usedIds.has(getTrackId(track)))
+      .filter(track => getTrackId(track) !== getTrackId(seed))
+      .map(track => {
+        const id = getTrackId(track);
+        const habit = syncHabitShape(habits[id] || {});
+        const artistKey = norm(track.artist);
+        const albumKey = norm(track.album);
+        const genreKey = norm(track.genre);
+
+        if ((habit.dislikeCount || 0) > 0 || (habit.weeklyDislikes || 0) > 0 || habit.dislikedThisWeek) return null;
+        if (sessionSkips.has(id)) return null;
+        if ((habit.lifetimeQuickSkips || 0) >= 3 && (habit.likeCount || 0) === 0) return null;
+
+        let score = 0;
+        const reasons = [];
+
+        if (artistKey && artistKey === seedArtist) {
+          score += laneConfig.artistWeight * modeConfig.affinityWeight;
+          reasons.push('From the same artist');
+        }
+
+        if (albumKey && albumKey === seedAlbum) {
+          score += laneConfig.albumWeight * modeConfig.affinityWeight;
+          reasons.push('From the same album');
+        }
+
+        if (genreKey && seedGenre && genreKey === seedGenre) {
+          score += laneConfig.genreWeight * modeConfig.affinityWeight;
+          reasons.push('Similar sound');
+        }
+
+        if (likedArtists.has(artistKey)) {
+          score += 3.2 * modeConfig.affinityWeight;
+          reasons.push('You liked this artist');
+        }
+
+        if (likedAlbums.has(albumKey)) {
+          score += 2.1 * modeConfig.affinityWeight;
+          reasons.push('You liked this album');
+        }
+
+        if (heardArtists.has(artistKey)) {
+          score += laneConfig.heardWeight;
+          reasons.push('You listened through before');
+        }
+
+        if ((habit.likeCount || 0) > 0) {
+          score += (habit.likeCount || 0) * laneConfig.likeWeight * 0.7;
+          reasons.push('You liked this before');
+        }
+
+        if ((habit.lifetimePlays || 0) === 0) {
+          score += 4.5 * laneConfig.lowPlayWeight * modeConfig.exploreWeight;
+          reasons.push('Fresh pick');
+        } else if ((habit.lifetimePlays || 0) < 4) {
+          score += 2.3 * laneConfig.underplayedWeight * modeConfig.exploreWeight;
+          reasons.push('Underplayed');
+        }
+
+        if ((habit.lifetimePlays || 0) > 10 && (habit.likeCount || 0) === 0) {
+          score -= 2.4;
+        }
+
+        score -= (habit.lifetimeQuickSkips || 0) * laneConfig.quickSkipPenalty;
+        score -= (habit.lifetimeDeepSkips || 0) * laneConfig.deepSkipPenalty;
+        score -= (habit.lifetimeSkips || 0) * 1.25;
+
+        if (skipArtists.has(artistKey)) score -= 8.5;
+        if ((recentArtistCounts.get(artistKey) || 0) > 0) score -= laneConfig.repeatPenalty;
+        if ((recentAlbumCounts.get(albumKey) || 0) > 1) score -= 2.8;
+
+        if (step.lane === 'recovery' && ((habit.likeCount || 0) > 0 || heardArtists.has(artistKey) || artistKey === seedArtist)) {
+          score += 2.4;
+          reasons.push('Safer pick');
+        }
+
+        score += getStableSuggestionJitter(id, refreshNonce + step.chapter * 17);
+
+        return {
+          track,
+          score,
+          lane: step.lane,
+          laneLabel: laneConfig.label,
+          laneSummary: laneConfig.summary,
+          chapter: step.chapter,
+          reasonLabels: Array.from(new Set(reasons)).slice(0, 2),
+          artistKey,
+          albumKey
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.score - a.score);
+
+    const pickedEntry = scored.find(entry => {
+      const artistCount = artistSeen.get(entry.artistKey) || 0;
+      const albumCount = albumSeen.get(entry.albumKey) || 0;
+      const allowOverflow = picked.length < 3;
+
+      if (!allowOverflow && entry.artistKey && artistCount >= modeConfig.diversityArtistCap) return false;
+      if (!allowOverflow && entry.albumKey && albumCount >= modeConfig.diversityAlbumCap) return false;
+
+      return true;
+    });
+
+    if (!pickedEntry) return;
+
+    usedIds.add(getTrackId(pickedEntry.track));
+    if (pickedEntry.artistKey) artistSeen.set(pickedEntry.artistKey, (artistSeen.get(pickedEntry.artistKey) || 0) + 1);
+    if (pickedEntry.albumKey) albumSeen.set(pickedEntry.albumKey, (albumSeen.get(pickedEntry.albumKey) || 0) + 1);
+
+    picked.push({
+      ...pickedEntry,
+      explanation: getSmartMixExplanation(pickedEntry.laneLabel, pickedEntry.reasonLabels)
+    });
+  });
+
+  return picked.slice(0, Number(options.limit || 18));
+}
+
 function ensureSmartMixBuffer(bufferSize = 8) {
   if (!app.state.smartMixActive) return;
   const tracks = app.state.tracks || [];
@@ -953,14 +1363,20 @@ function ensureSmartMixBuffer(bufferSize = 8) {
   const need = bufferSize - (queue.length - (idx + 1));
   if (need <= 0) return;
 
-  const candidates = getSmartMixTracks(tracks, seed, 60)
-    .filter(t => !history.has(getTrackId(t)))
-    .filter(t => !queue.some(q => getTrackId(q) === getTrackId(t)));
+  const candidates = getSmartMixRecommendations(tracks, {
+    seedTrack: seed,
+    limit: Math.max(need * 4, 18),
+    mode: getSmartMixMode(),
+    refreshNonce: Number(app.state.smartMixRefreshNonce || 0),
+    excludeIds: Array.from(history),
+    recentQueue: queue.slice(Math.max(0, idx - 7), idx + 1)
+  });
 
   const toAdd = candidates.slice(0, need);
   if (toAdd.length) {
-    app.state.smartMixQueue = queue.concat(toAdd);
+    app.state.smartMixQueue = queue.concat(toAdd.map(entry => entry.track));
     app.state.currentAlbumSongs = app.state.smartMixQueue;
+    storeSmartMixEntries(toAdd, { append: true });
   }
 }
 
@@ -978,18 +1394,44 @@ function refreshSmartMixTail() {
   sessionSkips.forEach(id => history.add(id));
   head.forEach(t => history.add(getTrackId(t)));
 
-  const tail = getSmartMixTracks(tracks, seed, 80)
-    .filter(t => !history.has(getTrackId(t)))
-    .slice(0, 12);
+  const tail = getSmartMixRecommendations(tracks, {
+    seedTrack: seed,
+    limit: 12,
+    mode: getSmartMixMode(),
+    refreshNonce: Number(app.state.smartMixRefreshNonce || 0),
+    excludeIds: Array.from(history),
+    recentQueue: head.slice(Math.max(0, head.length - 8))
+  });
 
-  app.state.smartMixQueue = head.concat(tail);
+  app.state.smartMixQueue = head.concat(tail.map(entry => entry.track));
   app.state.currentAlbumSongs = app.state.smartMixQueue;
+
+  const headEntries = head.map((track, index) => getStoredSmartMixEntry(track, index));
+  storeSmartMixEntries(headEntries.concat(tail));
+  syncSmartMixSessionNote(tail.length ? tail : headEntries);
 }
 
 function startSmartMixFromList(list, startIdx = 0) {
   if (!list || !list.length) return;
 
   finalizeWeekIfNeeded();
+
+  const entries = list.map((entry, index) => {
+    if (entry && entry.track) return entry;
+
+    const laneConfig = getSmartMixLaneConfig('blend');
+    return {
+      track: entry,
+      lane: 'blend',
+      laneLabel: laneConfig.label,
+      laneSummary: laneConfig.summary,
+      explanation: laneConfig.summary,
+      chapter: Math.floor(index / 3) + 1,
+      score: 0
+    };
+  });
+  const queueTracks = entries.map(entry => entry.track);
+  const modeConfig = getSmartMixModeConfig();
 
   app.state.smartMixActive = true;
   const smStats = loadSmartMixStats();
@@ -998,14 +1440,17 @@ function startSmartMixFromList(list, startIdx = 0) {
   saveSmartMixStats(smStats);
 
   app.state.smartMixHistory = [];
-  app.state.smartMixQueue = list.slice();
+  app.state.smartMixQueue = queueTracks.slice();
   app.state.smartMixSessionSkips = [];
   app.state.smartMixSkipArtists = [];
-  app.state.smartMixLikedArtists = app.state.smartMixLikedArtists || [];
-  app.state.smartMixLikedAlbums = app.state.smartMixLikedAlbums || [];
-  app.state.smartMixHeardArtists = app.state.smartMixHeardArtists || [];
+  app.state.smartMixLikedArtists = [];
+  app.state.smartMixLikedAlbums = [];
+  app.state.smartMixHeardArtists = [];
+  app.state.smartMixRefreshNonce = Number(app.state.smartMixRefreshNonce || 0);
   app.state.currentAlbumSongs = app.state.smartMixQueue;
   app.state.currentSongIndex = startIdx;
+  storeSmartMixEntries(entries);
+  syncSmartMixSessionNote(entries, modeConfig);
 
   const seedTrack = app.state.smartMixQueue[startIdx];
   playTrackFromAlbum(seedTrack, app.state.smartMixQueue, { smartMix: true });
@@ -1018,165 +1463,60 @@ window.refreshSmartMixTail = refreshSmartMixTail;
 window.startSmartMixFromList = startSmartMixFromList;
 
 function getSmartMixTracks(tracks, seedTrack, limit = 30) {
-  if (!tracks || !tracks.length) return [];
-
-  finalizeWeekIfNeeded();
-
-  const habits = loadUserHabits();
-  const trackById = new Map(tracks.map(t => [getTrackId(t), t]));
-  const norm = s => (s || '').trim().toLowerCase();
-
-  const sessionSkips = new Set(app.state.smartMixSessionSkips || []);
-  const skipArtists = new Set((app.state.smartMixSkipArtists || []).map(norm));
-  const likedArtists = new Set((app.state.smartMixLikedArtists || []).map(norm));
-  const likedAlbums = new Set((app.state.smartMixLikedAlbums || []).map(norm));
-  const heardArtists = new Set((app.state.smartMixHeardArtists || []).map(norm));
-
-  const recentArtists = (() => {
-    const q = app.state.smartMixQueue || [];
-    const idx = app.state.currentSongIndex ?? 0;
-    const start = Math.max(0, idx - 6);
-    const last = q.slice(start, idx + 1);
-    return last.map(t => norm(t.artist));
-  })();
-
-  const recentArtistCounts = recentArtists.reduce((map, artist) => {
-    map[artist] = (map[artist] || 0) + 1;
-    return map;
-  }, {});
-
-  let seed = seedTrack || app.state.currentTrack || null;
-  if (!seed) {
-    const byLikes = Object.entries(habits).sort((a, b) => (b[1].likeCount || 0) - (a[1].likeCount || 0));
-    const topLike = byLikes.find(entry => trackById.has(entry[0]));
-    if (topLike) seed = trackById.get(topLike[0]);
-  }
-  if (!seed) {
-    const byPlays = Object.entries(habits).sort((a, b) => (b[1].lifetimePlays || 0) - (a[1].lifetimePlays || 0));
-    const topPlay = byPlays.find(entry => trackById.has(entry[0]));
-    if (topPlay) seed = trackById.get(topPlay[0]);
-  }
-  if (!seed) return [];
-
-  const seedArtist = norm(seed.artist);
-  const seedAlbum = norm(seed.album);
-  const seedGenre = norm(seed.genre);
-
-  const scored = tracks
-    .filter(t => getTrackId(t) !== getTrackId(seed))
-    .map(t => {
-      const id = getTrackId(t);
-      const h = syncHabitShape(habits[id] || {});
-      const artistN = norm(t.artist);
-
-      if ((h.dislikeCount || 0) > 0 || (h.weeklyDislikes || 0) > 0 || h.dislikedThisWeek) return null;
-      if (sessionSkips.has(id)) return null;
-      if ((h.lifetimeSkips || 0) >= 2) return null;
-      if (recentArtistCounts[artistN] >= 2) return null;
-
-      let score = 0;
-
-      if (artistN === seedArtist) score += 4;
-      if (norm(t.album) === seedAlbum) score += 2.5;
-      if (seedGenre && norm(t.genre) === seedGenre) score += 2.5;
-
-      score += (h.likeCount || 0) * 2;
-      score -= (h.dislikeCount || 0) * 6;
-      score -= (h.lifetimeSkips || 0) * 3;
-
-      if ((h.lifetimePlays || 0) === 0) score += 5;
-      else if ((h.lifetimePlays || 0) < 3) score += 3;
-
-      if (skipArtists.has(artistN)) score -= 8;
-      if (recentArtistCounts[artistN]) score -= 4;
-
-      if (likedArtists.has(artistN)) score += 6;
-      if (likedAlbums.has(norm(t.album))) score += 4;
-      if (heardArtists.has(artistN)) score += 3;
-
-      score += Math.random();
-
-      return { track: t, score, artistN };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.score - a.score);
-
-  const picked = [];
-  const artistSeen = {};
-
-  for (const scoredTrack of scored) {
-    const artist = scoredTrack.artistN;
-    const baseCap = 2;
-    const cap = skipArtists.has(artist) || recentArtistCounts[artist] ? 1 : baseCap;
-    const count = artistSeen[artist] || 0;
-
-    if (count < cap || picked.length < 6) {
-      picked.push(scoredTrack.track);
-      artistSeen[artist] = count + 1;
-    }
-
-    if (picked.length >= limit) break;
-  }
-
-  if (picked.length < limit) {
-    const filler = tracks
-      .filter(t => norm(t.artist) !== seedArtist)
-      .filter(t => !picked.some(p => getTrackId(p) === getTrackId(t)))
-      .map(t => {
-        const id = getTrackId(t);
-        const h = syncHabitShape(habits[id] || {});
-        const artistN = norm(t.artist);
-
-        if ((h.dislikeCount || 0) > 0 || (h.weeklyDislikes || 0) > 0 || h.dislikedThisWeek) return null;
-        if (sessionSkips.has(id)) return null;
-        if ((h.lifetimeSkips || 0) >= 2) return null;
-        if (skipArtists.has(artistN)) return null;
-        if (recentArtistCounts[artistN] >= 2) return null;
-
-        let score = 0;
-        if ((h.lifetimePlays || 0) === 0) score += 3;
-        if ((h.likeCount || 0) > 0) score += 2;
-        score += Math.random();
-
-        return { track: t, score };
-      })
-      .filter(Boolean)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit - picked.length)
-      .map(item => item.track);
-
-    picked.push(...filler);
-  }
-
-  return picked.slice(0, limit);
+  return getSmartMixRecommendations(tracks, {
+    seedTrack,
+    limit,
+    mode: getSmartMixMode(),
+    refreshNonce: Number(app.state.smartMixRefreshNonce || 0)
+  }).map(entry => entry.track);
 }
 
 function renderSmartMixMenu(direction = 'forward') {
   const allTracks = app.state.tracks || [];
+
+  app.state.smartMixRefreshNonce = Number(app.state.smartMixRefreshNonce || 0);
+
   if (!allTracks.length) {
     renderScreen(
-      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:0 18px;">
-        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:10px;">Smart Mix</div>
-        <div style="font-size:0.95em;color:#444;">Load music to start a mix.</div>
+      `<div class="smartmix-empty-state">
+        <div class="smartmix-empty-icon"><i class="fa-solid fa-radio"></i></div>
+        <div class="smartmix-empty-title">Smart Mix</div>
+        <div class="smartmix-empty-copy">Load music to start a personal mix that updates as you listen.</div>
+        <div class="smartmix-empty-steps">
+          <div>1. Load your library</div>
+          <div>2. Play and rate a few songs</div>
+          <div>3. Let Smart Mix keep the mix going for you</div>
+        </div>
       </div>`,
       direction
     );
     return;
   }
 
-  let mix;
-  if (app.state.smartMixActive && app.state.smartMixQueue?.length) {
-    mix = app.state.smartMixQueue;
-  } else {
-    const seed = app.state.currentTrack || null;
-    mix = getSmartMixTracks(allTracks, seed, 30);
-  }
+  const buildSmartMixState = () => {
+    const mode = getSmartMixMode();
+    const modeConfig = getSmartMixModeConfig(mode);
+    const active = Boolean(app.state.smartMixActive && app.state.smartMixQueue?.length);
+    const entries = active
+      ? getSmartMixActiveEntries(24)
+      : getSmartMixRecommendations(allTracks, {
+          seedTrack: app.state.currentTrack || null,
+          limit: 18,
+          mode,
+          refreshNonce: Number(app.state.smartMixRefreshNonce || 0)
+        });
 
-  if (!mix.length) {
+    return { mode, modeConfig, active, entries };
+  };
+
+  let state = buildSmartMixState();
+
+  if (!state.entries.length) {
     renderScreen(
-      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:0 18px;">
-        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:10px;">Smart Mix</div>
-        <div style="font-size:0.95em;color:#444;">Not enough listening data yet.</div>
+      `<div class="smartmix-empty-state">
+        <div class="smartmix-empty-icon"><i class="fa-solid fa-wave-square"></i></div>
+        <div class="smartmix-empty-title">Smart Mix</div>
+        <div class="smartmix-empty-copy">Play a few songs through and use likes or skips so Smart Mix can learn what fits you.</div>
       </div>`,
       direction
     );
@@ -1184,15 +1524,212 @@ function renderSmartMixMenu(direction = 'forward') {
   }
 
   app.state.currentMenuIndex = 0;
-  renderSongList({
-    songs: mix,
-    albumCover: (app.state.albums[mix[0]?.albumKey || mix[0]?.album] || {}).cover,
-    onSongClick: (track, idx) => {
-      app.state.currentMenuIndex = idx;
-      startSmartMixFromList(mix, idx);
-    }
-  }, direction);
 
-  if (typeof window.updateHighlightedSong === 'function') window.updateHighlightedSong();
+  renderScreen(
+    `<div class="smartmix-pane smartmix-pane--full" id="smartMixListContainer">
+        <div class="smartmix-pane-header">
+          <div class="smartmix-pane-heading">
+            <div class="smartmix-pane-title">Smart Mix</div>
+            <div class="smartmix-pane-subtitle" id="smartMixSubtitle">${state.active ? (app.state.smartMixSessionNote || state.modeConfig.subtitle) : state.modeConfig.subtitle}</div>
+          </div>
+          <div class="smartmix-session-badge" id="smartMixSessionBadge">${state.active ? 'Now Playing' : 'Ready to Start'}</div>
+        </div>
+        <div id="smartMixList" class="smartmix-list"></div>
+    </div>`,
+    direction
+  );
+
+  const smartMixList = document.getElementById('smartMixList');
+  const smartMixSubtitle = document.getElementById('smartMixSubtitle');
+  const smartMixSessionBadge = document.getElementById('smartMixSessionBadge');
+  let rowState = [];
+
+  const buildRows = () => {
+    const actionRows = [
+      {
+        type: 'action',
+        key: 'start',
+        icon: 'fa-solid fa-play',
+        title: state.active ? 'Start Again From Here' : 'Start Smart Mix',
+        value: state.active ? 'On' : 'Ready',
+        note: state.active
+          ? 'Use the current song to rebuild the mix from here.'
+          : 'Start this personal mix from the songs below.'
+      },
+      {
+        type: 'action',
+        key: 'mode',
+        icon: 'fa-solid fa-sliders',
+        title: 'Style',
+        value: state.modeConfig.label,
+        note: state.modeConfig.subtitle
+      },
+      {
+        type: 'action',
+        key: 'refresh',
+        icon: 'fa-solid fa-shuffle',
+        title: state.active ? 'Refresh Up Next' : 'Refresh Songs',
+        value: 'New',
+        note: 'Build a fresh set of songs without leaving Smart Mix.'
+      },
+      {
+        type: 'action',
+        key: 'clear',
+        icon: 'fa-solid fa-eraser',
+        title: 'Clear This Session',
+        value: 'Reset',
+        note: 'Forget temporary likes, skips and recent session signals.'
+      }
+    ];
+
+    return actionRows.concat(
+      state.entries.map((entry, index) => ({
+        type: 'track',
+        entry,
+        entryIndex: index
+      }))
+    );
+  };
+
+  const updateSmartMixPane = (row) => {
+    if (row?.type === 'track') {
+      if (smartMixSubtitle) smartMixSubtitle.textContent = row.entry.explanation || row.entry.laneSummary || state.modeConfig.subtitle;
+      if (smartMixSessionBadge) smartMixSessionBadge.textContent = `Set ${row.entry.chapter} • ${row.entry.laneLabel}`;
+      return;
+    }
+
+    if (smartMixSubtitle) smartMixSubtitle.textContent = row?.note || state.modeConfig.subtitle;
+    if (smartMixSessionBadge) smartMixSessionBadge.textContent = state.active ? 'Now Playing' : 'Ready to Start';
+  };
+
+  const renderSmartMixHighlight = () => {
+    const rows = Array.from(smartMixList.querySelectorAll('.menu-list-song'));
+    const idx = app.state.currentMenuIndex;
+    rows.forEach((row, rowIdx) => row.classList.toggle('active', rowIdx === idx));
+    updateSmartMixPane(rowState[idx] || rowState[0]);
+  };
+
+  const rerenderSmartMix = ({ resetIndex = false } = {}) => {
+    state = buildSmartMixState();
+
+    if (!state.entries.length) {
+      renderSmartMixMenu('forward');
+      return;
+    }
+
+    rowState = buildRows();
+
+    if (resetIndex) {
+      app.state.currentMenuIndex = 0;
+      smartMixList.scrollTop = 0;
+    } else if (app.state.currentMenuIndex >= rowState.length) {
+      app.state.currentMenuIndex = Math.max(0, rowState.length - 1);
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    rowState.forEach((row, rowIndex) => {
+      const item = document.createElement('div');
+      item.className = row.type === 'action'
+        ? 'menu-list-song smartmix-action-row'
+        : 'menu-list-song smartmix-song-row';
+      item.dataset.idx = rowIndex;
+
+      if (row.type === 'action') {
+        item.innerHTML = `
+          <div class="smartmix-action-main">
+            <span class="smartmix-action-icon"><i class="${row.icon}"></i></span>
+            <div class="smartmix-action-copy">
+              <div class="smartmix-action-title">${row.title}</div>
+              <div class="smartmix-action-note">${row.note}</div>
+            </div>
+          </div>
+          <span class="smartmix-action-value">${row.value}</span>
+        `;
+
+        item.onclick = () => {
+          if (row.key === 'start') {
+            if (state.active && app.state.currentTrack) {
+              startSmartMixFromList(getSmartMixActiveEntries(24), Math.max(0, app.state.currentSongIndex || 0));
+            } else {
+              startSmartMixFromList(state.entries, 0);
+            }
+            rerenderSmartMix({ resetIndex: true });
+            return;
+          }
+
+          if (row.key === 'mode') {
+            cycleSmartMixMode();
+            if (app.state.smartMixActive) {
+              app.state.smartMixRefreshNonce = Number(app.state.smartMixRefreshNonce || 0) + 1;
+              refreshSmartMixTail();
+              ensureSmartMixBuffer(10);
+            }
+            rerenderSmartMix({ resetIndex: true });
+            return;
+          }
+
+          if (row.key === 'refresh') {
+            app.state.smartMixRefreshNonce = Number(app.state.smartMixRefreshNonce || 0) + 1;
+            if (app.state.smartMixActive) {
+              refreshSmartMixTail();
+              ensureSmartMixBuffer(10);
+            }
+            rerenderSmartMix({ resetIndex: true });
+            return;
+          }
+
+          if (row.key === 'clear') {
+            clearSmartMixSessionLearning();
+            rerenderSmartMix({ resetIndex: true });
+          }
+        };
+      } else {
+        const track = row.entry.track;
+        const isNowPlaying = app.state.currentTrack && getTrackId(app.state.currentTrack) === getTrackId(track);
+        const nowPlayingLabel = isNowPlaying
+          ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
+          : '';
+
+        item.innerHTML = `
+          ${nowPlayingLabel}
+          <div class="smartmix-song-copy">
+            <div class="smartmix-song-topline">
+              <span class="smartmix-song-title">${track.title || 'Unknown Track'}</span>
+              <span class="smartmix-lane-pill">${row.entry.laneLabel}</span>
+            </div>
+            <div class="smartmix-song-meta">${track.artist || 'Unknown Artist'}${track.album ? ` • ${track.album}` : ''}</div>
+            <div class="smartmix-song-reason">${row.entry.explanation}</div>
+          </div>
+          <span class="smartmix-chapter-pill">Set ${row.entry.chapter}</span>
+        `;
+
+        item.onclick = () => {
+          app.state.currentMenuIndex = rowIndex;
+
+          if (!state.active) {
+            startSmartMixFromList(state.entries, row.entryIndex);
+            rerenderSmartMix({ resetIndex: false });
+            return;
+          }
+
+          playTrackFromAlbum(track, app.state.smartMixQueue || state.entries.map(entry => entry.track), { smartMix: true });
+          renderSmartMixHighlight();
+        };
+      }
+
+      fragment.appendChild(item);
+    });
+
+    smartMixList.innerHTML = '';
+    smartMixList.appendChild(fragment);
+
+    requestAnimationFrame(() => {
+      renderSmartMixHighlight();
+    });
+  };
+
+  window.updateHighlightedSong = () => renderSmartMixHighlight();
+  rerenderSmartMix({ resetIndex: true });
 }
 window.renderSmartMixMenu = renderSmartMixMenu;
