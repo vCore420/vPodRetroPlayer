@@ -276,6 +276,7 @@ function renderColourMenu(direction = 'forward') {
     { key: 'mooncrypt',     label: 'Moon Crypt',      preview: 'linear-gradient(160deg,#0f141c 0%,#33465f 45%,#d9e3ef 100%)', requires: { highScore: { game: 'dungeon', score: 8000 } } },
     { key: 'pocketgrove',   label: 'Pocket Grove',    preview: 'linear-gradient(160deg,#d6d9b8 0%,#8fb06a 52%,#3d6d4d 100%)', requires: { highScore: { game: 'monstertamer', score: 1000 } } },
     { key: 'capsulepop',    label: 'Capsule Pop',     preview: 'linear-gradient(160deg,#fff7e2 0%,#ffd466 45%,#3d71d8 100%)', requires: { highScore: { game: 'monstertamer', score: 2000 } } },
+    { key: 'shinyglint',    label: 'Shiny Glint',     preview: 'linear-gradient(160deg,#fff8fd 0%,#e7dcff 36%,#a5e9ff 68%,#ffe89a 100%)', requires: { shinyEncounter: true } },
     { key: 'twentyforty',   label: '2048 Tiles',      preview: 'linear-gradient(160deg,#1d1d1d 0%,#2f2f2f 50%,#f0a73b 100%)', requires: { highScore: { game: 'g2048', score: 2048 } } },
     { key: 'chessboard',    label: 'Checker Faceplate', preview: 'linear-gradient(90deg,#000 25%,#fff 25%,#fff 50%,#000 50%,#000 75%,#fff 75%,#fff 100%),linear-gradient(0deg,#000 25%,#fff 25%,#fff 50%,#000 50%,#000 75%,#fff 75%,#fff 100%);background-size:12px 12px,12px 12px;background-position:0 0,6px 6px;', requires: { highScore: { game: 'chess', score: 1 } } },
     { key: 'solitaireclub', label: 'Solitaire Green', preview: 'linear-gradient(160deg,#0a190f 0%,#114024 55%,#2fa35a 100%)', requires: { highScore: { game: 'solitaire', score: 1 } } },
@@ -295,6 +296,7 @@ function renderColourMenu(direction = 'forward') {
     if (req.skips && totals.skips < req.skips) return false;
     if (req.uniquePlayed && totals.uniquePlayed < req.uniquePlayed) return false;
     if (req.playSeconds && totals.playSeconds < req.playSeconds) return false;
+    if (req.shinyEncounter && localStorage.getItem('monsterTamerShinySeen') !== 'true') return false;
     if (req.highScore) {
       const { game, score } = req.highScore;
       if (!game || !score) return false;
@@ -323,6 +325,7 @@ function renderColourMenu(direction = 'forward') {
       const label = gameLabel[game] || game;
       return `Get ${req.highScore.score}+ in ${label}`;
     }
+    if (req.shinyEncounter) return 'Encounter a shiny monster';
     if (req.plays) return `${req.plays} plays`;
     if (req.likes) return `${req.likes} likes`;
     if (req.dislikes) return `${req.dislikes} dislikes`;
@@ -503,7 +506,7 @@ function renderAboutMenu(direction = 'forward') {
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the 7th Gen iPod Classic with some modern features.<br>
         <br>        
-        Version: <b>2.9.4</b><br>
+        Version: <b>2.9.5</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!

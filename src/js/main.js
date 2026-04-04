@@ -47,6 +47,72 @@ function applyTheme(name) {
 }
 window.applyTheme = applyTheme;
 
+function getBatteryColours(level, charging) {
+  if (charging) {
+    return {
+      start: '#22c55e',
+      end: '#86efac'
+    };
+  }
+
+  if (level <= 0.2) {
+    return {
+      start: '#d90429',
+      end: '#ff6b6b'
+    };
+  }
+
+  if (level <= 0.5) {
+    return {
+      start: '#f59e0b',
+      end: '#fcd34d'
+    };
+  }
+
+  return {
+    start: '#0074d9',
+    end: '#4fc3f7'
+  };
+}
+
+function updateBatteryIndicator(level, charging) {
+  const batteryRoot = document.getElementById('hotBarBattery');
+  const batteryLevel = document.getElementById('hotBarBatteryLevel');
+  const gradientStart = document.getElementById('batteryGradientStart');
+  const gradientEnd = document.getElementById('batteryGradientEnd');
+
+  if (!batteryRoot || !batteryLevel || !gradientStart || !gradientEnd) return;
+
+  const safeLevel = Math.max(0, Math.min(1, Number(level) || 0));
+  const width = Math.max(1, Math.round(22 * safeLevel));
+  const percentage = Math.round(safeLevel * 100);
+  const colours = getBatteryColours(safeLevel, charging);
+
+  batteryLevel.setAttribute('width', String(width));
+  gradientStart.setAttribute('stop-color', colours.start);
+  gradientEnd.setAttribute('stop-color', colours.end);
+  batteryRoot.title = charging
+    ? `Battery ${percentage}% (Charging)`
+    : `Battery ${percentage}%`;
+}
+
+async function initBatteryIndicator() {
+  if (!('getBattery' in navigator) || typeof navigator.getBattery !== 'function') {
+    return;
+  }
+
+  try {
+    const battery = await navigator.getBattery();
+    const syncBattery = () => updateBatteryIndicator(battery.level, battery.charging);
+
+    syncBattery();
+    battery.addEventListener('levelchange', syncBattery);
+    battery.addEventListener('chargingchange', syncBattery);
+  } catch (error) {
+    console.warn('Battery Status API unavailable', error);
+  }
+}
+
 // --- On Load ---
 
 window.onload = () => {
@@ -56,6 +122,7 @@ window.onload = () => {
   
   applyTheme(savedTheme);
   if (ps) ps.textContent = '';
+  initBatteryIndicator();
 
   maybeResetWeeklyStats();
   fadeOutSplashAndStart();

@@ -1,8 +1,118 @@
 // --- FILE HANDLING, ALBUM GROUPING, ETC. ---
 
+const LOAD_DEBUG_ENABLED = true;
+const LOAD_DEBUG_WATCHDOG_MS = 5000;
+
 function updateLoadingCounter(loaded, total) {
   const counter = document.getElementById('loadingCounter');
   if (counter) counter.textContent = `Loaded ${loaded} of ${total} songs`;
+}
+
+function updateLoadingDebug(message = '') {
+  const debugEl = document.getElementById('loadingDebug');
+  if (debugEl) debugEl.textContent = message;
+}
+
+function getLoadingDebugLabel(file) {
+  if (!file) return 'Unknown file';
+  return file.webkitRelativePath || file.name || 'Unknown file';
+}
+
+function refreshLoadingDebug(loadDebug) {
+  if (!LOAD_DEBUG_ENABLED || !loadDebug) return;
+
+  const pendingEntries = Array.from(loadDebug.pending.values())
+    .sort((a, b) => a.startedAt - b.startedAt);
+  const oldestPending = pendingEntries[0];
+  const pendingCount = pendingEntries.length;
+
+  const parts = [`Pending: ${pendingCount}`];
+  if (loadDebug.lastStarted) parts.push(`Last start: ${loadDebug.lastStarted}`);
+  if (oldestPending) parts.push(`Oldest: ${oldestPending.label}`);
+
+  updateLoadingDebug(parts.join(' | '));
+}
+
+function createLoadingDebugTracker() {
+  if (!LOAD_DEBUG_ENABLED) return null;
+
+  const loadDebug = {
+    pending: new Map(),
+    lastStarted: '',
+    watchdogId: null
+  };
+
+  loadDebug.watchdogId = setInterval(() => {
+    const pendingEntries = Array.from(loadDebug.pending.values())
+      .sort((a, b) => a.startedAt - b.startedAt);
+    const oldestPending = pendingEntries[0];
+
+    console.debug('[load-debug] Watchdog', {
+      pendingCount: pendingEntries.length,
+      lastStarted: loadDebug.lastStarted || null,
+      oldestPending: oldestPending ? {
+        label: oldestPending.label,
+        phase: oldestPending.phase,
+        ageMs: Date.now() - oldestPending.startedAt
+      } : null,
+      pendingFiles: pendingEntries.map(entry => ({
+        label: entry.label,
+        phase: entry.phase,
+        ageMs: Date.now() - entry.startedAt
+      }))
+    });
+
+    refreshLoadingDebug(loadDebug);
+  }, LOAD_DEBUG_WATCHDOG_MS);
+
+  refreshLoadingDebug(loadDebug);
+  return loadDebug;
+}
+
+function stopLoadingDebugTracker(loadDebug, finalMessage = '') {
+  if (!LOAD_DEBUG_ENABLED || !loadDebug) return;
+  if (loadDebug.watchdogId) {
+    clearInterval(loadDebug.watchdogId);
+    loadDebug.watchdogId = null;
+  }
+  updateLoadingDebug(finalMessage);
+}
+
+function beginLoadingDebug(loadDebug, file, phase) {
+  if (!LOAD_DEBUG_ENABLED || !loadDebug) return null;
+
+  const label = getLoadingDebugLabel(file);
+  const key = `${phase}:${label}`;
+  const entry = {
+    key,
+    label,
+    phase,
+    startedAt: Date.now()
+  };
+
+  loadDebug.lastStarted = label;
+  loadDebug.pending.set(key, entry);
+  console.debug(`[load-debug] START ${phase}`, {
+    label,
+    size: file?.size ?? null,
+    lastModified: file?.lastModified ?? null
+  });
+  refreshLoadingDebug(loadDebug);
+  return key;
+}
+
+function endLoadingDebug(loadDebug, key, status) {
+  if (!LOAD_DEBUG_ENABLED || !loadDebug || !key) return;
+
+  const entry = loadDebug.pending.get(key);
+  if (!entry) return;
+
+  loadDebug.pending.delete(key);
+  console.debug(`[load-debug] ${status} ${entry.phase}`, {
+    label: entry.label,
+    ageMs: Date.now() - entry.startedAt
+  });
+  refreshLoadingDebug(loadDebug);
 }
 
 function migrateHabitsToStableIds(tracks = []) {
@@ -194,6 +304,7 @@ function parseTrackNumber(raw) {
 
 function handleFiles(e) {
   console.log("Handling files:", e.target.files);
+  const loadDebug = createLoadingDebugTracker();
 
   // Reset all global state
   app.state.tracks = [];
@@ -229,6 +340,7 @@ function handleFiles(e) {
   });
 
   if (metaFile) {
+    stopLoadingDebugTracker(loadDebug, 'Debug: metadata import mode');
     const reader = new FileReader();
     reader.onload = function(ev) {
       const meta = JSON.parse(ev.target.result);
@@ -259,6 +371,7 @@ function handleFiles(e) {
       });
 
       if (stateTracks.length === 0) {
+        stopLoadingDebugTracker(loadDebug, 'Debug: metadata import found no matches');
         alert("No matching audio files found for metadata. Please upload your music files along with tracks-meta.json.");
         renderMainMenu('forward');
         app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
@@ -268,6 +381,7 @@ function handleFiles(e) {
       // Build albums (no nav here)
       groupTracksByAlbum(true, folderCovers);
       migrateHabitsToStableIds(app.state.tracks);
+      stopLoadingDebugTracker(loadDebug, 'Debug: metadata import complete');
 
       renderMainMenu('forward');
       app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
@@ -338,6 +452,7 @@ function handleFiles(e) {
   let cueTracks = [];
   if (cueFiles.length && audioFiles.length) {
     cueFiles.forEach(cueFile => {
+      const debugKey = beginLoadingDebug(loadDebug, cueFile, 'cue');
       const reader = new FileReader();
       reader.onload = function(ev) {
         const cueText = ev.target.result;
@@ -349,6 +464,13 @@ function handleFiles(e) {
         if (flacFile) {
           cueTracks = cueTracks.concat(parseCue(cueText, audioFiles, flacFile));
         }
+        endLoadingDebug(loadDebug, debugKey, 'OK');
+        if (++processed === cueFiles.length) {
+          processAudioFiles();
+        }
+      };
+      reader.onerror = function() {
+        endLoadingDebug(loadDebug, debugKey, 'ERR');
         if (++processed === cueFiles.length) {
           processAudioFiles();
         }
@@ -376,11 +498,13 @@ function handleFiles(e) {
           stateTracks.push(ct);
         }
       });
+      stopLoadingDebugTracker(loadDebug, 'Debug: cue-only import complete');
       groupTracksByAlbum(false, folderCovers);
       return;
     }
 
     audioFiles.forEach(file => {
+      const debugKey = beginLoadingDebug(loadDebug, file, 'audio');
       window.jsmediatags.read(file, {
         onSuccess: tag => {
           const { title, artist, album, genre, track } = tag.tags;
@@ -400,6 +524,7 @@ function handleFiles(e) {
               trackNumber
             });
           }
+          endLoadingDebug(loadDebug, debugKey, 'OK');
           done++;
           updateLoadingCounter(done, total);
           if (done === total) {
@@ -411,6 +536,7 @@ function handleFiles(e) {
                 stateTracks.push(ct);
               }
             });
+            stopLoadingDebugTracker(loadDebug, 'Debug: audio import complete');
             groupTracksByAlbum(false, folderCovers);
             migrateHabitsToStableIds(app.state.tracks);
           }
@@ -429,6 +555,7 @@ function handleFiles(e) {
               album: 'Unidentified Album'
             });
           }
+          endLoadingDebug(loadDebug, debugKey, 'ERR');
           done++;
           updateLoadingCounter(done, total);
           if (done === total) {
@@ -440,6 +567,7 @@ function handleFiles(e) {
                 stateTracks.push(ct);
               }
             });
+            stopLoadingDebugTracker(loadDebug, 'Debug: audio import complete');
             groupTracksByAlbum(false, folderCovers);
             migrateHabitsToStableIds(app.state.tracks);
           }

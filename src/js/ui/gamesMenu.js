@@ -1492,20 +1492,23 @@ function renderMonsterTamer(direction = 'forward') {
   renderScreen(
     gameScreenShell(`
       <div style="font-size:1.2em;font-weight:bold;">Monster Tamer</div>
+      <div id="mtMsg" style="min-height:18px;font-size:0.84em;color:#444;text-align:center;max-width:312px;line-height:1.25;">Leave town and start hunting</div>
       <canvas id="mtCanvas" width="312" height="208" style="background:#d8f0be;border:2px solid #3e5032;border-radius:10px;"></canvas>
       <div style="font-size:0.88em;color:#555;text-align:center;max-width:320px;line-height:1.35;">
-        Prev/Next: walk left/right | Wheel: walk up/down | Center: interact/attack | Play/Pause: catch/swap lead | Menu: back
+        Prev/Next: walk left/right | Wheel: walk up/down | Center: interact/select | Play/Pause: back/swap lead | Menu: back
       </div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;">
         <div id="mtLead" style="font-weight:bold;color:#0074d9;">Lead: Ember Pup</div>
         <div id="mtPartyHp" style="font-weight:bold;color:#d90429;">HP: 12/12</div>
         <div id="mtCaught" style="font-weight:bold;color:#2e8b57;">Caught: 0</div>
         <div id="mtCapsules" style="font-weight:bold;color:#7b5cff;">Capsules: 5</div>
+        <div id="mtTonics" style="font-weight:bold;color:#2f9689;">Tonics: 0</div>
+        <div id="mtRods" style="font-weight:bold;color:#2f7ea5;">Rods: 0</div>
         <div id="mtCoins" style="font-weight:bold;color:#9b6b22;">Coins: 20</div>
+        <div id="mtCharm" style="font-weight:bold;color:#d69a12;">Charms: 0</div>
         <div id="mtScore" style="font-weight:bold;color:#d4a017;">Score: 0</div>
         <div id="mtHigh" style="font-weight:bold;color:#888;">High: 0</div>
       </div>
-      <div id="mtMsg" style="min-height:20px;font-size:0.9em;color:#444;text-align:center;max-width:320px;">Hunt wild monsters, return to town, and restock at the shop.</div>
     `),
     direction
   );
@@ -1552,6 +1555,26 @@ function renderMonsterTamer(direction = 'forward') {
       sprite: ['........', '..111...', '.122221.', '1233321.', '.133331.', '..44.4..', '.4...4..', '........']
     },
     {
+      name: 'Ripple Fry', color: '#60c4ff', accent: '#e2f7ff', hp: 10, atkMin: 2, atkMax: 3, catchBase: 0.44,
+      sprite: ['........', '...11...', '..1221..', '.123221.', '..1331..', '.44..44.', '........', '........']
+    },
+    {
+      name: 'Pebble Koi', color: '#f0a35b', accent: '#fff0d6', hp: 13, atkMin: 2, atkMax: 4, catchBase: 0.34,
+      sprite: ['........', '..111...', '.122221.', '1233321.', '.123321.', '..44.44.', '........', '........']
+    },
+    {
+      name: 'Tangle Crab', color: '#cc6c58', accent: '#ffe1d9', hp: 15, atkMin: 3, atkMax: 4, catchBase: 0.28,
+      sprite: ['........', '.11..11.', '.122222.', '..2332..', '.233332.', '.4.44.4.', '.4....4.', '........']
+    },
+    {
+      name: 'Lantern Eel', color: '#596fd9', accent: '#eef2ff', hp: 16, atkMin: 3, atkMax: 6, catchBase: 0.2,
+      sprite: ['...11...', '..1221..', '.123321.', '..2331..', '.2331...', '.4..44..', '...4....', '........']
+    },
+    {
+      name: 'Storm Ray', color: '#7cc6ff', accent: '#f4fbff', hp: 18, atkMin: 4, atkMax: 6, catchBase: 0.16,
+      sprite: ['........', '.11..11.', '12211221', '.123332.', '..2332..', '.4.44.4.', '..4..4..', '........']
+    },
+    {
       name: 'Mire Owl', color: '#7a67b8', accent: '#efe7ff', hp: 15, atkMin: 2, atkMax: 6, catchBase: 0.22,
       sprite: ['........', '.11..11.', '.122222.', '.123332.', '..3333..', '.4.44.4.', '.4....4.', '........']
     },
@@ -1582,6 +1605,12 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Volt Finch', rarity: 'uncommon', weight: 18 },
         { species: 'Gloom Bat', rarity: 'rare', weight: 8 }
       ],
+      fishPool: [
+        { species: 'Ripple Fry', rarity: 'common', weight: 52 },
+        { species: 'Pebble Koi', rarity: 'uncommon', weight: 32 },
+        { species: 'Tangle Crab', rarity: 'rare', weight: 16 }
+      ],
+      fishSpecials: [],
       specials: []
     },
     {
@@ -1595,6 +1624,13 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Tide Cub', rarity: 'uncommon', weight: 14 },
         { species: 'Gloom Bat', rarity: 'rare', weight: 8 }
       ],
+      fishPool: [
+        { species: 'Ripple Fry', rarity: 'common', weight: 40 },
+        { species: 'Pebble Koi', rarity: 'common', weight: 30 },
+        { species: 'Tangle Crab', rarity: 'uncommon', weight: 20 },
+        { species: 'Lantern Eel', rarity: 'rare', weight: 10 }
+      ],
+      fishSpecials: [],
       specials: [
         { species: 'Petal Lynx', rarity: 'legendary', chance: 0.07, minSteps: 60, minCaptures: 2, terrain: 'grass' }
       ]
@@ -1610,6 +1646,13 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Ember Pup', rarity: 'uncommon', weight: 14 },
         { species: 'Gloom Bat', rarity: 'rare', weight: 8 }
       ],
+      fishPool: [
+        { species: 'Pebble Koi', rarity: 'common', weight: 34 },
+        { species: 'Ripple Fry', rarity: 'common', weight: 26 },
+        { species: 'Tangle Crab', rarity: 'uncommon', weight: 24 },
+        { species: 'Lantern Eel', rarity: 'rare', weight: 16 }
+      ],
+      fishSpecials: [],
       specials: [
         { species: 'Brookfin', rarity: 'legendary', chance: 0.06, minSteps: 110, minDefeated: 4, terrain: 'grass' }
       ]
@@ -1624,6 +1667,15 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Tide Cub', rarity: 'uncommon', weight: 18 },
         { species: 'Ember Pup', rarity: 'uncommon', weight: 16 },
         { species: 'Volt Finch', rarity: 'rare', weight: 10 }
+      ],
+      fishPool: [
+        { species: 'Lantern Eel', rarity: 'common', weight: 42 },
+        { species: 'Tangle Crab', rarity: 'uncommon', weight: 28 },
+        { species: 'Pebble Koi', rarity: 'rare', weight: 18 },
+        { species: 'Storm Ray', rarity: 'rare', weight: 12 }
+      ],
+      fishSpecials: [
+        { species: 'Storm Ray', rarity: 'legendary', chance: 0.05, minSteps: 150, minCaptures: 3 }
       ],
       specials: [
         { species: 'Mire Owl', rarity: 'legendary', chance: 0.055, minSteps: 160, minCaptures: 4, minDefeated: 6, terrain: 'grass' }
@@ -1640,6 +1692,15 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Tide Cub', rarity: 'uncommon', weight: 12 },
         { species: 'Mossling', rarity: 'rare', weight: 8 }
       ],
+      fishPool: [
+        { species: 'Lantern Eel', rarity: 'common', weight: 34 },
+        { species: 'Tangle Crab', rarity: 'uncommon', weight: 26 },
+        { species: 'Storm Ray', rarity: 'rare', weight: 24 },
+        { species: 'Pebble Koi', rarity: 'rare', weight: 16 }
+      ],
+      fishSpecials: [
+        { species: 'Storm Ray', rarity: 'legendary', chance: 0.06, minSteps: 210, minDefeated: 6 }
+      ],
       specials: [
         { species: 'Static Ram', rarity: 'legendary', chance: 0.045, minSteps: 220, minDefeated: 8, terrain: 'grass' }
       ]
@@ -1655,17 +1716,30 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Gloom Bat', rarity: 'rare', weight: 18 },
         { species: 'Mossling', rarity: 'uncommon', weight: 16 }
       ],
+      fishPool: [
+        { species: 'Storm Ray', rarity: 'uncommon', weight: 36 },
+        { species: 'Lantern Eel', rarity: 'rare', weight: 28 },
+        { species: 'Tangle Crab', rarity: 'rare', weight: 20 },
+        { species: 'Pebble Koi', rarity: 'rare', weight: 16 }
+      ],
+      fishSpecials: [
+        { species: 'Storm Ray', rarity: 'legendary', chance: 0.08, minSteps: 300, minCaptures: 7, minDefeated: 10 }
+      ],
       specials: [
         { species: 'Crownwyrm', rarity: 'legendary', chance: 0.03, minSteps: 320, minCaptures: 8, minDefeated: 12, terrain: 'grass' }
       ]
     }
   ];
-  const playerSprite = ['........', '..111...', '..1221..', '.133331.', '.133331.', '..344...', '.4...4..', '........'];
+  const playerSprite = ['........', '..111...', '.112211.', '..1331..', '.133331.', '..3223..', '..2..2..', '..4..4..'];
   const tallGrassSprite = ['........', '.1.1.1..', '..1.1...', '.1.11.1.', '..11....', '.1..1.1.', '........', '........'];
   const treeSprite = ['...11...', '..1221..', '.122221.', '.122221.', '..2332..', '...33...', '...44...', '..4..4..'];
   const fieldStationSprite = ['11111111', '12222221', '12333321', '12344321', '12344321', '12333321', '12222221', '11111111'];
   const capsuleSprite = ['...11...', '..1221..', '.123321.', '.123321.', '.144441.', '..1441..', '...11...', '........'];
   const coinSprite = ['..1111..', '.122221.', '.123321.', '.123321.', '.122221.', '..1111..', '........', '........'];
+  const tonicSprite = ['...11...', '..1221..', '..1331..', '..1331..', '..1331..', '...44...', '..4444..', '........'];
+  const cacheSprite = ['11111111', '12222221', '12333321', '12333321', '12333321', '12222221', '14444441', '........'];
+  const charmSprite = ['...11...', '..1221..', '.123321.', '12344321', '.123321.', '..1221..', '...11...', '........'];
+  const bobberSprite = ['........', '...11...', '..1221..', '..1331..', '...11...', '........', '........', '........'];
   const landmarkSprites = {
     signpost: { sprite: ['........', '..11....', '..11....', '..11....', '.1221...', '.1221...', '111111..', '........'], palette: { '1': '#74502b', '2': '#f3e3b1' } },
     fern: { sprite: ['...1....', '..121...', '.12221..', '..121...', '...1....', '..121...', '.1.1.1..', '........'], palette: { '1': '#2f7c3a', '2': '#68bf63' } },
@@ -1686,13 +1760,26 @@ function renderMonsterTamer(direction = 'forward') {
   let gameOver = false;
   let battleTarget = null;
   let worldTick = 0;
+  let renderTick = 0;
   let coins = 20;
   let capsules = 5;
-  const maxCapsules = 9;
+  let tonics = 0;
+  let rods = 0;
+  let charms = 0;
+  const shinyChance = 1 / 2;
+  const maxCapsules = 20;
+  const tonicHealAmount = 12;
+  const battleRootOptions = [
+    { key: 'attack', label: 'Attack' },
+    { key: 'item', label: 'Item' },
+    { key: 'run', label: 'Run' },
+    { key: 'capture', label: 'Capture' }
+  ];
   const shopItems = [
     { key: 'heal', label: 'Heal Party', cost: 0 },
     { key: 'capsule', label: 'Buy Capsule', cost: 12 },
-    { key: 'tonic', label: 'Buy Tonic', cost: 18 },
+    { key: 'rod', label: 'Buy Fishing Rod', cost: 14 },
+    { key: 'tonic', label: 'Buy Tonic', cost: 12 },
     { key: 'index', label: 'Monster Index', cost: 0 },
     { key: 'leave', label: 'Leave Town', cost: 0 }
   ];
@@ -1700,6 +1787,19 @@ function renderMonsterTamer(direction = 'forward') {
   let townSelection = 0;
   let indexMenuOpen = false;
   let indexSelection = 0;
+  let townships = [];
+  let activeTownship = null;
+  let encounterTransition = null;
+  let encounterTransitionFrame = null;
+  let battleAnimation = null;
+  let battleAnimationFrame = null;
+  let fishingAnimation = null;
+  let fishingAnimationFrame = null;
+  let ambientAnimationFrame = null;
+  let ambientLastAt = 0;
+  let battleMenuMode = 'root';
+  let battleMenuSelection = 0;
+  let battleSubSelection = 0;
   const dexKey = 'monsterTamerDex';
   let monsterDex = readLocalJson(dexKey, {});
 
@@ -1720,8 +1820,120 @@ function renderMonsterTamer(direction = 'forward') {
     return raw - Math.floor(raw);
   }
 
+  function townshipNameForProfile(profile) {
+    return `${profile.label} Township`;
+  }
+
+  function biomeDistanceRange(index) {
+    if (index === 0) {
+      return { min: 6, max: 24 };
+    }
+
+    return {
+      min: 4 + index * 28,
+      max: 31 + index * 28
+    };
+  }
+
+  function baseTerrainAt(x, y) {
+    const routeBandX = Math.abs((((x + Math.floor(hashValue(0, Math.floor(y / 3), 3) * 6)) % 14) + 14) % 14 - 7) <= 1;
+    const routeBandY = Math.abs((((y + Math.floor(hashValue(Math.floor(x / 3), 0, 5) * 6)) % 18) + 18) % 18 - 9) <= 1;
+    const meadowNoise = hashValue(Math.floor(x / 4), Math.floor(y / 4), 9);
+    const waterNoise = hashValue(Math.floor(x / 3), Math.floor(y / 3), 11);
+    const treeNoise = hashValue(Math.floor(x / 2), Math.floor(y / 2), 17);
+
+    if (routeBandX || routeBandY) return 'path';
+    if (waterNoise > 0.84 && meadowNoise > 0.32) return 'water';
+    if (treeNoise > 0.76 && meadowNoise > 0.2) return 'tree';
+    if (meadowNoise > 0.28) return 'grass';
+    return 'plain';
+  }
+
+  function isTownshipFootprintClear(centerX, centerY) {
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const tx = centerX + dx;
+        const ty = centerY + dy;
+        const terrain = baseTerrainAt(tx, ty);
+        if (terrain === 'water' || terrain === 'tree') return false;
+      }
+    }
+    return true;
+  }
+
+  function createTownshipForProfile(profile, index, existingTownships = []) {
+    const range = biomeDistanceRange(index);
+
+    for (let attempt = 0; attempt < 160; attempt++) {
+      const angle = hashValue(index + 1, attempt + 1, 301) * Math.PI * 2;
+      const distance = range.min + Math.floor(hashValue(index + 1, attempt + 1, 307) * Math.max(1, range.max - range.min + 1));
+      const centerX = Math.round(Math.cos(angle) * distance);
+      const centerY = Math.round(Math.sin(angle) * distance);
+
+      if (routeProfileAt(centerX, centerY) !== profile) continue;
+      if (!isTownshipFootprintClear(centerX, centerY)) continue;
+
+      const overlapsExistingTown = existingTownships.some(town =>
+        Math.abs(town.x - centerX) <= 4 && Math.abs(town.y - centerY) <= 4
+      );
+      if (overlapsExistingTown) continue;
+
+      return {
+        key: `town-${index}`,
+        name: townshipNameForProfile(profile),
+        profile,
+        x: centerX,
+        y: centerY
+      };
+    }
+
+    const fallbackDistance = range.min;
+    return {
+      key: `town-${index}`,
+      name: townshipNameForProfile(profile),
+      profile,
+      x: fallbackDistance,
+      y: 0
+    };
+  }
+
+  function buildTownships() {
+    const nextTownships = [];
+    routeProfiles.forEach((profile, index) => {
+      nextTownships.push(createTownshipForProfile(profile, index, nextTownships));
+    });
+    return nextTownships;
+  }
+
+  function getTownshipAt(x = player.x, y = player.y) {
+    return townships.find(town => Math.abs(town.x - x) <= 1 && Math.abs(town.y - y) <= 1) || null;
+  }
+
+  function isTownShopTile(x = player.x, y = player.y) {
+    const town = getTownshipAt(x, y);
+    return !!(town && town.x === x && town.y === y);
+  }
+
   function currentScore() {
     return captures * 140 + defeated * 55 + steps * 2 + party.reduce((total, monster) => total + monster.level * 8, 0) + coins;
+  }
+
+  function adventureProgress() {
+    return captures + defeated + Math.max(0, party.length - 1);
+  }
+
+  function distanceFromOrigin(x, y) {
+    return Math.abs(x) + Math.abs(y);
+  }
+
+  function earlyGameRelief(x = player.x, y = player.y) {
+    const distanceRelief = Math.max(0, 1 - (distanceFromOrigin(x, y) / 26));
+    const progressRelief = Math.max(0, 1 - (adventureProgress() / 9));
+    return Math.max(distanceRelief * 0.55, progressRelief * 0.75);
+  }
+
+  function lootTierAt(x, y) {
+    return Math.min(4, Math.floor(distanceFromOrigin(x, y) / 24));
   }
 
   function routeProfileAt(x = player.x, y = player.y) {
@@ -1731,26 +1943,196 @@ function renderMonsterTamer(direction = 'forward') {
   }
 
   function routeLabelAt(x = player.x, y = player.y) {
-    return isTownTile(x, y) ? 'Town' : routeProfileAt(x, y).label;
+    const town = getTownshipAt(x, y);
+    return town ? town.name : routeProfileAt(x, y).label;
+  }
+
+  function routeSortIndex(route) {
+    const baseRoute = (route || '').replace(/ Waters$/, '');
+    const index = routeProfiles.findIndex(profile => profile.label === baseRoute);
+    return index >= 0 ? index : routeProfiles.length;
+  }
+
+  function hasLandmarkAt(x, y, profile = routeProfileAt(x, y), type = terrainAt(x, y)) {
+    if (!profile || type === 'grass' || type === 'water' || type === 'heal' || type === 'town' || type === 'shop') return false;
+    return hashValue(x, y, 201) >= 0.972;
   }
 
   function routesForSpecies(speciesName) {
     return routeProfiles
-      .filter(profile => profile.pool.some(entry => entry.species === speciesName) || (profile.specials || []).some(entry => entry.species === speciesName))
-      .map(profile => profile.label);
+      .filter(profile =>
+        profile.pool.some(entry => entry.species === speciesName)
+        || (profile.specials || []).some(entry => entry.species === speciesName)
+        || (profile.fishPool || []).some(entry => entry.species === speciesName)
+        || (profile.fishSpecials || []).some(entry => entry.species === speciesName)
+      )
+      .map(profile => ((profile.fishPool || []).some(entry => entry.species === speciesName) || (profile.fishSpecials || []).some(entry => entry.species === speciesName))
+        ? `${profile.label} Waters`
+        : profile.label);
+  }
+
+  function summarizeMonsterTamerMessage(text) {
+    if (!text) return '';
+
+    let match = null;
+
+    const exact = new Map([
+      ['Your party rested at town.', 'Party healed'],
+      ['Town services are open. Stock up or check your index.', 'Town services open'],
+      ['Monster Index opened. Browse routes and discoveries.', 'Index open'],
+      ['Back to town services.', 'Back to town'],
+      ['You head back out onto the route.', 'Back on route'],
+      ['The town nurse patched up your party.', 'Party healed'],
+      ['Not enough coins for that purchase.', 'Not enough coins'],
+      ['Your capsule bag is already full.', 'Capsules full'],
+      ['You bought one fishing rod.', '+1 rod'],
+      ['You bought one capsule.', '+1 capsule'],
+      ['Nothing to interact with here right now.', 'Nothing here'],
+      ['Only one healthy partner is ready right now.', 'Only one partner ready'],
+      ['You are out of capsules. Return to town and buy more.', 'Out of capsules'],
+      ['You need a fishing rod first.', 'Need a rod'],
+      ['Stand beside water to fish.', 'Need water'],
+      ['Water nearby. Center can fish.', 'Fish here'],
+      ['Use Prev/Next or the wheel to browse the Monster Index.', 'Browse index'],
+      ['Use Prev/Next or the wheel to browse town services.', 'Browse town menu'],
+      ['You are in battle. Use Center or Play/Pause.', 'In battle'],
+      ['You are back in town. Center opens the shop.', 'Back in town'],
+      ['Leave town, discover route monsters, and return to town to check your index.', 'Leave town and start hunting'],
+      ['No lead monster to treat.', 'No lead monster'],
+      ['You leave the shop and head back outside.', 'Left the shop']
+    ]);
+
+    if (exact.has(text)) {
+      return exact.get(text);
+    }
+
+    match = text.match(/^(.+) selected\.$/);
+    if (match) return match[1];
+
+    match = text.match(/^(.+) entry selected\.$/);
+    if (match) return `${match[1]} info`;
+
+    match = text.match(/^(.+) is already at full HP\.$/);
+    if (match) return `${match[1]} full HP`;
+
+    match = text.match(/^(.+) recovered with a tonic\.$/);
+    if (match) return `${match[1]} healed`;
+
+    if (text === 'You found a field tonic.') return '+1 tonic';
+    if (text === 'You bought one tonic.') return '+1 tonic';
+    if (text === 'You are out of tonics.') return 'Out of tonics';
+    if (text === 'Choose an attack.') return 'Choose attack';
+    if (text === 'Choose an item.') return 'Choose item';
+    if (text === 'No usable items right now.') return 'No items';
+    if (text === 'Choose Attack, Item, Run, or Capture.') return 'Choose action';
+
+    match = text.match(/^You escaped from (.+)\.$/);
+    if (match) return `Escaped ${match[1]}`;
+
+    match = text.match(/^Couldn't escape! (.+) cuts you off for (\d+)\.$/);
+    if (match) return `Run failed · ${match[1]} ${match[2]}`;
+
+    match = text.match(/^You found (\d+) coins in a weathered cache\.$/);
+    if (match) return `+${match[1]} coins`;
+
+    match = text.match(/^You found (\d+) capsule(?:s)? in a supply pod\.$/);
+    if (match) return `+${match[1]} capsule`;
+
+    match = text.match(/^You found a field tonic\. (.+) recovered (\d+) HP\.$/);
+    if (match) return `${match[1]} +${match[2]} HP`;
+
+    match = text.match(/^You found a field tonic\. No one needed it, so you traded it for (\d+) coins\.$/);
+    if (match) return `Tonic traded · +${match[1]}c`;
+
+    match = text.match(/^You uncovered a (.+) and found (\d+) coins\.$/);
+    if (match) return `${match[1]} · +${match[2]}c`;
+
+    match = text.match(/^You uncovered a (.+) and found (\d+) capsules\.$/);
+    if (match) return `${match[1]} · +${match[2]} cap`;
+
+    match = text.match(/^You uncovered a (.+) and restored (\d+) HP across your party\.$/);
+    if (match) return `${match[1]} · +${match[2]} HP`;
+
+    if (text === 'You found a capture charm. Your next capture attempt will be stronger.') return '+1 charm';
+
+    if (text === 'You cast out, but nothing bites. The rod still looks usable.') return 'No bite · Rod kept';
+    if (text === 'You cast out, but nothing bites. The rod snapped.') return 'No bite · Rod broke';
+
+    match = text.match(/^Capture charm flared\. You caught the (.+) (.+)! (?:.+ recovered \d+ HP\. )?Party (\d+)\. Capsules left: (\d+)\.$/);
+    if (match) return `Charm catch · ${match[2]} · Cap ${match[4]}`;
+
+    match = text.match(/^Something tugged the line in (.+)\.$/);
+    if (match) return `Fishing · ${match[1]}`;
+
+    match = text.match(/^Capture charm faded\. (.+) lashes out for (\d+)\. Capsules left: (\d+)\.$/);
+    if (match) return `Charm spent · ${match[1]} hit ${match[2]}`;
+
+    match = text.match(/^(.+) Final score: (\d+)\.$/);
+    if (match) return `${match[1]} Score ${match[2]}`;
+
+    match = text.match(/^A (.+) (.+) appeared on .+ Capsules left: (\d+)\.(?: Shiny Glint theme unlocked\.)?$/);
+    if (match) return `${match[1]} ${match[2]} spotted · Cap ${match[3]}`;
+
+    match = text.match(/^(.+) won, earned (\d+)c(?:, (?:and )?grew to Lv(\d+))?(?:, and recovered (\d+) HP)?\.$/);
+    if (match) return `${match[1]} won · +${match[2]}c · Lv${match[3]}`;
+
+    match = text.match(/^(.+) defeated (.+), earned (\d+)c(?:, and recovered (\d+) HP)?\.$/);
+    if (match) return `${match[1]} beat ${match[2]} · +${match[3]}c`;
+
+    match = text.match(/^(.+) hits (.+) for (\d+)\.$/);
+    if (match) return `${match[1]} hit ${match[2]} · ${match[3]}`;
+
+    match = text.match(/^(.+) knocked out (.+)\.$/);
+    if (match) return `${match[2]} fainted`;
+
+    match = text.match(/^Lead monster: (.+)\.$/);
+    if (match) return `Lead: ${match[1]}`;
+
+    match = text.match(/^You caught the (.+) (.+)! (?:.+ recovered \d+ HP\. )?Party (\d+)\. Capsules left: (\d+)\.$/);
+    if (match) return `Caught ${match[2]} · Party ${match[3]} · Cap ${match[4]}`;
+
+    match = text.match(/^Capture failed\. (.+) lashes out for (\d+)\. Capsules left: (\d+)\.$/);
+    if (match) return `Missed catch · ${match[1]} hit ${match[2]} · Cap ${match[3]}`;
+
+    match = text.match(/^Tall grass rustles on (.+)\.$/);
+    if (match) return `Grass rustles · ${match[1]}`;
+
+    match = text.match(/^You are on (.+)\. Stronger monsters live farther out\.$/);
+    if (match) return `Route: ${match[1]}`;
+
+    if (text === 'Thick trees block the route.') return 'Trees block the way';
+    if (text === 'Water cuts off the path.') return 'Water blocks the way';
+
+    return text;
+  }
+
+  function monsterTamerMessageDuration(message) {
+    if (!message) return 2200;
+    if (/Caught|spotted|Score|won|Party healed/.test(message)) return 3000;
+    if (/In battle|Browse|Route:|Lead:/.test(message)) return 1800;
+    return 2200;
   }
 
   function setMessage(text) {
+    const summary = summarizeMonsterTamerMessage(text);
+    if (!summary) return;
+
     const el = document.getElementById('mtMsg');
-    if (el) el.textContent = text;
+    if (el) el.textContent = summary;
   }
 
   function activeMonster() {
     return party[activeIndex] || null;
   }
 
+  function resetBattleMenu() {
+    battleMenuMode = 'root';
+    battleMenuSelection = 0;
+    battleSubSelection = 0;
+  }
+
   function isTownTile(x = player.x, y = player.y) {
-    return x === 0 && y === 0;
+    return !!getTownshipAt(x, y);
   }
 
   function cloneMonster(species, level = 1) {
@@ -1759,6 +2141,7 @@ function renderMonsterTamer(direction = 'forward') {
       name: species.name,
       color: species.color,
       accent: species.accent,
+      shiny: false,
       sprite: species.sprite,
       level,
       xp: 0,
@@ -1769,6 +2152,98 @@ function renderMonsterTamer(direction = 'forward') {
       atkMax: species.atkMax + Math.floor(level / 2),
       catchBase: species.catchBase
     };
+  }
+
+  const signatureMovesBySpecies = {
+    'Ember Pup': { name: 'Cinder Dash', power: 1.2, accuracy: 0.9 },
+    'Mossling': { name: 'Sap Sip', power: 0.8, accuracy: 0.95, healRatio: 0.45 },
+    'Volt Finch': { name: 'Bolt Dive', power: 1.35, accuracy: 0.82 },
+    'Gloom Bat': { name: 'Night Siphon', power: 0.9, accuracy: 0.93, healRatio: 0.35 },
+    'Tide Cub': { name: 'Wave Crash', power: 1.15, accuracy: 0.92 },
+    'Petal Lynx': { name: 'Bloom Slash', power: 1.25, accuracy: 0.88 },
+    'Brookfin': { name: 'Current Snap', power: 1.15, accuracy: 0.92 },
+    'Ripple Fry': { name: 'Bubble Pop', power: 0.95, accuracy: 0.96 },
+    'Pebble Koi': { name: 'Stone Spray', power: 1.05, accuracy: 0.94 },
+    'Tangle Crab': { name: 'Clamp Crush', power: 1.25, accuracy: 0.87 },
+    'Lantern Eel': { name: 'Flash Surge', power: 1.3, accuracy: 0.84 },
+    'Storm Ray': { name: 'Tempest Arc', power: 1.4, accuracy: 0.8 },
+    'Mire Owl': { name: 'Dusk Cry', power: 1.1, accuracy: 0.92 },
+    'Static Ram': { name: 'Thunder Rush', power: 1.35, accuracy: 0.83 },
+    'Crownwyrm': { name: 'Royal Flame', power: 1.45, accuracy: 0.79 }
+  };
+
+  function attacksForMonster(monster) {
+    if (!monster) return [];
+
+    const basicName = {
+      'Ember Pup': 'Paw Swipe',
+      'Mossling': 'Vine Tap',
+      'Volt Finch': 'Quick Peck',
+      'Gloom Bat': 'Wing Flick',
+      'Tide Cub': 'Splash Bite',
+      'Petal Lynx': 'Petal Claw',
+      'Brookfin': 'Fin Jab',
+      'Ripple Fry': 'Tail Flick',
+      'Pebble Koi': 'Koi Bump',
+      'Tangle Crab': 'Pinch',
+      'Lantern Eel': 'Spark Nip',
+      'Storm Ray': 'Glide Cut',
+      'Mire Owl': 'Shadow Peck',
+      'Static Ram': 'Horn Jab',
+      'Crownwyrm': 'Scale Strike'
+    }[monster.species] || 'Strike';
+
+    return [
+      { name: basicName, power: 1, accuracy: 0.96 },
+      signatureMovesBySpecies[monster.species] || { name: 'Wild Burst', power: 1.2, accuracy: 0.9 }
+    ];
+  }
+
+  function battleItemsForPlayer() {
+    const items = [];
+    if (tonics > 0) {
+      items.push({ key: 'tonic', label: `Tonic x${tonics}`, detail: `Heal ${tonicHealAmount} HP` });
+    }
+    return items;
+  }
+
+  function currentBattleMenuEntries() {
+    if (battleMenuMode === 'attack') {
+      return attacksForMonster(activeMonster());
+    }
+    if (battleMenuMode === 'item') {
+      return battleItemsForPlayer();
+    }
+    return battleRootOptions;
+  }
+
+  function moveBattleSelection(step) {
+    const entries = currentBattleMenuEntries();
+    if (!entries.length) return;
+    if (battleMenuMode === 'root') {
+      battleMenuSelection = wrapIndex(battleMenuSelection + step, entries.length);
+      setMessage(`${entries[battleMenuSelection].label} selected.`);
+    } else {
+      battleSubSelection = wrapIndex(battleSubSelection + step, entries.length);
+      setMessage(`${entries[battleSubSelection].name || entries[battleSubSelection].label} selected.`);
+    }
+    drawTamerWorld();
+  }
+
+  function easeRetaliationDamage(baseDamage, x = player.x, y = player.y) {
+    const relief = earlyGameRelief(x, y);
+    const reduction = relief >= 0.82 ? 2 : relief >= 0.45 ? 1 : 0;
+    return Math.max(1, baseDamage - reduction);
+  }
+
+  function recoverLeadAfterEncounter(baseAmount = 2, x = player.x, y = player.y) {
+    const lead = activeMonster();
+    if (!lead || lead.hp <= 0) return 0;
+    const amount = Math.max(0, Math.round(baseAmount + earlyGameRelief(x, y) * 2));
+    if (amount <= 0) return 0;
+    const recovered = Math.min(amount, lead.maxHp - lead.hp);
+    lead.hp += recovered;
+    return recovered;
   }
 
   function saveMonsterDex() {
@@ -1783,7 +2258,7 @@ function renderMonsterTamer(direction = 'forward') {
     const route = monster.route || routeLabelAt(monster.x, monster.y);
     if (route && route !== 'Town' && !existing.routes.includes(route)) {
       existing.routes.push(route);
-      existing.routes.sort((a, b) => routeProfiles.findIndex(profile => profile.label === a) - routeProfiles.findIndex(profile => profile.label === b));
+      existing.routes.sort((a, b) => routeSortIndex(a) - routeSortIndex(b));
     }
     monsterDex[monster.species] = existing;
     saveMonsterDex();
@@ -1803,33 +2278,31 @@ function renderMonsterTamer(direction = 'forward') {
     const hpEl = document.getElementById('mtPartyHp');
     const caughtEl = document.getElementById('mtCaught');
     const capsuleEl = document.getElementById('mtCapsules');
+    const tonicEl = document.getElementById('mtTonics');
+    const rodEl = document.getElementById('mtRods');
     const coinEl = document.getElementById('mtCoins');
+    const charmEl = document.getElementById('mtCharm');
     const scoreEl = document.getElementById('mtScore');
     const highEl = document.getElementById('mtHigh');
     if (leadEl) leadEl.textContent = lead ? `Lead: ${lead.name} Lv${lead.level}` : 'Lead: None';
     if (hpEl) hpEl.textContent = lead ? `HP: ${lead.hp}/${lead.maxHp} XP:${lead.xp}/${lead.xpToNext}` : 'HP: 0/0';
     if (caughtEl) caughtEl.textContent = `Caught: ${captures} Party:${party.length}`;
     if (capsuleEl) capsuleEl.textContent = `Capsules: ${capsules}`;
+    if (tonicEl) tonicEl.textContent = `Tonics: ${tonics}`;
+    if (rodEl) rodEl.textContent = `Rods: ${rods}`;
     if (coinEl) coinEl.textContent = `Coins: ${coins}`;
+    if (charmEl) charmEl.textContent = `Charms: ${charms}`;
     if (scoreEl) scoreEl.textContent = `Score: ${currentScore()}`;
     if (highEl) highEl.textContent = `High: ${highScore}`;
   }
 
   function terrainAt(x, y) {
-    if (x === 0 && y === 0) return 'heal';
-    if (Math.abs(x) <= 2 && Math.abs(y) <= 2) return 'path';
+    const town = getTownshipAt(x, y);
+    if (town) {
+      return (town.x === x && town.y === y) ? 'shop' : 'town';
+    }
 
-    const routeBandX = Math.abs((((x + Math.floor(hashValue(0, Math.floor(y / 3), 3) * 6)) % 14) + 14) % 14 - 7) <= 1;
-    const routeBandY = Math.abs((((y + Math.floor(hashValue(Math.floor(x / 3), 0, 5) * 6)) % 18) + 18) % 18 - 9) <= 1;
-    const meadowNoise = hashValue(Math.floor(x / 4), Math.floor(y / 4), 9);
-    const waterNoise = hashValue(Math.floor(x / 3), Math.floor(y / 3), 11);
-    const treeNoise = hashValue(Math.floor(x / 2), Math.floor(y / 2), 17);
-
-    if (routeBandX || routeBandY) return 'path';
-    if (waterNoise > 0.84 && meadowNoise > 0.32) return 'water';
-    if (treeNoise > 0.76 && meadowNoise > 0.2) return 'tree';
-    if (meadowNoise > 0.28) return 'grass';
-    return 'plain';
+    return baseTerrainAt(x, y);
   }
 
   function isBlocked(x, y) {
@@ -1855,6 +2328,20 @@ function renderMonsterTamer(direction = 'forward') {
       if (found) return found;
     }
     return null;
+  }
+
+  function getLootAt(x, y) {
+    for (const chunk of getRelevantChunks()) {
+      const found = (chunk.loot || []).find(item => item.x === x && item.y === y);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function adjacentWaterTile(x = player.x, y = player.y) {
+    return [[0, -1], [1, 0], [0, 1], [-1, 0]]
+      .map(([dx, dy]) => ({ x: x + dx, y: y + dy }))
+      .find(tilePos => terrainAt(tilePos.x, tilePos.y) === 'water') || null;
   }
 
   function firstHealthyMonsterIndex() {
@@ -1901,6 +2388,45 @@ function renderMonsterTamer(direction = 'forward') {
     };
   }
 
+  function chooseFishingEncounter(x, y) {
+    const profile = routeProfileAt(x, y);
+    const specials = (profile.fishSpecials || []).filter(entry => {
+      if ((entry.minSteps || 0) > steps) return false;
+      if ((entry.minCaptures || 0) > captures) return false;
+      if ((entry.minDefeated || 0) > defeated) return false;
+      return true;
+    });
+
+    if (specials.length) {
+      const specialRoll = hashValue(x, y, 503);
+      const pickedSpecial = specials.find(entry => specialRoll < entry.chance);
+      if (pickedSpecial) {
+        return {
+          profile,
+          rarity: pickedSpecial.rarity,
+          species: speciesByName[pickedSpecial.species] || speciesList[0]
+        };
+      }
+    }
+
+    const pool = profile.fishPool || [];
+    const totalWeight = pool.reduce((sum, entry) => sum + entry.weight, 0);
+    let roll = hashValue(x, y, 509) * Math.max(1, totalWeight);
+    let picked = pool[0] || { species: 'Ripple Fry', rarity: 'common', weight: 1 };
+    for (const entry of pool) {
+      roll -= entry.weight;
+      if (roll <= 0) {
+        picked = entry;
+        break;
+      }
+    }
+    return {
+      profile,
+      rarity: picked.rarity,
+      species: speciesByName[picked.species] || speciesList[0]
+    };
+  }
+
   function regionLevel(x, y) {
     return Math.min(12, 1 + Math.floor((Math.abs(x) + Math.abs(y)) / 18));
   }
@@ -1909,24 +2435,116 @@ function renderMonsterTamer(direction = 'forward') {
     const encounter = chooseEncounter(x, y);
     const rarity = rarityMeta[encounter.rarity] || rarityMeta.common;
     const species = encounter.species;
-    const level = Math.min(14, regionLevel(x, y) + bonusLevel + rarity.levelBonus + (hashValue(x, y, 37) > 0.82 ? 1 : 0));
+    const relief = earlyGameRelief(x, y);
+    const baseLevel = Math.min(14, regionLevel(x, y) + bonusLevel + rarity.levelBonus + (hashValue(x, y, 37) > 0.82 ? 1 : 0));
+    const level = Math.max(1, baseLevel - (relief >= 0.52 ? 1 : 0));
     const monster = {
       id: `mt-${Math.floor(hashValue(x, y, 41) * 1000000)}-${x}-${y}`,
       x,
       y,
       ...cloneMonster(species, level),
+      shiny: rollShiny(),
       rarity: encounter.rarity,
       route: encounter.profile.label,
       roamBias: Math.floor(hashValue(x, y, 43) * 4)
     };
-    monster.catchBase = Math.max(0.12, monster.catchBase + rarity.catchAdjust);
+    monster.catchBase = Math.min(0.9, Math.max(0.2, monster.catchBase + rarity.catchAdjust + relief * 0.16));
     return monster;
+  }
+
+  function createFishingMonster(x, y) {
+    const encounter = chooseFishingEncounter(x, y);
+    const rarity = rarityMeta[encounter.rarity] || rarityMeta.common;
+    const species = encounter.species;
+    const level = Math.min(14, regionLevel(x, y) + rarity.levelBonus + (hashValue(x, y, 521) > 0.72 ? 1 : 0));
+    const monster = {
+      id: `mt-fish-${Math.floor(hashValue(x, y, 523) * 1000000)}-${x}-${y}`,
+      x,
+      y,
+      ...cloneMonster(species, level),
+      shiny: rollShiny(),
+      rarity: encounter.rarity,
+      route: `${encounter.profile.label} Waters`,
+      ephemeral: true,
+      fromFishing: true
+    };
+    monster.catchBase = Math.max(0.1, monster.catchBase + rarity.catchAdjust - 0.03);
+    return monster;
+  }
+
+  function createLandmarkLoot(x, y, seedOffset = 0) {
+    const profile = routeProfileAt(x, y);
+    const tier = lootTierAt(x, y);
+    const bonusRoll = hashValue(x, y, 127 + seedOffset * 19);
+    const themedRewards = {
+      signpost: { kind: 'coins', label: 'trail cache', amount: 14 + tier * 7 + Math.floor(bonusRoll * (7 + tier * 4)) },
+      fern: { kind: 'party-heal', label: 'herb satchel', amount: 10 + tier * 4 + Math.floor(bonusRoll * (4 + tier * 2)) },
+      reeds: { kind: 'capsule', label: 'drift crate', amount: 1 + (tier >= 2 ? 1 : 0) },
+      obelisk: { kind: 'charm', label: 'dusk relic', amount: 1 },
+      teslapost: { kind: bonusRoll > 0.45 ? 'charm' : 'capsule', label: 'storm battery', amount: bonusRoll > 0.45 ? 1 : 1 + (tier >= 3 ? 1 : 0) },
+      crowntree: { kind: bonusRoll > 0.38 ? 'charm' : 'party-heal', label: 'crown stash', amount: bonusRoll > 0.38 ? 1 : 16 + tier * 5 + Math.floor(bonusRoll * (5 + tier * 2)) }
+    };
+    const reward = themedRewards[profile.landmark] || themedRewards.signpost;
+    return {
+      id: `loot-landmark-${x}-${y}`,
+      x,
+      y,
+      type: 'landmark-cache',
+      rewardType: reward.kind,
+      label: reward.label,
+      amount: reward.amount,
+      profileKey: profile.landmark
+    };
+  }
+
+  function createWorldLoot(x, y, seedOffset = 0) {
+    const tier = lootTierAt(x, y);
+    const primaryRoll = hashValue(x, y, 89 + seedOffset * 17);
+    const bonusRoll = hashValue(x, y, 97 + seedOffset * 17);
+
+    if (tier >= 3 && primaryRoll > 0.965) {
+      return {
+        id: `loot-charm-${x}-${y}`,
+        x,
+        y,
+        type: 'charm',
+        amount: 1
+      };
+    }
+
+    if (primaryRoll < Math.max(0.56 - tier * 0.08, 0.24)) {
+      return {
+        id: `loot-coins-${x}-${y}`,
+        x,
+        y,
+        type: 'coins',
+        amount: 8 + tier * 6 + Math.floor(bonusRoll * (8 + tier * 4))
+      };
+    }
+
+    if (primaryRoll < Math.max(0.88 - tier * 0.03, 0.72)) {
+      return {
+        id: `loot-capsule-${x}-${y}`,
+        x,
+        y,
+        type: 'capsule',
+        amount: 1 + (tier >= 3 && bonusRoll > 0.74 ? 1 : 0)
+      };
+    }
+
+    return {
+      id: `loot-tonic-${x}-${y}`,
+      x,
+      y,
+      type: 'tonic',
+      amount: 5 + tier * 3 + Math.floor(bonusRoll * (3 + tier))
+    };
   }
 
   function getChunk(cx, cy) {
     const id = chunkKey(cx, cy);
     if (!chunks.has(id)) {
-      const chunk = { cx, cy, monsters: [] };
+      const chunk = { cx, cy, monsters: [], loot: [] };
       const attempts = 1 + Math.floor(hashValue(cx, cy, 47) * 3);
       const occupied = new Set();
       for (let i = 0; i < attempts; i++) {
@@ -1939,6 +2557,32 @@ function renderMonsterTamer(direction = 'forward') {
         occupied.add(key(mx, my));
         chunk.monsters.push(createWildMonster(mx, my, i % 2));
       }
+
+      const lootAttempts = Math.floor(hashValue(cx, cy, 71) * 3) + (distanceFromOrigin(cx * chunkSize, cy * chunkSize) > 30 ? 1 : 0);
+      for (let i = 0; i < lootAttempts; i++) {
+        const lx = cx * chunkSize + Math.floor(hashValue(cx, cy, 79 + i) * chunkSize);
+        const ly = cy * chunkSize + Math.floor(hashValue(cx, cy, 83 + i) * chunkSize);
+        const terrain = terrainAt(lx, ly);
+        if (distanceFromOrigin(lx, ly) < 5) continue;
+        if (occupied.has(key(lx, ly))) continue;
+        if (terrain !== 'plain' && terrain !== 'grass' && terrain !== 'path') continue;
+        occupied.add(key(lx, ly));
+        chunk.loot.push(createWorldLoot(lx, ly, i));
+      }
+
+      for (let i = 0; i < 5; i++) {
+        const lx = cx * chunkSize + Math.floor(hashValue(cx, cy, 131 + i) * chunkSize);
+        const ly = cy * chunkSize + Math.floor(hashValue(cx, cy, 137 + i) * chunkSize);
+        const terrain = terrainAt(lx, ly);
+        if (distanceFromOrigin(lx, ly) < 10) continue;
+        if (occupied.has(key(lx, ly))) continue;
+        if (!hasLandmarkAt(lx, ly, routeProfileAt(lx, ly), terrain)) continue;
+        if (hashValue(lx, ly, 143) < 0.4) continue;
+        occupied.add(key(lx, ly));
+        chunk.loot.push(createLandmarkLoot(lx, ly, i));
+        break;
+      }
+
       chunks.set(id, chunk);
     }
     return chunks.get(id);
@@ -1959,8 +2603,84 @@ function renderMonsterTamer(direction = 'forward') {
     }
   }
 
+  function removeLoot(target) {
+    if (!target) return;
+    for (const chunk of getRelevantChunks(chunkRadius + 1)) {
+      const idx = (chunk.loot || []).findIndex(item => item === target || item.id === target.id);
+      if (idx >= 0) {
+        chunk.loot.splice(idx, 1);
+        return;
+      }
+    }
+  }
+
   function monsterOccupied(x, y, ignore) {
     return getRelevantChunks(chunkRadius + 1).some(chunk => chunk.monsters.some(monster => monster !== ignore && monster.x === x && monster.y === y));
+  }
+
+  function collectWorldLoot() {
+    const item = getLootAt(player.x, player.y);
+    if (!item) return false;
+
+    removeLoot(item);
+
+    if (item.type === 'coins') {
+      coins += item.amount;
+      setMessage(`You found ${item.amount} coins in a weathered cache.`);
+    } else if (item.type === 'capsule') {
+      const room = Math.max(0, maxCapsules - capsules);
+      const gained = Math.min(room, item.amount);
+      const overflowCoins = gained < item.amount ? (item.amount - gained) * 8 : 0;
+      capsules += gained;
+      coins += overflowCoins;
+      if (gained > 0) {
+        setMessage(`You found ${gained} capsule${gained === 1 ? '' : 's'} in a supply pod.`);
+      } else {
+        setMessage(`You found ${overflowCoins} coins in a weathered cache.`);
+      }
+    } else if (item.type === 'tonic') {
+      tonics += 1;
+      setMessage('You found a field tonic.');
+    } else if (item.type === 'charm') {
+      charms += item.amount;
+      setMessage('You found a capture charm. Your next capture attempt will be stronger.');
+    } else if (item.type === 'landmark-cache') {
+      if (item.rewardType === 'coins') {
+        coins += item.amount;
+        setMessage(`You uncovered a ${item.label} and found ${item.amount} coins.`);
+      } else if (item.rewardType === 'capsule') {
+        const room = Math.max(0, maxCapsules - capsules);
+        const gained = Math.min(room, item.amount);
+        const overflowCoins = Math.max(0, item.amount - gained) * 10;
+        capsules += gained;
+        coins += overflowCoins;
+        if (gained > 0) {
+          setMessage(`You uncovered a ${item.label} and found ${gained} capsules.`);
+        } else {
+          setMessage(`You uncovered a ${item.label} and found ${overflowCoins} coins.`);
+        }
+      } else if (item.rewardType === 'party-heal') {
+        let totalRecovered = 0;
+        party.forEach(monster => {
+          const recovered = Math.min(item.amount, monster.maxHp - monster.hp);
+          monster.hp += recovered;
+          totalRecovered += recovered;
+        });
+        if (totalRecovered > 0) {
+          setMessage(`You uncovered a ${item.label} and restored ${totalRecovered} HP across your party.`);
+        } else {
+          coins += 12;
+          setMessage(`You uncovered a ${item.label} and found 12 coins.`);
+        }
+      } else if (item.rewardType === 'charm') {
+        charms += item.amount;
+        setMessage('You found a capture charm. Your next capture attempt will be stronger.');
+      }
+    }
+
+    updateHighScore();
+    updateTamerUi();
+    return true;
   }
 
   function healParty() {
@@ -1974,6 +2694,7 @@ function renderMonsterTamer(direction = 'forward') {
   }
 
   function openTownMenu() {
+    activeTownship = getTownshipAt();
     townMenuOpen = true;
     indexMenuOpen = false;
     townSelection = 0;
@@ -1981,9 +2702,37 @@ function renderMonsterTamer(direction = 'forward') {
     drawTamerWorld();
   }
 
+  function castFishingLine() {
+    const waterTile = adjacentWaterTile();
+    if (!waterTile) {
+      setMessage('Stand beside water to fish.');
+      drawTamerWorld();
+      return true;
+    }
+    if (rods <= 0) {
+      setMessage('You need a fishing rod first.');
+      drawTamerWorld();
+      return true;
+    }
+
+    const biteChance = Math.min(0.68, 0.34 + lootTierAt(waterTile.x, waterTile.y) * 0.07);
+    if (Math.random() < biteChance) {
+      setMessage(`Something tugged the line in ${routeLabelAt(waterTile.x, waterTile.y)} Waters.`);
+      startFishingAnimation(waterTile, { type: 'battle', waterTile });
+      updateTamerUi();
+      return true;
+    }
+
+    setMessage('Casting...');
+    startFishingAnimation(waterTile, { type: 'empty', breaksRod: Math.random() >= 0.14 });
+    updateTamerUi();
+    return true;
+  }
+
   function closeTownMenu(message) {
     townMenuOpen = false;
     indexMenuOpen = false;
+    activeTownship = null;
     if (message) setMessage(message);
     updateTamerUi();
     drawTamerWorld();
@@ -2022,8 +2771,10 @@ function renderMonsterTamer(direction = 'forward') {
   function usePotionOnLead() {
     const lead = activeMonster();
     if (!lead) return 'No lead monster to treat.';
+    if (tonics <= 0) return 'You are out of tonics.';
     if (lead.hp >= lead.maxHp) return `${lead.name} is already at full HP.`;
-    lead.hp = Math.min(lead.maxHp, lead.hp + 8);
+    tonics -= 1;
+    lead.hp = Math.min(lead.maxHp, lead.hp + tonicHealAmount);
     return `${lead.name} recovered with a tonic.`;
   }
 
@@ -2063,9 +2814,14 @@ function renderMonsterTamer(direction = 'forward') {
       coins -= choice.cost;
       capsules += 1;
       setMessage('You bought one capsule.');
+    } else if (choice.key === 'rod') {
+      coins -= choice.cost;
+      rods += 1;
+      setMessage('You bought one fishing rod.');
     } else if (choice.key === 'tonic') {
       coins -= choice.cost;
-      setMessage(usePotionOnLead());
+      tonics += 1;
+      setMessage('You bought one tonic.');
     }
     updateHighScore();
     updateTamerUi();
@@ -2086,17 +2842,334 @@ function renderMonsterTamer(direction = 'forward') {
     }
   }
 
+  function drawOutlinedPixelSprite(sprite, palette, outlineColor, px, py, scale) {
+    const offsets = [
+      [-1, 0], [1, 0], [0, -1], [0, 1]
+    ];
+
+    ctx.fillStyle = outlineColor;
+    for (let sy = 0; sy < sprite.length; sy++) {
+      const row = sprite[sy];
+      for (let sx = 0; sx < row.length; sx++) {
+        if (row[sx] === '.') continue;
+        offsets.forEach(([ox, oy]) => {
+          const nx = sx + ox;
+          const ny = sy + oy;
+          const neighbor = sprite[ny]?.[nx] || '.';
+          if (neighbor !== '.') return;
+          ctx.fillRect(px + nx * scale, py + ny * scale, scale, scale);
+        });
+      }
+    }
+
+    drawPixelSprite(sprite, palette, px, py, scale);
+  }
+
+  function colorWithAlpha(hex, alpha) {
+    if (!hex || typeof hex !== 'string') return `rgba(255,255,255,${alpha})`;
+    let value = hex.replace('#', '').trim();
+    if (value.length === 3) {
+      value = value.split('').map(ch => ch + ch).join('');
+    }
+    if (value.length !== 6) return `rgba(255,255,255,${alpha})`;
+    const red = parseInt(value.slice(0, 2), 16);
+    const green = parseInt(value.slice(2, 4), 16);
+    const blue = parseInt(value.slice(4, 6), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  function blendHex(hexA, hexB, weight = 0.5) {
+    const normalize = (hex) => {
+      let value = (hex || '#ffffff').replace('#', '').trim();
+      if (value.length === 3) value = value.split('').map(ch => ch + ch).join('');
+      if (value.length !== 6) value = 'ffffff';
+      return value;
+    };
+    const first = normalize(hexA);
+    const second = normalize(hexB);
+    const mix = (index) => {
+      const a = parseInt(first.slice(index, index + 2), 16);
+      const b = parseInt(second.slice(index, index + 2), 16);
+      return Math.round(a * (1 - weight) + b * weight).toString(16).padStart(2, '0');
+    };
+    return `#${mix(0)}${mix(2)}${mix(4)}`;
+  }
+
+  function shinyPaletteForMonster(monster) {
+    return {
+      color: blendHex(monster?.color || '#ffffff', '#f5d14a', 0.58),
+      accent: blendHex(monster?.accent || '#ffffff', '#8ef4ff', 0.5)
+    };
+  }
+
+  function shinyLabel(monster) {
+    return monster?.shiny ? 'Shiny ' : '';
+  }
+
+  function rollShiny() {
+    return Math.random() < shinyChance;
+  }
+
+  function battlePaletteForMonster(monster) {
+    const shinyPalette = monster?.shiny ? shinyPaletteForMonster(monster) : null;
+    return {
+      primary: shinyPalette ? shinyPalette.color : (monster?.color || '#ffb36b'),
+      secondary: shinyPalette ? shinyPalette.accent : (monster?.accent || '#ffffff'),
+      primaryGlow: colorWithAlpha(shinyPalette ? shinyPalette.color : (monster?.color || '#ffb36b'), 0.88),
+      secondaryGlow: colorWithAlpha(shinyPalette ? shinyPalette.accent : (monster?.accent || '#ffffff'), 0.92)
+    };
+  }
+
+  function stopFishingAnimation() {
+    if (fishingAnimationFrame) {
+      cancelAnimationFrame(fishingAnimationFrame);
+      fishingAnimationFrame = null;
+    }
+    fishingAnimation = null;
+  }
+
+  function stopEncounterTransition() {
+    if (encounterTransitionFrame) {
+      cancelAnimationFrame(encounterTransitionFrame);
+      encounterTransitionFrame = null;
+    }
+    encounterTransition = null;
+  }
+
+  function stopBattleAnimation() {
+    if (battleAnimationFrame) {
+      cancelAnimationFrame(battleAnimationFrame);
+      battleAnimationFrame = null;
+    }
+    battleAnimation = null;
+  }
+
+  function finishBattleAnimation() {
+    if (!battleAnimation) return;
+    const onComplete = battleAnimation.onComplete;
+    stopBattleAnimation();
+    if (typeof onComplete === 'function') {
+      onComplete();
+    }
+  }
+
+  function tickBattleAnimation(now) {
+    if (!battleAnimation) return;
+    const elapsed = now - battleAnimation.startedAt;
+    if (elapsed >= battleAnimation.durationMs) {
+      finishBattleAnimation();
+      return;
+    }
+
+    drawTamerWorld();
+    battleAnimationFrame = requestAnimationFrame(tickBattleAnimation);
+  }
+
+  function startBattleAnimation(type, data, onComplete, durationMs = 440) {
+    stopBattleAnimation();
+    battleAnimation = {
+      type,
+      data,
+      onComplete,
+      startedAt: performance.now(),
+      durationMs
+    };
+    battleAnimationFrame = requestAnimationFrame(tickBattleAnimation);
+  }
+
+  function unlockTheme(themeKey) {
+    const unlocked = new Set(readLocalJson('unlockedThemes', []));
+    const wasUnlocked = unlocked.has(themeKey);
+    if (!wasUnlocked) {
+      unlocked.add(themeKey);
+      localStorage.setItem('unlockedThemes', JSON.stringify([...unlocked]));
+    }
+    return !wasUnlocked;
+  }
+
+  function finishEncounterTransition() {
+    if (!encounterTransition) return;
+    const nextMonster = encounterTransition.monster;
+    stopEncounterTransition();
+    battleTarget = nextMonster;
+    resetBattleMenu();
+    recordDexEntry(nextMonster, 'seen');
+    const rarityLabel = (rarityMeta[nextMonster.rarity] || rarityMeta.common).label.toLowerCase();
+    let unlockSuffix = '';
+    if (nextMonster.shiny) {
+      localStorage.setItem('monsterTamerShinySeen', 'true');
+      if (unlockTheme('shinyglint')) {
+        unlockSuffix = ' Shiny Glint theme unlocked.';
+      }
+    }
+    setMessage(`A ${nextMonster.shiny ? 'shiny ' : ''}${rarityLabel} ${nextMonster.name} appeared on ${nextMonster.route || routeLabelAt(nextMonster.x, nextMonster.y)}. Capsules left: ${capsules}.${unlockSuffix}`);
+    updateTamerUi();
+    drawTamerWorld();
+  }
+
+  function tickEncounterTransition(now) {
+    if (!encounterTransition) return;
+    const elapsed = now - encounterTransition.startedAt;
+    const progress = Math.min(1, elapsed / encounterTransition.durationMs);
+
+    if (!encounterTransition.switched && progress >= 0.52) {
+      encounterTransition.switched = true;
+      battleTarget = encounterTransition.monster;
+    }
+
+    if (progress >= 1) {
+      finishEncounterTransition();
+      return;
+    }
+
+    drawTamerWorld();
+    encounterTransitionFrame = requestAnimationFrame(tickEncounterTransition);
+  }
+
+  function startEncounterTransition(monster) {
+    stopEncounterTransition();
+    encounterTransition = {
+      monster,
+      startedAt: performance.now(),
+      durationMs: 520,
+      switched: false
+    };
+    battleTarget = null;
+    encounterTransitionFrame = requestAnimationFrame(tickEncounterTransition);
+  }
+
+  function drawEncounterTransitionOverlay() {
+    if (!encounterTransition) return;
+
+    const elapsed = performance.now() - encounterTransition.startedAt;
+    const progress = Math.min(1, elapsed / encounterTransition.durationMs);
+    const pulse = Math.sin(progress * Math.PI * 6) * 0.5 + 0.5;
+    const shutterWidth = Math.ceil((canvas.width / 2) * Math.min(1, progress * 1.8));
+
+    ctx.fillStyle = `rgba(10, 14, 10, ${0.18 + progress * 0.36})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = `rgba(241, 248, 224, ${Math.max(0, 0.42 - progress * 0.55)})`;
+    for (let y = 0; y < canvas.height; y += 12) {
+      ctx.fillRect(0, y, canvas.width, 6);
+    }
+
+    ctx.fillStyle = `rgba(24, 28, 20, ${0.72 - progress * 0.16})`;
+    ctx.fillRect(0, 0, shutterWidth, canvas.height);
+    ctx.fillRect(canvas.width - shutterWidth, 0, shutterWidth, canvas.height);
+
+    const flashAlpha = progress < 0.58 ? 0 : Math.max(0, 0.9 - ((progress - 0.58) / 0.42) * 1.2);
+    if (flashAlpha > 0) {
+      ctx.fillStyle = `rgba(246, 250, 238, ${flashAlpha})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.strokeStyle = `rgba(255,255,255,${0.25 + pulse * 0.35})`;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(12 + pulse * 3, 12 + pulse * 2, canvas.width - 24 - pulse * 6, canvas.height - 24 - pulse * 4);
+  }
+
+  function resolveFishingAnimation() {
+    if (!fishingAnimation) return;
+
+    const outcome = fishingAnimation.outcome;
+    stopFishingAnimation();
+
+    if (outcome.type === 'battle') {
+      rods = Math.max(0, rods - 1);
+      beginBattle(createFishingMonster(outcome.waterTile.x, outcome.waterTile.y));
+      return;
+    }
+
+    if (outcome.breaksRod) {
+      rods = Math.max(0, rods - 1);
+      setMessage('You cast out, but nothing bites. The rod snapped.');
+    } else {
+      setMessage('You cast out, but nothing bites. The rod still looks usable.');
+    }
+    updateTamerUi();
+    drawTamerWorld();
+  }
+
+  function tickFishingAnimation(now) {
+    if (!fishingAnimation) return;
+    const elapsed = now - fishingAnimation.startedAt;
+    if (elapsed >= fishingAnimation.durationMs) {
+      resolveFishingAnimation();
+      return;
+    }
+
+    drawTamerWorld();
+    fishingAnimationFrame = requestAnimationFrame(tickFishingAnimation);
+  }
+
+  function startFishingAnimation(waterTile, outcome) {
+    stopFishingAnimation();
+    fishingAnimation = {
+      waterTile,
+      outcome,
+      startedAt: performance.now(),
+      durationMs: outcome.type === 'battle' ? 900 : 780
+    };
+    fishingAnimationFrame = requestAnimationFrame(tickFishingAnimation);
+  }
+
+  function drawFishingAnimation(cameraX, cameraY) {
+    if (!fishingAnimation) return;
+
+    const elapsed = performance.now() - fishingAnimation.startedAt;
+    const castDuration = 260;
+    const totalDuration = fishingAnimation.durationMs;
+    const travelProgress = Math.min(1, elapsed / castDuration);
+    const settleProgress = Math.max(0, Math.min(1, (elapsed - castDuration) / Math.max(1, totalDuration - castDuration)));
+    const playerSx = mapOffsetX + Math.floor(viewCols / 2) * tile + tile / 2;
+    const playerSy = Math.floor(viewRows / 2) * tile + tile / 2;
+    const waterSx = mapOffsetX + (fishingAnimation.waterTile.x - cameraX) * tile + tile / 2;
+    const waterSy = (fishingAnimation.waterTile.y - cameraY) * tile + tile / 2;
+    const bobX = playerSx + (waterSx - playerSx) * travelProgress;
+    const bobY = playerSy + (waterSy - playerSy) * travelProgress - Math.sin(travelProgress * Math.PI) * 10;
+    const finalBobY = waterSy + Math.sin(elapsed * 0.02) * 1.5;
+    const renderBobY = travelProgress < 1 ? bobY : finalBobY;
+    const tugOffset = fishingAnimation.outcome.type === 'battle' && settleProgress > 0.55
+      ? Math.sin((settleProgress - 0.55) * Math.PI * 10) * 2.5
+      : 0;
+
+    ctx.strokeStyle = 'rgba(58,54,47,0.9)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(playerSx, playerSy - 1);
+    ctx.lineTo(bobX, renderBobY + tugOffset);
+    ctx.stroke();
+
+    if (travelProgress >= 1) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 1;
+      const rippleRadius = 3 + Math.sin(settleProgress * Math.PI * 4) * 1.2;
+      ctx.beginPath();
+      ctx.arc(waterSx, waterSy + tugOffset, rippleRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      if (fishingAnimation.outcome.type === 'battle') {
+        ctx.beginPath();
+        ctx.arc(waterSx, waterSy + tugOffset, rippleRadius + 3, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    drawPixelSprite(bobberSprite, { '1': '#ffffff', '2': '#e54d4d', '3': '#2d2d2d' }, bobX - 8, renderBobY - 8 + tugOffset, 2);
+  }
+
   function drawLandmark(profile, sx, sy, worldX, worldY, type) {
     if (!profile || type === 'grass' || type === 'water' || type === 'heal') return;
     const landmark = landmarkSprites[profile.landmark];
     if (!landmark) return;
-    if (hashValue(worldX, worldY, 201) < 0.972) return;
+    if (!hasLandmarkAt(worldX, worldY, profile, type)) return;
     drawPixelSprite(landmark.sprite, landmark.palette, sx, sy, 2);
   }
 
   function drawWorldTile(type, sx, sy, worldX, worldY) {
     const profile = routeProfileAt(worldX, worldY);
     const palette = profile.palette || { plain: '#98cd72', grass: '#7fbe57', path: '#cab47b', water: '#5aa4de' };
+    const town = getTownshipAt(worldX, worldY);
     if (type === 'path') {
       ctx.fillStyle = palette.path;
       ctx.fillRect(sx, sy, tile, tile);
@@ -2111,6 +3184,9 @@ function renderMonsterTamer(direction = 'forward') {
       ctx.fillStyle = palette.grass;
       ctx.fillRect(sx, sy, tile, tile);
       drawPixelSprite(tallGrassSprite, { '1': '#54903a' }, sx, sy + 2, 2);
+      ctx.fillStyle = colorWithAlpha('#dff5b4', 0.12 + hashValue(worldX, worldY, 901) * 0.08);
+      ctx.fillRect(sx + 2 + Math.sin((renderTick + worldX + worldY) * 0.15) * 1.2, sy + 5, 2, 5);
+      ctx.fillRect(sx + 9 + Math.sin((renderTick + worldX * 2 + worldY) * 0.17) * 1.2, sy + 4, 2, 6);
       return;
     }
     if (type === 'water') {
@@ -2120,6 +3196,9 @@ function renderMonsterTamer(direction = 'forward') {
       ctx.fillRect(sx + 1, sy + 4, 6, 2);
       ctx.fillRect(sx + 8, sy + 10, 6, 2);
       ctx.fillRect(sx + 5, sy + 14, 5, 1);
+      ctx.fillStyle = colorWithAlpha('#ffffff', 0.16);
+      ctx.fillRect(sx + (((renderTick + worldX + worldY) % 12 + 12) % 12), sy + 3, 4, 1);
+      ctx.fillRect(sx + ((((renderTick * 1.4) + worldX * 3 + worldY) % 14 + 14) % 14), sy + 9, 3, 1);
       return;
     }
     ctx.fillStyle = type === 'heal' ? '#d8f0be' : palette.plain;
@@ -2132,20 +3211,209 @@ function renderMonsterTamer(direction = 'forward') {
       drawPixelSprite(treeSprite, { '1': '#245b2f', '2': '#387c44', '3': '#4f9658', '4': '#6c4b2d' }, sx, sy, 2);
       return;
     }
-    if (type === 'heal') {
-      drawPixelSprite(fieldStationSprite, { '1': '#3f4f34', '2': '#efe8cf', '3': '#d45252', '4': '#87b8e2' }, sx, sy, 2);
+    if (type === 'town' || type === 'shop') {
+      const townPalette = {
+        '1': '#3f4f34',
+        '2': '#efe8cf',
+        '3': profile.palette?.path || '#d45252',
+        '4': profile.palette?.water || '#87b8e2'
+      };
+
+      ctx.fillStyle = profile.palette?.path || '#cab47b';
+      ctx.fillRect(sx, sy, tile, tile);
+      ctx.strokeStyle = 'rgba(57,70,46,0.35)';
+      ctx.strokeRect(sx + 1, sy + 1, tile - 2, tile - 2);
+
+      if (type === 'shop') {
+        drawPixelSprite(fieldStationSprite, townPalette, sx, sy, 2);
+      } else if (town) {
+        const landmark = landmarkSprites[town.profile.landmark];
+        if (landmark) {
+          drawPixelSprite(landmark.sprite, landmark.palette, sx, sy, 2);
+        }
+      }
       return;
     }
     drawLandmark(profile, sx, sy, worldX, worldY, type);
   }
 
   function drawMonsterSprite(monster, sx, sy, scale) {
+    const shinyPalette = monster?.shiny ? shinyPaletteForMonster(monster) : null;
     drawPixelSprite(monster.sprite, {
-      '1': monster.color,
-      '2': monster.accent,
+      '1': shinyPalette ? shinyPalette.color : monster.color,
+      '2': shinyPalette ? shinyPalette.accent : monster.accent,
       '3': '#2f2f2f',
       '4': '#ffffff'
     }, sx, sy, scale);
+  }
+
+  function drawShinySparkles(cx, cy, radius = 22, phase = performance.now() * 0.004) {
+    for (let i = 0; i < 4; i++) {
+      const angle = phase + (i * Math.PI / 2);
+      const sparkleX = cx + Math.cos(angle) * radius;
+      const sparkleY = cy + Math.sin(angle) * (radius * 0.62);
+      ctx.strokeStyle = i % 2 === 0 ? 'rgba(255,241,161,0.95)' : 'rgba(164,247,255,0.95)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(sparkleX - 3, sparkleY);
+      ctx.lineTo(sparkleX + 3, sparkleY);
+      ctx.moveTo(sparkleX, sparkleY - 3);
+      ctx.lineTo(sparkleX, sparkleY + 3);
+      ctx.stroke();
+    }
+  }
+
+  function battleLayout() {
+    return {
+      enemyX: 206,
+      enemyY: 72,
+      allyX: 54,
+      allyY: 116,
+      enemyCenterX: 222,
+      enemyCenterY: 88,
+      allyCenterX: 70,
+      allyCenterY: 132
+    };
+  }
+
+  function stopAmbientAnimation() {
+    if (ambientAnimationFrame) {
+      cancelAnimationFrame(ambientAnimationFrame);
+      ambientAnimationFrame = null;
+    }
+    ambientLastAt = 0;
+  }
+
+  function tickAmbientAnimation(now) {
+    if (!ambientLastAt) {
+      ambientLastAt = now;
+    }
+
+    const elapsed = Math.min(42, now - ambientLastAt);
+    ambientLastAt = now;
+
+    if (!encounterTransition && !battleAnimation && !fishingAnimation) {
+      renderTick += elapsed * 0.024;
+      drawTamerWorld();
+    }
+
+    ambientAnimationFrame = requestAnimationFrame(tickAmbientAnimation);
+  }
+
+  function startAmbientAnimation() {
+    stopAmbientAnimation();
+    ambientAnimationFrame = requestAnimationFrame(tickAmbientAnimation);
+  }
+
+  function drawBattleAnimationEffects(layout) {
+    if (!battleAnimation) return { allyOffsetX: 0, allyOffsetY: 0, enemyOffsetX: 0, enemyOffsetY: 0 };
+
+    const elapsed = performance.now() - battleAnimation.startedAt;
+    const progress = Math.min(1, elapsed / battleAnimation.durationMs);
+    const effects = { allyOffsetX: 0, allyOffsetY: 0, enemyOffsetX: 0, enemyOffsetY: 0 };
+
+    if (battleAnimation.type === 'attack-projectile') {
+      const fromEnemy = battleAnimation.data.from === 'enemy';
+      const palette = battlePaletteForMonster(battleAnimation.data.monster);
+      const startX = fromEnemy ? layout.enemyCenterX : layout.allyCenterX;
+      const startY = fromEnemy ? layout.enemyCenterY : layout.allyCenterY;
+      const endX = fromEnemy ? layout.allyCenterX : layout.enemyCenterX;
+      const endY = fromEnemy ? layout.allyCenterY : layout.enemyCenterY;
+      const pulse = Math.sin(progress * Math.PI);
+      const shotX = startX + (endX - startX) * progress;
+      const shotY = startY + (endY - startY) * progress - Math.sin(progress * Math.PI) * 10;
+
+      ctx.strokeStyle = palette.primaryGlow;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(shotX, shotY);
+      ctx.stroke();
+
+      ctx.strokeStyle = palette.secondaryGlow;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY - 2);
+      ctx.lineTo(shotX, shotY - 2);
+      ctx.stroke();
+
+      ctx.fillStyle = palette.primary;
+      ctx.beginPath();
+      ctx.arc(shotX, shotY, 4 + pulse * 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = palette.secondary;
+      ctx.beginPath();
+      ctx.arc(shotX, shotY, 2 + pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (let i = 0; i < 3; i++) {
+        const trailOffset = i * 0.1;
+        const trailProgress = Math.max(0, progress - trailOffset);
+        const trailX = startX + (endX - startX) * trailProgress;
+        const trailY = startY + (endY - startY) * trailProgress - Math.sin(trailProgress * Math.PI) * 10;
+        ctx.fillStyle = colorWithAlpha(battleAnimation.data.monster?.color || '#ffffff', 0.18 - i * 0.04);
+        ctx.beginPath();
+        ctx.arc(trailX, trailY, 4 - i, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (progress > 0.7) {
+        const impactPulse = (progress - 0.7) / 0.3;
+        ctx.strokeStyle = palette.secondaryGlow;
+        for (let i = 0; i < 2; i++) {
+          ctx.beginPath();
+          ctx.arc(endX, endY, 4 + impactPulse * (10 + i * 6), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (fromEnemy) {
+          effects.allyOffsetX = Math.sin(progress * Math.PI * 16) * 2.2;
+          effects.allyOffsetY = Math.sin(progress * Math.PI * 10) * 0.8;
+        } else {
+          effects.enemyOffsetX = Math.sin(progress * Math.PI * 16) * 2.2;
+          effects.enemyOffsetY = Math.sin(progress * Math.PI * 10) * 0.8;
+        }
+      }
+    } else if (battleAnimation.type === 'capsule-throw') {
+      const startX = layout.allyCenterX - 8;
+      const startY = layout.allyCenterY - 6;
+      const endX = layout.enemyCenterX;
+      const endY = layout.enemyCenterY + 2;
+      const throwProgress = Math.min(1, progress / 0.68);
+      const arcX = startX + (endX - startX) * throwProgress;
+      const arcY = startY + (endY - startY) * throwProgress - Math.sin(throwProgress * Math.PI) * 28;
+      const shakePhase = progress > 0.68 ? (progress - 0.68) / 0.32 : 0;
+
+      if (progress <= 0.68) {
+        drawPixelSprite(capsuleSprite, { '1': '#7b5cff', '2': '#c6b8ff', '3': '#2d2d2d', '4': '#ffffff' }, arcX - 8, arcY - 8, 2);
+      } else {
+        const shakeX = endX + Math.sin(shakePhase * Math.PI * 8) * 5;
+        const shakeY = endY + Math.sin(shakePhase * Math.PI * 4) * 1.5;
+        drawPixelSprite(capsuleSprite, { '1': '#7b5cff', '2': '#c6b8ff', '3': '#2d2d2d', '4': '#ffffff' }, shakeX - 8, shakeY - 8, 2);
+        ctx.strokeStyle = battleAnimation.data.success ? 'rgba(214,255,180,0.9)' : 'rgba(255,210,210,0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(endX, endY, 8 + shakePhase * 16, 0, Math.PI * 2);
+        ctx.stroke();
+        effects.enemyOffsetX = Math.sin(shakePhase * Math.PI * 8) * 2;
+
+        const sparkleCount = battleAnimation.data.success ? 5 : 3;
+        for (let i = 0; i < sparkleCount; i++) {
+          const angle = (Math.PI * 2 * i) / sparkleCount + shakePhase * Math.PI;
+          const distance = 10 + shakePhase * 16;
+          const sparkleX = endX + Math.cos(angle) * distance;
+          const sparkleY = endY + Math.sin(angle) * distance;
+          ctx.strokeStyle = battleAnimation.data.success ? 'rgba(225,255,190,0.9)' : 'rgba(255,168,168,0.82)';
+          ctx.beginPath();
+          ctx.moveTo(sparkleX - 2, sparkleY);
+          ctx.lineTo(sparkleX + 2, sparkleY);
+          ctx.moveTo(sparkleX, sparkleY - 2);
+          ctx.lineTo(sparkleX, sparkleY + 2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    return effects;
   }
 
   function drawTamerWorld() {
@@ -2153,7 +3421,7 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.fillStyle = '#d8f0be';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (battleTarget) {
+    if (battleTarget && !encounterTransition) {
       drawBattleScene();
       return;
     }
@@ -2180,6 +3448,7 @@ function renderMonsterTamer(direction = 'forward') {
     }
 
     const visibleMonsters = [];
+    const visibleLoot = [];
     getRelevantChunks(chunkRadius + 1).forEach(chunk => {
       chunk.monsters.forEach(monster => {
         const sx = monster.x - cameraX;
@@ -2188,17 +3457,80 @@ function renderMonsterTamer(direction = 'forward') {
           visibleMonsters.push({ monster, sx, sy });
         }
       });
+
+      (chunk.loot || []).forEach(item => {
+        const sx = item.x - cameraX;
+        const sy = item.y - cameraY;
+        if (sx >= 0 && sx < viewCols && sy >= 0 && sy < viewRows) {
+          visibleLoot.push({ item, sx, sy });
+        }
+      });
+    });
+
+    visibleLoot.forEach(({ item, sx, sy }) => {
+      const px = mapOffsetX + sx * tile;
+      const bob = Math.sin((renderTick + sx * 2 + sy * 3) * 0.55) * 1.5;
+      const py = sy * tile + bob;
+      const isCache = item.type === 'landmark-cache';
+      const isCharm = item.type === 'charm' || item.rewardType === 'charm';
+      ctx.fillStyle = isCharm
+        ? 'rgba(246,219,112,0.26)'
+        : isCache
+          ? 'rgba(208,147,88,0.22)'
+          : item.type === 'coins'
+            ? 'rgba(201,146,45,0.22)'
+            : item.type === 'capsule'
+              ? 'rgba(123,92,255,0.2)'
+              : 'rgba(86,167,184,0.2)';
+      ctx.beginPath();
+      ctx.arc(px + tile / 2, py + tile / 2, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 2; i++) {
+        const sparkleAngle = ((renderTick * 0.35) + (i * Math.PI)) + (sx + sy) * 0.4;
+        const sparkleX = px + tile / 2 + Math.cos(sparkleAngle) * 5;
+        const sparkleY = py + tile / 2 + Math.sin(sparkleAngle) * 5;
+        ctx.beginPath();
+        ctx.moveTo(sparkleX - 1.5, sparkleY);
+        ctx.lineTo(sparkleX + 1.5, sparkleY);
+        ctx.moveTo(sparkleX, sparkleY - 1.5);
+        ctx.lineTo(sparkleX, sparkleY + 1.5);
+        ctx.stroke();
+      }
+
+      if (item.type === 'coins') {
+        drawPixelSprite(coinSprite, { '1': '#c9922d', '2': '#f2cf67', '3': '#9b6b22' }, px, py, 2);
+      } else if (item.type === 'capsule') {
+        drawPixelSprite(capsuleSprite, { '1': '#7b5cff', '2': '#c6b8ff', '3': '#2d2d2d', '4': '#ffffff' }, px, py, 2);
+      } else if (item.type === 'charm') {
+        drawPixelSprite(charmSprite, { '1': '#f6db70', '2': '#fff4c2', '3': '#eaa94a', '4': '#ffffff' }, px, py, 2);
+      } else if (item.type === 'landmark-cache') {
+        drawPixelSprite(cacheSprite, {
+          '1': '#7a5332',
+          '2': '#b68149',
+          '3': routeProfileAt(item.x, item.y).palette?.path || '#d8bc78',
+          '4': '#e9dcb7'
+        }, px, py, 2);
+      } else {
+        drawPixelSprite(tonicSprite, { '1': '#3f98a5', '2': '#8de0ea', '3': '#53b4c5', '4': '#d9f6fb' }, px, py, 2);
+      }
     });
 
     visibleMonsters.forEach(({ monster, sx, sy }) => {
+      const idleBob = Math.sin((renderTick + sx * 3 + sy * 5) * 0.16) * 1.2;
       ctx.fillStyle = 'rgba(0,0,0,0.14)';
       ctx.fillRect(mapOffsetX + sx * tile + 4, sy * tile + 11, 8, 3);
-      drawMonsterSprite(monster, mapOffsetX + sx * tile, sy * tile, 2);
+      drawMonsterSprite(monster, mapOffsetX + sx * tile, sy * tile + idleBob, 2);
     });
 
+    const playerBob = Math.sin(renderTick * 0.18) * 0.6;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.fillRect(mapOffsetX + Math.floor(viewCols / 2) * tile + 4, Math.floor(viewRows / 2) * tile + 11, 8, 3);
-    drawPixelSprite(playerSprite, { '1': '#cf4949', '2': '#f2d8b6', '3': '#356ec9', '4': '#2a2a2a' }, mapOffsetX + Math.floor(viewCols / 2) * tile, Math.floor(viewRows / 2) * tile, 2);
+    drawOutlinedPixelSprite(playerSprite, { '1': '#d4b9f6', '2': '#fae9df', '3': '#a184e3', '4': '#4a3d61' }, 'rgba(71, 56, 95, 0.45)', mapOffsetX + Math.floor(viewCols / 2) * tile, Math.floor(viewRows / 2) * tile + playerBob, 2);
+
+    drawFishingAnimation(cameraX, cameraY);
 
     ctx.fillStyle = 'rgba(34,50,20,0.74)';
     ctx.fillRect(0, 0, canvas.width, 18);
@@ -2219,14 +3551,21 @@ function renderMonsterTamer(direction = 'forward') {
       ctx.font = '13px Courier New';
       ctx.fillText('Center to start a new hunt', canvas.width / 2, canvas.height / 2 + 14);
     }
+
+    drawEncounterTransitionOverlay();
   }
 
   function drawTownScene() {
-    ctx.fillStyle = '#d7efc3';
+    const town = activeTownship || getTownshipAt() || townships[0];
+    const profile = town?.profile || routeProfiles[0];
+    const panelFill = 'rgba(255,255,255,0.95)';
+    const landmark = landmarkSprites[profile.landmark];
+
+    ctx.fillStyle = profile.palette?.plain || '#d7efc3';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#8fc16d';
+    ctx.fillStyle = profile.palette?.grass || '#8fc16d';
     ctx.fillRect(0, 134, canvas.width, 74);
-    ctx.fillStyle = '#6e9d51';
+    ctx.fillStyle = profile.palette?.path || '#6e9d51';
     ctx.fillRect(0, 148, canvas.width, 60);
 
     ctx.fillStyle = '#eadfbc';
@@ -2244,7 +3583,7 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.fillRect(188, 88, 18, 14);
     ctx.fillRect(242, 88, 18, 14);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillStyle = panelFill;
     ctx.fillRect(14, 12, 284, 184);
     ctx.strokeStyle = '#465538';
     ctx.lineWidth = 2;
@@ -2253,18 +3592,21 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.fillStyle = '#465538';
     ctx.font = 'bold 14px Courier New';
     ctx.textAlign = 'center';
-    ctx.fillText('Town Services', canvas.width / 2, 32);
+    ctx.fillText(town ? town.name : 'Town Services', canvas.width / 2, 32);
     ctx.font = 'bold 10px Courier New';
-    ctx.fillText(`Coins ${coins}  Capsules ${capsules}/${maxCapsules}`, canvas.width / 2, 48);
+    ctx.fillText(`Coins ${coins}  Cap ${capsules}/${maxCapsules}  Rods ${rods}`, canvas.width / 2, 48);
 
     drawPixelSprite(capsuleSprite, { '1': '#7b5cff', '2': '#c6b8ff', '3': '#2d2d2d', '4': '#ffffff' }, 32, 22, 2);
     drawPixelSprite(coinSprite, { '1': '#c9922d', '2': '#f2cf67', '3': '#9b6b22' }, 258, 22, 2);
+    if (landmark) {
+      drawPixelSprite(landmark.sprite, landmark.palette, 144, 20, 2);
+    }
 
     shopItems.forEach((item, index) => {
-      const y = 68 + index * 28;
+      const y = 60 + index * 19;
       if (index === townSelection) {
-        ctx.fillStyle = '#cfe5b8';
-        ctx.fillRect(26, y - 12, 260, 20);
+        ctx.fillStyle = colorWithAlpha('#cfe5b8', 0.8 + Math.sin(performance.now() * 0.01) * 0.08);
+        ctx.fillRect(26, y - 10, 260, 16);
       }
       ctx.fillStyle = '#39462e';
       ctx.textAlign = 'left';
@@ -2274,17 +3616,19 @@ function renderMonsterTamer(direction = 'forward') {
     });
 
     ctx.fillStyle = 'rgba(45,56,34,0.92)';
-    ctx.fillRect(14, 164, 284, 32);
+    ctx.fillRect(14, 176, 284, 22);
     ctx.fillStyle = '#eff7df';
     ctx.textAlign = 'center';
-    ctx.fillText('Prev/Next or Wheel: Browse  |  Center: Buy/Use  |  Play: Leave', canvas.width / 2, 184);
+    ctx.font = 'bold 9px Courier New';
+    ctx.fillText('Wheel/Prev/Next: Browse', canvas.width / 2, 185);
+    ctx.fillText('Center: Select  |  Play: Exit', canvas.width / 2, 194);
   }
 
   function drawMonsterIndex() {
     const species = speciesList[indexSelection];
     const dex = monsterDex[species.name] || { seen: false, caught: false, routes: [] };
     const knownRoutes = dex.routes.length ? dex.routes : routesForSpecies(species.name);
-    const rarity = routeProfiles.flatMap(profile => ([...(profile.pool || []), ...(profile.specials || [])]))
+    const rarity = routeProfiles.flatMap(profile => ([...(profile.pool || []), ...(profile.specials || []), ...(profile.fishPool || []), ...(profile.fishSpecials || [])]))
       .find(entry => entry.species === species.name)?.rarity || 'common';
 
     ctx.fillStyle = '#eef4df';
@@ -2329,6 +3673,15 @@ function renderMonsterTamer(direction = 'forward') {
 
   function drawBattleScene() {
     const lead = activeMonster();
+    const layout = battleLayout();
+    const now = performance.now();
+    const enemyIdle = Math.sin(now * 0.005 + 0.8) * 1.3;
+    const allyIdle = Math.sin(now * 0.005 + 2.4) * 1.1;
+    const enemyNameText = `${shinyLabel(battleTarget)}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label} ${battleTarget.name} Lv${battleTarget.level}`;
+    const enemyHpText = `HP ${battleTarget.hp}/${battleTarget.maxHp}`;
+    const leadNameText = `${lead ? `${shinyLabel(lead)}${lead.name}` : 'No Lead'} Lv${lead ? lead.level : 0}`;
+    const leadHpText = `HP ${lead ? lead.hp : 0}/${lead ? lead.maxHp : 0}`;
+
     ctx.fillStyle = '#d6efbf';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#afd67e';
@@ -2336,42 +3689,111 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.fillStyle = '#96c36f';
     ctx.fillRect(0, 145, canvas.width, 63);
 
+    ctx.font = 'bold 10px Courier New';
+    const panelPadding = 8;
+    const panelMinWidth = 126;
+    const panelMaxWidth = 166;
+    const enemyPanelWidth = Math.max(
+      panelMinWidth,
+      Math.min(panelMaxWidth, Math.ceil(Math.max(ctx.measureText(enemyNameText).width, ctx.measureText(enemyHpText).width)) + panelPadding * 2)
+    );
+    const leadPanelWidth = Math.max(
+      panelMinWidth,
+      Math.min(panelMaxWidth, Math.ceil(Math.max(ctx.measureText(leadNameText).width, ctx.measureText(leadHpText).width)) + panelPadding * 2)
+    );
+    const enemyPanelX = 14;
+    const leadPanelX = canvas.width - 14 - leadPanelWidth;
+
     ctx.fillStyle = '#eef7df';
-    ctx.fillRect(14, 18, 126, 36);
-    ctx.fillRect(172, 126, 126, 36);
+    ctx.fillRect(enemyPanelX, 18, enemyPanelWidth, 36);
+    ctx.fillRect(leadPanelX, 118, leadPanelWidth, 36);
     ctx.strokeStyle = '#39462e';
     ctx.lineWidth = 2;
-    ctx.strokeRect(14, 18, 126, 36);
-    ctx.strokeRect(172, 126, 126, 36);
+    ctx.strokeRect(enemyPanelX, 18, enemyPanelWidth, 36);
+    ctx.strokeRect(leadPanelX, 118, leadPanelWidth, 36);
 
     ctx.fillStyle = '#39462e';
-    ctx.font = 'bold 10px Courier New';
     ctx.textAlign = 'left';
-    ctx.fillText(`${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label} ${battleTarget.name} Lv${battleTarget.level}`, 22, 32);
-    ctx.fillText(`HP ${battleTarget.hp}/${battleTarget.maxHp}`, 22, 46);
-    ctx.fillText(`${lead ? lead.name : 'No Lead'} Lv${lead ? lead.level : 0}`, 180, 140);
-    ctx.fillText(`HP ${lead ? lead.hp : 0}/${lead ? lead.maxHp : 0}`, 180, 154);
+    ctx.fillText(enemyNameText, enemyPanelX + panelPadding, 32);
+    ctx.fillText(enemyHpText, enemyPanelX + panelPadding, 46);
+    ctx.fillText(leadNameText, leadPanelX + panelPadding, 132);
+    ctx.fillText(leadHpText, leadPanelX + panelPadding, 146);
 
     ctx.fillStyle = 'rgba(0,0,0,0.12)';
     ctx.beginPath();
-    ctx.ellipse(232, 108, 28, 8, 0, 0, Math.PI * 2);
-    ctx.ellipse(86, 160, 26, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(232, 108, 28 + Math.sin(now * 0.004) * 1.5, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(86, 160, 26 + Math.sin(now * 0.004 + 1.2) * 1.2, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    drawMonsterSprite(battleTarget, 206, 72, 4);
+    const animationEffects = drawBattleAnimationEffects(layout);
+
+    drawMonsterSprite(battleTarget, layout.enemyX + animationEffects.enemyOffsetX, layout.enemyY + animationEffects.enemyOffsetY + enemyIdle, 4);
+    if (battleTarget.shiny) {
+      drawShinySparkles(layout.enemyCenterX, layout.enemyCenterY - 2, 25, now * 0.006);
+    }
     if (lead) {
-      drawMonsterSprite(lead, 54, 122, 4);
+      drawMonsterSprite(lead, layout.allyX + animationEffects.allyOffsetX, layout.allyY + animationEffects.allyOffsetY + allyIdle, 4);
+      if (lead.shiny) {
+        drawShinySparkles(layout.allyCenterX, layout.allyCenterY, 20, now * 0.006 + 1.2);
+      }
     }
 
-    ctx.fillStyle = 'rgba(45,56,34,0.9)';
-    ctx.fillRect(0, 176, canvas.width, 32);
-    ctx.fillStyle = '#eff7df';
+    ctx.fillStyle = 'rgba(45,56,34,0.94)';
+    ctx.fillRect(0, 152, canvas.width, 56);
+    ctx.strokeStyle = 'rgba(239,247,223,0.18)';
+    ctx.strokeRect(0, 152, canvas.width, 56);
     ctx.font = 'bold 10px Courier New';
+
+    if (battleMenuMode === 'root') {
+      ctx.fillStyle = '#eff7df';
+      ctx.textAlign = 'center';
+      ctx.fillText('Choose action', canvas.width / 2, 164);
+      battleRootOptions.forEach((option, index) => {
+        const col = index % 2;
+        const row = Math.floor(index / 2);
+        const boxX = 10 + col * 148;
+        const boxY = 170 + row * 18;
+        const selected = index === battleMenuSelection;
+        ctx.fillStyle = selected ? '#d7efb9' : 'rgba(239,247,223,0.14)';
+        ctx.fillRect(boxX, boxY, 144, 16);
+        ctx.strokeStyle = selected ? '#eff7df' : 'rgba(239,247,223,0.22)';
+        ctx.strokeRect(boxX, boxY, 144, 16);
+        ctx.fillStyle = selected ? '#304027' : '#eff7df';
+        ctx.textAlign = 'center';
+        ctx.fillText(option.label, boxX + 72, boxY + 11);
+      });
+      return;
+    }
+
+    const entries = currentBattleMenuEntries();
+    ctx.fillStyle = '#eff7df';
     ctx.textAlign = 'center';
-    ctx.fillText(`Center: Attack  |  Play/Pause: Capsule x${capsules}`, canvas.width / 2, 196);
+    ctx.fillText(battleMenuMode === 'attack' ? 'Choose an attack' : 'Choose an item', canvas.width / 2, 164);
+
+    if (!entries.length) {
+      ctx.fillText('No usable items', canvas.width / 2, 186);
+    } else {
+      entries.slice(0, 2).forEach((entry, index) => {
+        const boxY = 171 + index * 18;
+        const selected = index === battleSubSelection;
+        ctx.fillStyle = selected ? '#d7efb9' : 'rgba(239,247,223,0.14)';
+        ctx.fillRect(12, boxY, 288, 16);
+        ctx.strokeStyle = selected ? '#eff7df' : 'rgba(239,247,223,0.22)';
+        ctx.strokeRect(12, boxY, 288, 16);
+        ctx.fillStyle = selected ? '#304027' : '#eff7df';
+        ctx.textAlign = 'left';
+        ctx.fillText(entry.name || entry.label, 18, boxY + 11);
+        ctx.textAlign = 'right';
+        const detail = entry.detail || `${Math.round((entry.power || 1) * 100)}% · ${(entry.accuracy || 1) * 100 | 0}%`;
+        ctx.fillText(detail, 294, boxY + 11);
+      });
+    }
   }
 
   function endRun(reason) {
+    stopEncounterTransition();
+    stopBattleAnimation();
+    stopFishingAnimation();
     gameOver = true;
     battleTarget = null;
     updateHighScore();
@@ -2441,15 +3863,215 @@ function renderMonsterTamer(direction = 'forward') {
   }
 
   function beginBattle(monster) {
-    battleTarget = monster;
-    recordDexEntry(monster, 'seen');
-    const rarityLabel = (rarityMeta[monster.rarity] || rarityMeta.common).label.toLowerCase();
-    setMessage(`A ${rarityLabel} ${monster.name} appeared on ${monster.route || routeLabelAt(monster.x, monster.y)}. Capsules left: ${capsules}.`);
+    resetBattleMenu();
+    startEncounterTransition(monster);
     updateTamerUi();
     drawTamerWorld();
   }
 
+  function resolveBattleVictory(ally, defeatedMonster) {
+    const xpGain = 3 + defeatedMonster.level * 2;
+    const coinGain = 5 + defeatedMonster.level * 3 + (rarityMeta[defeatedMonster.rarity] || rarityMeta.common).coinBonus;
+    const levels = awardExperience(ally, xpGain);
+    coins += coinGain;
+    const recovery = recoverLeadAfterEncounter(2, defeatedMonster.x, defeatedMonster.y);
+    setMessage(levels > 0
+      ? recovery > 0
+        ? `${ally.name} won, earned ${coinGain}c, grew to Lv${ally.level}, and recovered ${recovery} HP.`
+        : `${ally.name} won, earned ${coinGain}c, and grew to Lv${ally.level}.`
+      : recovery > 0
+        ? `${ally.name} defeated ${defeatedMonster.name}, earned ${coinGain}c, and recovered ${recovery} HP.`
+        : `${ally.name} defeated ${defeatedMonster.name} and earned ${coinGain}c.`);
+    removeMonster(defeatedMonster);
+    battleTarget = null;
+    defeated += 1;
+    resetBattleMenu();
+    stepWorld();
+  }
+
+  function resolveEnemyRetaliation(retaliation, message) {
+    const ally = activeMonster();
+    startBattleAnimation('attack-projectile', { from: 'enemy', monster: battleTarget }, () => {
+      if (ally) {
+        ally.hp = Math.max(0, ally.hp - retaliation);
+      }
+      setMessage(message);
+
+      if (!ally || ally.hp <= 0) {
+        if (!switchToHealthyLead()) {
+          endRun('All your monsters fainted.');
+          return;
+        }
+      }
+
+      updateHighScore();
+      updateTamerUi();
+      drawTamerWorld();
+    }, 400);
+  }
+
+  function enemyRetaliationDamage() {
+    if (!battleTarget) return 0;
+    return easeRetaliationDamage(
+      battleTarget.atkMin + Math.floor(Math.random() * (battleTarget.atkMax - battleTarget.atkMin + 1)),
+      battleTarget.x,
+      battleTarget.y
+    );
+  }
+
+  function useBattleAttack(move) {
+    const ally = activeMonster();
+    if (!ally || !battleTarget || !move) return;
+
+    startBattleAnimation('attack-projectile', { from: 'ally', monster: ally }, () => {
+      if (!battleTarget) return;
+
+      if (Math.random() > (move.accuracy || 1)) {
+        const retaliation = enemyRetaliationDamage();
+        resolveEnemyRetaliation(retaliation, `${ally.name}'s ${move.name} missed. ${battleTarget.name} counters for ${retaliation}.`);
+        return;
+      }
+
+      const baseDamage = ally.atkMin + Math.floor(Math.random() * (ally.atkMax - ally.atkMin + 1));
+      const damage = Math.max(1, Math.round(baseDamage * (move.power || 1)));
+      battleTarget.hp -= damage;
+      let recovered = 0;
+
+      if (move.healRatio) {
+        recovered = Math.min(Math.max(1, Math.round(damage * move.healRatio)), ally.maxHp - ally.hp);
+        ally.hp += recovered;
+      }
+
+      if (battleTarget.hp <= 0) {
+        resolveBattleVictory(ally, battleTarget);
+        return;
+      }
+
+      const retaliation = enemyRetaliationDamage();
+      const healSuffix = recovered > 0 ? ` and recovered ${recovered} HP` : '';
+      resolveEnemyRetaliation(retaliation, `${ally.name} used ${move.name} for ${damage}${healSuffix}. ${battleTarget.name} hits back for ${retaliation}.`);
+    }, 380);
+  }
+
+  function useBattleItem(item) {
+    if (!item || item.key !== 'tonic') {
+      setMessage('No usable items right now.');
+      drawTamerWorld();
+      return;
+    }
+
+    const result = usePotionOnLead();
+    if (result === 'You are out of tonics.' || /full HP|No lead/.test(result)) {
+      setMessage(result);
+      updateTamerUi();
+      drawTamerWorld();
+      return;
+    }
+
+    const retaliation = enemyRetaliationDamage();
+    resetBattleMenu();
+    resolveEnemyRetaliation(retaliation, `${result} ${battleTarget.name} presses for ${retaliation}.`);
+  }
+
+  function escapeChanceForTarget(target) {
+    if (!target) return 0;
+    const rarityPenalty = ({ common: 0, uncommon: 0.08, rare: 0.18, legendary: 0.3 })[target.rarity] || 0.1;
+    const levelGapPenalty = Math.max(0, target.level - (activeMonster()?.level || target.level)) * 0.04;
+    const ephemeralBonus = target.ephemeral ? 0.12 : 0;
+    return Math.max(0.12, Math.min(0.92, 0.72 - rarityPenalty - levelGapPenalty + ephemeralBonus));
+  }
+
+  function attemptRunFromBattle() {
+    if (!battleTarget) return;
+    const currentTarget = battleTarget;
+    const chance = escapeChanceForTarget(currentTarget);
+    if (Math.random() < chance) {
+      battleTarget = null;
+      resetBattleMenu();
+      setMessage(`You escaped from ${currentTarget.name}.`);
+      updateTamerUi();
+      drawTamerWorld();
+      return;
+    }
+
+    const retaliation = enemyRetaliationDamage();
+    resetBattleMenu();
+    resolveEnemyRetaliation(retaliation, `Couldn't escape! ${currentTarget.name} cuts you off for ${retaliation}.`);
+  }
+
+  function handleBattleConfirm() {
+    if (!battleTarget) return;
+
+    if (battleMenuMode === 'root') {
+      const action = battleRootOptions[battleMenuSelection];
+      if (!action) return;
+
+      if (action.key === 'attack') {
+        battleMenuMode = 'attack';
+        battleSubSelection = 0;
+        setMessage('Choose an attack.');
+        drawTamerWorld();
+        return;
+      }
+      if (action.key === 'item') {
+        battleMenuMode = 'item';
+        battleSubSelection = 0;
+        setMessage(battleItemsForPlayer().length ? 'Choose an item.' : 'No usable items right now.');
+        drawTamerWorld();
+        return;
+      }
+      if (action.key === 'run') {
+        attemptRunFromBattle();
+        return;
+      }
+      if (action.key === 'capture') {
+        tryCatch();
+      }
+      return;
+    }
+
+    const entries = currentBattleMenuEntries();
+    const selected = entries[battleSubSelection];
+    if (!selected) {
+      setMessage('No usable options right now.');
+      drawTamerWorld();
+      return;
+    }
+
+    if (battleMenuMode === 'attack') {
+      resetBattleMenu();
+      useBattleAttack(selected);
+      return;
+    }
+
+    if (battleMenuMode === 'item') {
+      useBattleItem(selected);
+    }
+  }
+
+  function handleBattleBack() {
+    if (!battleTarget) return false;
+    if (battleMenuMode !== 'root') {
+      resetBattleMenu();
+      setMessage('Choose Attack, Item, Run, or Capture.');
+      drawTamerWorld();
+      return true;
+    }
+    setMessage('Choose Attack, Item, Run, or Capture.');
+    drawTamerWorld();
+    return true;
+  }
+
   function attackWild() {
+    if (encounterTransition) {
+      return;
+    }
+    if (battleAnimation) {
+      return;
+    }
+    if (fishingAnimation) {
+      return;
+    }
     if (gameOver) {
       startRun();
       return;
@@ -2468,8 +4090,13 @@ function renderMonsterTamer(direction = 'forward') {
         buyTownItem();
         return;
       }
-      if (isTownTile()) {
+      if (isTownShopTile()) {
         openTownMenu();
+        return;
+      }
+      if (isTownTile()) {
+        setMessage('Find the shop in town.');
+        drawTamerWorld();
         return;
       }
       const nearby = [[0, -1], [1, 0], [0, 1], [-1, 0]]
@@ -2479,46 +4106,28 @@ function renderMonsterTamer(direction = 'forward') {
         beginBattle(nearby);
         return;
       }
+      if (adjacentWaterTile()) {
+        castFishingLine();
+        return;
+      }
       setMessage('Nothing to interact with here right now.');
       drawTamerWorld();
       return;
     }
 
-    const damage = ally.atkMin + Math.floor(Math.random() * (ally.atkMax - ally.atkMin + 1));
-    battleTarget.hp -= damage;
-    if (battleTarget.hp <= 0) {
-      const xpGain = 3 + battleTarget.level * 2;
-      const coinGain = 5 + battleTarget.level * 3 + (rarityMeta[battleTarget.rarity] || rarityMeta.common).coinBonus;
-      const levels = awardExperience(ally, xpGain);
-      coins += coinGain;
-      setMessage(levels > 0
-        ? `${ally.name} won, earned ${coinGain}c, and grew to Lv${ally.level}.`
-        : `${ally.name} defeated ${battleTarget.name} and earned ${coinGain}c.`);
-      removeMonster(battleTarget);
-      battleTarget = null;
-      defeated += 1;
-      stepWorld();
-      return;
-    }
-
-    setMessage(`${ally.name} hits ${battleTarget.name} for ${damage}.`);
-    const retaliation = battleTarget.atkMin + Math.floor(Math.random() * (battleTarget.atkMax - battleTarget.atkMin + 1));
-    ally.hp = Math.max(0, ally.hp - retaliation);
-
-    if (ally.hp <= 0) {
-      setMessage(`${battleTarget.name} knocked out ${ally.name}.`);
-      if (!switchToHealthyLead()) {
-        endRun('All your monsters fainted.');
-        return;
-      }
-    }
-
-    updateHighScore();
-    updateTamerUi();
-    drawTamerWorld();
+    handleBattleConfirm();
   }
 
   function tryCatch() {
+    if (encounterTransition) {
+      return;
+    }
+    if (battleAnimation) {
+      return;
+    }
+    if (fishingAnimation) {
+      return;
+    }
     if (gameOver) {
       startRun();
       return;
@@ -2555,56 +4164,92 @@ function renderMonsterTamer(direction = 'forward') {
     capsules -= 1;
 
     const healthFactor = 1 - (battleTarget.hp / battleTarget.maxHp);
-    const chance = Math.min(0.9, battleTarget.catchBase + healthFactor * 0.55);
-    if (Math.random() < chance) {
-      party.push({
-        name: battleTarget.name,
-        species: battleTarget.species,
-        color: battleTarget.color,
-        accent: battleTarget.accent,
-        sprite: battleTarget.sprite,
-        level: battleTarget.level,
-        xp: 0,
-        xpToNext: 5 + battleTarget.level * 4,
-        maxHp: battleTarget.maxHp,
-        hp: Math.max(1, Math.floor(battleTarget.maxHp * 0.75)),
-        atkMin: battleTarget.atkMin,
-        atkMax: battleTarget.atkMax,
-        catchBase: battleTarget.catchBase,
-        rarity: battleTarget.rarity || 'common'
-      });
-      captures += 1;
-      coins += 10 + battleTarget.level * 2;
-      recordDexEntry(battleTarget, 'caught');
-      removeMonster(battleTarget);
-      setMessage(`You caught the ${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! Party ${party.length}. Capsules left: ${capsules}.`);
-      battleTarget = null;
-      updateHighScore();
-      updateTamerUi();
-      drawTamerWorld();
-      return;
+    const chance = Math.min(0.92, battleTarget.catchBase + healthFactor * 0.55 + earlyGameRelief(battleTarget.x, battleTarget.y) * 0.08);
+    const usedCharm = charms > 0;
+    const boostedChance = Math.min(0.96, chance + (usedCharm ? 0.14 : 0));
+    const catchSucceeded = Math.random() < boostedChance;
+    if (usedCharm) {
+      charms -= 1;
     }
 
-    const ally = activeMonster();
-    const retaliation = battleTarget.atkMin + Math.floor(Math.random() * (battleTarget.atkMax - battleTarget.atkMin + 1));
-    if (ally) {
-      ally.hp = Math.max(0, ally.hp - retaliation);
-    }
-    setMessage(`Capture failed. ${battleTarget.name} lashes out for ${retaliation}. Capsules left: ${capsules}.`);
-
-    if (!ally || ally.hp <= 0) {
-      if (!switchToHealthyLead()) {
-        endRun('All your monsters fainted.');
+    startBattleAnimation('capsule-throw', { success: catchSucceeded }, () => {
+      if (catchSucceeded) {
+        const caughtMonster = battleTarget;
+        party.push({
+          name: battleTarget.name,
+          species: battleTarget.species,
+          color: battleTarget.color,
+          accent: battleTarget.accent,
+          shiny: !!battleTarget.shiny,
+          sprite: battleTarget.sprite,
+          level: battleTarget.level,
+          xp: 0,
+          xpToNext: 5 + battleTarget.level * 4,
+          maxHp: battleTarget.maxHp,
+          hp: Math.max(1, Math.floor(battleTarget.maxHp * 0.75)),
+          atkMin: battleTarget.atkMin,
+          atkMax: battleTarget.atkMax,
+          catchBase: battleTarget.catchBase,
+          rarity: battleTarget.rarity || 'common'
+        });
+        captures += 1;
+        coins += 10 + battleTarget.level * 2;
+        const recovery = recoverLeadAfterEncounter(3, caughtMonster.x, caughtMonster.y);
+        recordDexEntry(battleTarget, 'caught');
+        removeMonster(battleTarget);
+        setMessage(usedCharm
+          ? recovery > 0
+            ? `Capture charm flared. You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! ${activeMonster()?.name || 'Lead'} recovered ${recovery} HP. Party ${party.length}. Capsules left: ${capsules}.`
+            : `Capture charm flared. You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! Party ${party.length}. Capsules left: ${capsules}.`
+          : recovery > 0
+            ? `You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! ${activeMonster()?.name || 'Lead'} recovered ${recovery} HP. Party ${party.length}. Capsules left: ${capsules}.`
+            : `You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! Party ${party.length}. Capsules left: ${capsules}.`);
+        battleTarget = null;
+        resetBattleMenu();
+        updateHighScore();
+        updateTamerUi();
+        drawTamerWorld();
         return;
       }
-    }
 
-    updateHighScore();
-    updateTamerUi();
-    drawTamerWorld();
+      const ally = activeMonster();
+      const retaliation = easeRetaliationDamage(
+        battleTarget.atkMin + Math.floor(Math.random() * (battleTarget.atkMax - battleTarget.atkMin + 1)),
+        battleTarget.x,
+        battleTarget.y
+      );
+      startBattleAnimation('attack-projectile', { from: 'enemy', monster: battleTarget }, () => {
+        if (ally) {
+          ally.hp = Math.max(0, ally.hp - retaliation);
+        }
+        setMessage(usedCharm
+          ? `Capture charm faded. ${battleTarget.name} lashes out for ${retaliation}. Capsules left: ${capsules}.`
+          : `Capture failed. ${battleTarget.name} lashes out for ${retaliation}. Capsules left: ${capsules}.`);
+
+        if (!ally || ally.hp <= 0) {
+          if (!switchToHealthyLead()) {
+            endRun('All your monsters fainted.');
+            return;
+          }
+        }
+
+        updateHighScore();
+        updateTamerUi();
+        drawTamerWorld();
+      }, 400);
+    }, 700);
   }
 
   function movePlayer(dx, dy) {
+    if (encounterTransition) {
+      return;
+    }
+    if (battleAnimation) {
+      return;
+    }
+    if (fishingAnimation) {
+      return;
+    }
     if (gameOver) {
       drawTamerWorld();
       return;
@@ -2644,14 +4289,22 @@ function renderMonsterTamer(direction = 'forward') {
     player.y = ny;
     steps += 1;
     ensureWorld();
-    if (terrain === 'grass' && Math.random() < 0.16) {
+    if (collectWorldLoot()) {
+      stepWorld();
+      return;
+    }
+    if (terrain === 'grass' && Math.random() < (0.11 + Math.min(0.05, adventureProgress() * 0.006))) {
       const wild = createWildMonster(player.x, player.y, 1);
       wild.ephemeral = true;
       beginBattle(wild);
       return;
     }
-    if (isTownTile()) {
-      setMessage('You are back in town. Center opens the shop.');
+    if (isTownShopTile()) {
+      setMessage('At the shop. Center opens it.');
+    } else if (isTownTile()) {
+      setMessage(`In ${routeLabelAt()}. Find the shop.`);
+    } else if (adjacentWaterTile()) {
+      setMessage('Water nearby. Center can fish.');
     } else if (terrain === 'grass') {
       setMessage(`Tall grass rustles on ${routeLabelAt()}.`);
     } else {
@@ -2661,22 +4314,32 @@ function renderMonsterTamer(direction = 'forward') {
   }
 
   function startRun() {
+    stopEncounterTransition();
+    stopBattleAnimation();
+    stopFishingAnimation();
     highScore = getHighScore(gameKey);
     captures = 0;
     defeated = 0;
     steps = 0;
+    renderTick = 0;
     gameOver = false;
     battleTarget = null;
     townMenuOpen = false;
     townSelection = 0;
     indexMenuOpen = false;
     indexSelection = 0;
+    townships = buildTownships();
+    activeTownship = null;
     chunks = new Map();
-    party = [cloneMonster(speciesList[0], 1)];
+    party = [cloneMonster(speciesList[0], 1), cloneMonster(speciesList[1], 1)];
     activeIndex = 0;
-    coins = 20;
-    capsules = 5;
-    player = { x: 0, y: 1 };
+    coins = 24;
+    capsules = 6;
+    tonics = 0;
+    rods = 0;
+    charms = 0;
+    const homeTown = townships[0] || { x: 0, y: 0 };
+    player = { x: homeTown.x, y: homeTown.y + 1 };
     ensureWorld();
     setMessage('Leave town, discover route monsters, and return to town to check your index.');
     updateTamerUi();
@@ -2684,15 +4347,20 @@ function renderMonsterTamer(direction = 'forward') {
   }
 
   startRun();
+  startAmbientAnimation();
 
   releaseGameControls = useGameControls({
-    onLeft: () => (townMenuOpen || indexMenuOpen) ? moveTownSelection(-1) : movePlayer(-1, 0),
-    onRight: () => (townMenuOpen || indexMenuOpen) ? moveTownSelection(1) : movePlayer(1, 0),
+    onLeft: () => battleTarget ? moveBattleSelection(-1) : (townMenuOpen || indexMenuOpen) ? moveTownSelection(-1) : movePlayer(-1, 0),
+    onRight: () => battleTarget ? moveBattleSelection(1) : (townMenuOpen || indexMenuOpen) ? moveTownSelection(1) : movePlayer(1, 0),
     onConfirm: () => attackWild(),
-    onPlayPause: () => tryCatch()
+    onPlayPause: () => battleTarget ? handleBattleBack() : tryCatch()
   });
 
   window.onGameScroll = (dir) => {
+    if (battleTarget) {
+      moveBattleSelection(dir > 0 ? 1 : -1);
+      return;
+    }
     if (townMenuOpen || indexMenuOpen) {
       moveTownSelection(dir > 0 ? 1 : -1);
       return;
@@ -2700,9 +4368,21 @@ function renderMonsterTamer(direction = 'forward') {
     movePlayer(0, dir > 0 ? 1 : -1);
   };
 
+  function confirmLeaveMonsterTamer() {
+    return window.confirm('Leave Monster Tamer? Progress is not saved!');
+  }
+
   const menuBtn = document.getElementById('menuBtn');
   const oldMenu = menuBtn.onclick;
   menuBtn.onclick = () => {
+    if (!confirmLeaveMonsterTamer()) {
+      drawTamerWorld();
+      return;
+    }
+    stopAmbientAnimation();
+    stopEncounterTransition();
+    stopBattleAnimation();
+    stopFishingAnimation();
     battleTarget = null;
     gameOver = false;
     if (releaseGameControls) releaseGameControls();
