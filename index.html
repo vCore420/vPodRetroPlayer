@@ -28,12 +28,12 @@
         <span id="hotBarBattery" title="Battery Full">
           <svg width="40" height="36" viewBox="0 0 28 30" style="vertical-align:middle;">
             <rect x="1" y="3" width="24" height="8" rx="2" fill="#fff" stroke="#222" stroke-width="1"/>
-            <rect x="2" y="4" width="22" height="6" rx="1" fill="url(#batteryGradient)"/>
+            <rect id="hotBarBatteryLevel" x="2" y="4" width="22" height="6" rx="1" fill="url(#batteryGradient)"/>
             <rect x="25" y="6" width="2" height="2" rx="1" fill="#222"/>
             <defs>
               <linearGradient id="batteryGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="60%" stop-color="#0074d9" />
-                <stop offset="100%" stop-color="#4fc3f7" />
+                <stop id="batteryGradientStart" offset="60%" stop-color="#0074d9" />
+                <stop id="batteryGradientEnd" offset="100%" stop-color="#4fc3f7" />
               </linearGradient>
             </defs>
           </svg>
