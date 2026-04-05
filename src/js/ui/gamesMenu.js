@@ -1495,12 +1495,13 @@ function renderMonsterTamer(direction = 'forward') {
       <div id="mtMsg" style="min-height:18px;font-size:0.84em;color:#444;text-align:center;max-width:312px;line-height:1.25;">Leave town and start hunting</div>
       <canvas id="mtCanvas" width="312" height="208" style="background:#d8f0be;border:2px solid #3e5032;border-radius:10px;"></canvas>
       <div style="font-size:0.88em;color:#555;text-align:center;max-width:320px;line-height:1.35;">
-        Prev/Next: walk left/right | Wheel: walk up/down | Center: interact/select | Play/Pause: back/swap lead | Menu: back
+        Prev/Next: walk left/right | Wheel: walk up/down | Center: interact/select | Play/Pause: party menu/back | Menu: back
       </div>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;">
         <div id="mtLead" style="font-weight:bold;color:#0074d9;">Lead: Ember Pup</div>
         <div id="mtPartyHp" style="font-weight:bold;color:#d90429;">HP: 12/12</div>
         <div id="mtCaught" style="font-weight:bold;color:#2e8b57;">Caught: 0</div>
+        <div id="mtBadges" style="font-weight:bold;color:#ad7d16;">Badges: 0/6</div>
         <div id="mtCapsules" style="font-weight:bold;color:#7b5cff;">Capsules: 5</div>
         <div id="mtTonics" style="font-weight:bold;color:#2f9689;">Tonics: 0</div>
         <div id="mtRods" style="font-weight:bold;color:#2f7ea5;">Rods: 0</div>
@@ -1585,6 +1586,122 @@ function renderMonsterTamer(direction = 'forward') {
     {
       name: 'Crownwyrm', color: '#d94f4f', accent: '#fff0b0', hp: 18, atkMin: 4, atkMax: 7, catchBase: 0.16,
       sprite: ['..1.1...', '.12221..', '.123321.', '12333321', '.133331.', '..4444..', '.4....4.', '........']
+    },
+    {
+      name: 'Cinder Moth', color: '#ffb25e', accent: '#fff0c2', hp: 11, atkMin: 2, atkMax: 4, catchBase: 0.42,
+      sprite: ['........', '.1.11.1.', '.122221.', '..2332..', '.233332.', '..4..4..', '.4....4.', '........']
+    },
+    {
+      name: 'Bramble Hog', color: '#7db85c', accent: '#eef8d2', hp: 14, atkMin: 2, atkMax: 4, catchBase: 0.38,
+      sprite: ['........', '..1111..', '.122221.', '.123321.', '.133331.', '..3443..', '.4.44.4.', '........']
+    },
+    {
+      name: 'Marsh Mite', color: '#56b88b', accent: '#dfffee', hp: 12, atkMin: 2, atkMax: 3, catchBase: 0.46,
+      sprite: ['........', '..111...', '.12221..', '1233321.', '.123321.', '..4..4..', '.4....4.', '........']
+    },
+    {
+      name: 'Quartz Beetle', color: '#8ca2ff', accent: '#eef1ff', hp: 13, atkMin: 3, atkMax: 4, catchBase: 0.34,
+      sprite: ['........', '..111...', '.12221..', '1233321.', '.123321.', '.4.44.4.', '.4....4.', '........']
+    },
+    {
+      name: 'Gale Antler', color: '#c7e46d', accent: '#f6ffd6', hp: 15, atkMin: 3, atkMax: 5, catchBase: 0.28,
+      sprite: ['.1....1.', '.122221.', '12333231', '.133331.', '..3443..', '..4..4..', '.4....4.', '........']
+    },
+    {
+      name: 'Ember Hound', color: '#ff6d43', accent: '#ffe0b8', hp: 18, atkMin: 4, atkMax: 6, catchBase: 0.18,
+      sprite: ['........', '..11....', '.1221...', '.12321..', '1233321.', '..3443..', '.4....4.', '.4....4.']
+    },
+    {
+      name: 'Moss Guardian', color: '#3fb060', accent: '#d9ffca', hp: 18, atkMin: 3, atkMax: 5, catchBase: 0.22,
+      sprite: ['........', '..111...', '.12221..', '.12321..', '.13331..', '.34443..', '.4...4..', '.4...4..']
+    },
+    {
+      name: 'Volt Talon', color: '#efc93a', accent: '#fff2aa', hp: 17, atkMin: 4, atkMax: 7, catchBase: 0.18,
+      sprite: ['...11...', '..121...', '.12321..', '1233321.', '..3331..', '.44.44..', '..4.4...', '........']
+    },
+    {
+      name: 'Dread Bat', color: '#6d56cf', accent: '#f1ebff', hp: 20, atkMin: 4, atkMax: 6, catchBase: 0.16,
+      sprite: ['.11..11.', '12211221', '.123332.', '12333321', '..3333..', '.4.44.4.', '.4....4.', '........']
+    },
+    {
+      name: 'Riverclaw', color: '#39afd1', accent: '#e1f9ff', hp: 21, atkMin: 4, atkMax: 6, catchBase: 0.19,
+      sprite: ['........', '..111...', '.122221.', '1233321.', '.133331.', '.344443.', '.4....4.', '........']
+    },
+    {
+      name: 'Rose Lynx', color: '#ff5f9c', accent: '#ffe8f2', hp: 22, atkMin: 5, atkMax: 7, catchBase: 0.14,
+      sprite: ['........', '..11.1..', '.122221.', '12333321', '.133331.', '.334433.', '.4....4.', '.4....4.']
+    },
+    {
+      name: 'Bloom Seraph', color: '#ff89c6', accent: '#fff0fb', hp: 19, atkMin: 4, atkMax: 6, catchBase: 0.15,
+      sprite: ['...11...', '..1221..', '.123321.', '.123321.', '..3333..', '..4..4..', '.4....4.', '........'],
+      battleSprite: [
+        '.....11.....',
+        '....1221....',
+        '...122221...',
+        '..123332321..',
+        '.1233333321.',
+        '.1233443321.',
+        '..123333321..',
+        '...2333332...',
+        '..24.44.42...',
+        '.24..44..42..',
+        '..4......4...',
+        '............'
+      ]
+    },
+    {
+      name: 'Abyss Pike', color: '#3e7bd9', accent: '#dff3ff', hp: 20, atkMin: 4, atkMax: 6, catchBase: 0.15,
+      sprite: ['........', '...11...', '.122221.', '12333321', '.123321.', '..44.44.', '...4.4..', '........'],
+      battleSprite: [
+        '............',
+        '....111.....',
+        '..1222221...',
+        '.123333321..',
+        '12333333321.',
+        '.1233443321.',
+        '..123333321.',
+        '...23333321.',
+        '..24.4444...',
+        '.24..4..4...',
+        '....4.......',
+        '............'
+      ]
+    },
+    {
+      name: 'Hollow Hydra', color: '#6b63b8', accent: '#ece7ff', hp: 21, atkMin: 4, atkMax: 7, catchBase: 0.13,
+      sprite: ['........', '.11..11.', '12211221', '.123332.', '.233333.', '.4.44.4.', '.4....4.', '........'],
+      battleSprite: [
+        '...11..11...',
+        '..12211221..',
+        '.1222212221.',
+        '123333333321',
+        '.12333333321',
+        '..233434332.',
+        '.2333333332.',
+        '..4.44.44...',
+        '.4..44..4...',
+        '4...44...4..',
+        '....44......',
+        '............'
+      ]
+    },
+    {
+      name: 'Sun Stag', color: '#f3c552', accent: '#fff4c6', hp: 22, atkMin: 5, atkMax: 7, catchBase: 0.12,
+      sprite: ['.1....1.', '.122221.', '12333231', '.133331.', '.233333.', '..4..4..', '.4....4.', '........'],
+      battleSprite: [
+        '1........1..',
+        '11.111111.1.',
+        '.1222222221.',
+        '123333333321',
+        '.12333433321',
+        '..2333333332',
+        '.2333333332.',
+        '..4.44.44...',
+        '.4..44..4...',
+        '4...44...4..',
+        '....44......',
+        '............'
+      ]
     }
   ];
   const speciesByName = Object.fromEntries(speciesList.map(species => [species.name, species]));
@@ -1594,16 +1711,155 @@ function renderMonsterTamer(direction = 'forward') {
     rare: { label: 'Rare', catchAdjust: -0.12, levelBonus: 2, coinBonus: 10 },
     legendary: { label: 'Legendary', catchAdjust: -0.18, levelBonus: 3, coinBonus: 18 }
   };
+  const typeMeta = {
+    flame: { label: 'Flame', short: 'FLM', color: '#d86d54' },
+    bloom: { label: 'Bloom', short: 'BLM', color: '#5daa61' },
+    tide: { label: 'Tide', short: 'TID', color: '#5e97d8' },
+    volt: { label: 'Volt', short: 'VLT', color: '#d7b84d' },
+    shade: { label: 'Shade', short: 'SHD', color: '#7c6bc0' },
+    stone: { label: 'Stone', short: 'STN', color: '#9b8762' },
+    gale: { label: 'Gale', short: 'GAL', color: '#8ebc63' }
+  };
+  const speciesTypesBySpecies = {
+    'Ember Pup': 'flame',
+    'Cinder Moth': 'flame',
+    'Ember Hound': 'flame',
+    Crownwyrm: 'flame',
+    Mossling: 'bloom',
+    'Bramble Hog': 'bloom',
+    'Marsh Mite': 'bloom',
+    'Petal Lynx': 'bloom',
+    'Moss Guardian': 'bloom',
+    'Rose Lynx': 'bloom',
+    'Bloom Seraph': 'bloom',
+    'Tide Cub': 'tide',
+    Brookfin: 'tide',
+    'Ripple Fry': 'tide',
+    'Pebble Koi': 'tide',
+    Riverclaw: 'tide',
+    'Abyss Pike': 'tide',
+    'Volt Finch': 'volt',
+    'Lantern Eel': 'volt',
+    'Static Ram': 'volt',
+    'Volt Talon': 'volt',
+    'Storm Ray': 'volt',
+    'Gloom Bat': 'shade',
+    'Mire Owl': 'shade',
+    'Dread Bat': 'shade',
+    'Hollow Hydra': 'shade',
+    'Quartz Beetle': 'stone',
+    'Tangle Crab': 'stone',
+    'Gale Antler': 'gale',
+    'Sun Stag': 'gale'
+  };
+  const typeChart = {
+    flame: { bloom: 1.3, tide: 0.8, stone: 0.85 },
+    bloom: { tide: 1.3, shade: 0.85, flame: 0.8, gale: 0.9 },
+    tide: { flame: 1.3, stone: 1.2, bloom: 0.8, volt: 0.8 },
+    volt: { tide: 1.3, gale: 1.2, stone: 0.85, bloom: 0.9 },
+    shade: { bloom: 1.2, shade: 0.85, gale: 0.9 },
+    stone: { volt: 1.2, flame: 1.15, tide: 0.85, bloom: 0.9 },
+    gale: { bloom: 1.2, shade: 1.1, volt: 0.85, stone: 0.9 }
+  };
+  const evolutionData = {
+    'Ember Pup': { evolvesTo: 'Ember Hound', minLevel: 5, minBadges: 1 },
+    Mossling: { evolvesTo: 'Moss Guardian', minLevel: 5, minBadges: 1 },
+    'Volt Finch': { evolvesTo: 'Volt Talon', minLevel: 6, minBadges: 1 },
+    'Gloom Bat': { evolvesTo: 'Dread Bat', minLevel: 6, minBadges: 2 },
+    'Tide Cub': { evolvesTo: 'Riverclaw', minLevel: 6, minBadges: 2 },
+    'Petal Lynx': { evolvesTo: 'Rose Lynx', minLevel: 7, minBadges: 3 }
+  };
+  const statusMeta = {
+    burn: { label: 'Burn', short: 'Burn' },
+    stun: { label: 'Stun', short: 'Stun' },
+    regen: { label: 'Regen', short: 'Regen' },
+    exposed: { label: 'Break', short: 'Break' }
+  };
+  const passiveTraitsBySpecies = {
+    'Ember Pup': { name: 'Blaze Heart', description: '+1 damage above half HP.', highHpBonus: 1 },
+    'Ember Hound': { name: 'Blaze Heart', description: '+2 damage above half HP.', highHpBonus: 2 },
+    'Cinder Moth': { name: 'Kindled Wings', description: '+1 damage above half HP.', highHpBonus: 1 },
+    'Crownwyrm': { name: 'Royal Pyre', description: '+2 damage above half HP.', highHpBonus: 2 },
+    Mossling: { name: 'Softroot', description: 'Recover 1 HP at turn start.', turnHeal: 1 },
+    'Moss Guardian': { name: 'Deeproot', description: 'Recover 2 HP at turn start.', turnHeal: 2 },
+    'Petal Lynx': { name: 'Bloom Veil', description: 'Recover 1 HP at turn start.', turnHeal: 1 },
+    'Rose Lynx': { name: 'Bloom Veil', description: 'Recover 2 HP at turn start.', turnHeal: 2 },
+    'Bloom Seraph': { name: 'Halo Bloom', description: 'Recover 2 HP at turn start.', turnHeal: 2 },
+    'Bramble Hog': { name: 'Bramble Hide', description: 'Take 1 less damage.', incomingReduction: 1 },
+    'Quartz Beetle': { name: 'Mirror Shell', description: 'Take 1 less damage.', incomingReduction: 1 },
+    'Gloom Bat': { name: 'Night Veil', description: 'Take 1 less damage.', incomingReduction: 1 },
+    'Dread Bat': { name: 'Night Veil', description: 'Take 2 less damage.', incomingReduction: 2 },
+    'Tangle Crab': { name: 'Hard Clamps', description: 'Take 1 less damage.', incomingReduction: 1 },
+    'Pebble Koi': { name: 'Stone Scales', description: 'Take 1 less damage.', incomingReduction: 1 },
+    'Volt Finch': { name: 'Shock Hunter', description: '+1 damage to statused foes.', statusHunter: 1 },
+    'Volt Talon': { name: 'Shock Hunter', description: '+2 damage to statused foes.', statusHunter: 2 },
+    'Static Ram': { name: 'Breaker Horn', description: '+1 damage to statused foes.', statusHunter: 1 },
+    'Lantern Eel': { name: 'Flash Feed', description: '+1 damage to statused foes.', statusHunter: 1 },
+    'Sun Stag': { name: 'Solar Mantle', description: 'Heal 1 HP and take 1 less damage.', turnHeal: 1, incomingReduction: 1 },
+    'Tide Cub': { name: 'Tidal Rhythm', description: 'Recover 1 HP after a hit.', healOnHit: 1 },
+    Riverclaw: { name: 'Tidal Rhythm', description: 'Recover 2 HP after a hit.', healOnHit: 2 },
+    Brookfin: { name: 'Current Line', description: 'Recover 1 HP after a hit.', healOnHit: 1 },
+    'Ripple Fry': { name: 'Current Line', description: 'Recover 1 HP after a hit.', healOnHit: 1 },
+    'Storm Ray': { name: 'Rising Surge', description: '+2 damage to healthy foes.', enemyHealthyBonus: 2 },
+    'Abyss Pike': { name: 'Rising Surge', description: '+2 damage to healthy foes.', enemyHealthyBonus: 2 },
+    'Marsh Mite': { name: 'Bog Ambush', description: '+1 damage to healthy foes.', enemyHealthyBonus: 1 },
+    'Gale Antler': { name: 'Wind Chase', description: '+1 damage to healthy foes.', enemyHealthyBonus: 1 },
+    'Mire Owl': { name: 'Dusk Watch', description: '+1 damage to higher-level foes.', levelHunter: 1 },
+    'Hollow Hydra': { name: 'Many Heads', description: 'Recover 1 HP after a hit.', healOnHit: 1 }
+  };
+  const thirdMovesBySpecies = {
+    'Ember Pup': { name: 'Smoke Pounce', power: 1.05, accuracy: 0.94, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.4 } },
+    'Ember Hound': { name: 'Wildfire Leap', power: 1.18, accuracy: 0.92, effect: { type: 'burn', turns: 2, potency: 1, chance: 0.5 } },
+    'Cinder Moth': { name: 'Soot Veil', power: 0.95, accuracy: 0.96, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.65 } },
+    'Mossling': { name: 'Bud Guard', power: 0.9, accuracy: 0.97, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 1 } },
+    'Moss Guardian': { name: 'Canopy Guard', power: 1, accuracy: 0.95, selfEffect: { type: 'regen', turns: 3, potency: 1, chance: 1 } },
+    'Bramble Hog': { name: 'Needle Roll', power: 1.1, accuracy: 0.92, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.55 } },
+    'Volt Finch': { name: 'Static Peck', power: 1, accuracy: 0.95, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.35 } },
+    'Volt Talon': { name: 'Arc Wing', power: 1.15, accuracy: 0.91, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.5 } },
+    'Quartz Beetle': { name: 'Facet Flash', type: 'volt', power: 1.04, accuracy: 0.94, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.5 } },
+    'Gale Antler': { name: 'Sky Hook', power: 1.1, accuracy: 0.93, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.45 } },
+    'Gloom Bat': { name: 'Shade Screen', power: 0.98, accuracy: 0.95, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.45 } },
+    'Dread Bat': { name: 'Void Loop', power: 1.08, accuracy: 0.93, healRatio: 0.25 },
+    'Mire Owl': { name: 'Grave Blink', type: 'gale', power: 1.06, accuracy: 0.94, effect: { type: 'burn', turns: 2, potency: 1, chance: 0.45 } },
+    'Hollow Hydra': { name: 'Echo Bite', power: 1.12, accuracy: 0.9, healRatio: 0.2 },
+    'Tide Cub': { name: 'Foam Tackle', power: 1.02, accuracy: 0.95, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.35 } },
+    Riverclaw: { name: 'Breaker Wake', power: 1.16, accuracy: 0.92, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.55 } },
+    Brookfin: { name: 'Reef Loop', power: 1.05, accuracy: 0.94, healRatio: 0.2 },
+    'Marsh Mite': { name: 'Murk Burst', power: 1.02, accuracy: 0.95, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.3 } },
+    'Ripple Fry': { name: 'Stream Zip', power: 1, accuracy: 0.96, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.4 } },
+    'Pebble Koi': { name: 'River Vault', power: 1.08, accuracy: 0.94, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.38 } },
+    'Tangle Crab': { name: 'Barnacle Brace', power: 0.96, accuracy: 0.95, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.5 } },
+    'Lantern Eel': { name: 'Lure Flicker', power: 1.06, accuracy: 0.93, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.38 } },
+    'Storm Ray': { name: 'Skyfall Sweep', power: 1.14, accuracy: 0.89, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.5 } },
+    'Abyss Pike': { name: 'Depth Spiral', power: 1.12, accuracy: 0.91, effect: { type: 'exposed', turns: 3, potency: 1, chance: 0.5 } },
+    'Petal Lynx': { name: 'Rose Guard', power: 0.96, accuracy: 0.97, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 1 } },
+    'Rose Lynx': { name: 'Blush Fang', power: 1.14, accuracy: 0.92, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.65 } },
+    'Bloom Seraph': { name: 'Petal Halo', power: 1.08, accuracy: 0.94, selfEffect: { type: 'regen', turns: 3, potency: 1, chance: 1 } },
+    'Static Ram': { name: 'Breaker Step', type: 'stone', power: 1.09, accuracy: 0.92, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.42 } },
+    'Sun Stag': { name: 'Dawn Shield', type: 'flame', power: 1.02, accuracy: 0.95, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.8 } },
+    'Crownwyrm': { name: 'Crown Guard', power: 1.1, accuracy: 0.91, effect: { type: 'burn', turns: 2, potency: 1, chance: 0.42 } }
+  };
+  const routeTrainerNames = {
+    'Town Outskirts': ['Pip', 'Lena', 'Bo', 'Mika'],
+    'Fern Trail': ['Orin', 'Suri', 'Pax', 'Mira'],
+    'Creek Bend': ['Nell', 'Toma', 'Rill', 'Caro'],
+    'Dusk Hollow': ['Venn', 'Iris', 'Noa', 'Kest'],
+    'Thunder Ridge': ['Jett', 'Roux', 'Bram', 'Skye'],
+    'Wild Crown': ['Vale', 'Sable', 'Kira', 'Oris']
+  };
+  const routeTrainerTitles = ['Scout', 'Tamer', 'Ace', 'Ranger', 'Wanderer'];
   const routeProfiles = [
     {
       label: 'Town Outskirts',
       palette: { plain: '#9ecc78', grass: '#84bf5b', path: '#cfbb88', water: '#63aedf' },
       landmark: 'signpost',
       pool: [
-        { species: 'Mossling', rarity: 'common', weight: 42 },
-        { species: 'Ember Pup', rarity: 'common', weight: 32 },
-        { species: 'Volt Finch', rarity: 'uncommon', weight: 18 },
-        { species: 'Gloom Bat', rarity: 'rare', weight: 8 }
+        { species: 'Mossling', rarity: 'common', weight: 28 },
+        { species: 'Ember Pup', rarity: 'common', weight: 24 },
+        { species: 'Cinder Moth', rarity: 'common', weight: 22 },
+        { species: 'Bramble Hog', rarity: 'uncommon', weight: 14 },
+        { species: 'Volt Finch', rarity: 'uncommon', weight: 8 },
+        { species: 'Gloom Bat', rarity: 'rare', weight: 4 }
       ],
       fishPool: [
         { species: 'Ripple Fry', rarity: 'common', weight: 52 },
@@ -1611,18 +1867,21 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Tangle Crab', rarity: 'rare', weight: 16 }
       ],
       fishSpecials: [],
-      specials: []
+      specials: [],
+      boss: { trainer: 'Scout Mira', badge: 'Trail', species: 'Ember Pup', rewardCoins: 26, requiredBadges: 0, minCaptures: 1, minDefeated: 1, minLeadLevel: 3, levelBonus: 2 }
     },
     {
       label: 'Fern Trail',
       palette: { plain: '#8ccf71', grass: '#63b14d', path: '#ccb47b', water: '#74b7d8' },
       landmark: 'fern',
       pool: [
-        { species: 'Mossling', rarity: 'common', weight: 34 },
-        { species: 'Ember Pup', rarity: 'common', weight: 24 },
-        { species: 'Volt Finch', rarity: 'uncommon', weight: 20 },
-        { species: 'Tide Cub', rarity: 'uncommon', weight: 14 },
-        { species: 'Gloom Bat', rarity: 'rare', weight: 8 }
+        { species: 'Mossling', rarity: 'common', weight: 24 },
+        { species: 'Cinder Moth', rarity: 'common', weight: 22 },
+        { species: 'Bramble Hog', rarity: 'common', weight: 20 },
+        { species: 'Ember Pup', rarity: 'uncommon', weight: 14 },
+        { species: 'Volt Finch', rarity: 'uncommon', weight: 12 },
+        { species: 'Tide Cub', rarity: 'uncommon', weight: 5 },
+        { species: 'Gloom Bat', rarity: 'rare', weight: 3 }
       ],
       fishPool: [
         { species: 'Ripple Fry', rarity: 'common', weight: 40 },
@@ -1632,19 +1891,23 @@ function renderMonsterTamer(direction = 'forward') {
       ],
       fishSpecials: [],
       specials: [
-        { species: 'Petal Lynx', rarity: 'legendary', chance: 0.07, minSteps: 60, minCaptures: 2, terrain: 'grass' }
-      ]
+        { species: 'Petal Lynx', rarity: 'legendary', chance: 0.07, minSteps: 60, minCaptures: 2, terrain: 'grass' },
+        { species: 'Bloom Seraph', rarity: 'legendary', chance: 0.028, minSteps: 125, minCaptures: 3, minDefeated: 4, terrain: 'grass' }
+      ],
+      boss: { trainer: 'Ranger Vale', badge: 'Fern', species: 'Mossling', rewardCoins: 34, requiredBadges: 1, minCaptures: 2, minDefeated: 3, minLeadLevel: 5, levelBonus: 3 }
     },
     {
       label: 'Creek Bend',
       palette: { plain: '#8ac9b0', grass: '#64b19d', path: '#d2c18d', water: '#4da8da' },
       landmark: 'reeds',
       pool: [
-        { species: 'Tide Cub', rarity: 'common', weight: 38 },
-        { species: 'Mossling', rarity: 'common', weight: 24 },
-        { species: 'Volt Finch', rarity: 'uncommon', weight: 16 },
-        { species: 'Ember Pup', rarity: 'uncommon', weight: 14 },
-        { species: 'Gloom Bat', rarity: 'rare', weight: 8 }
+        { species: 'Tide Cub', rarity: 'common', weight: 24 },
+        { species: 'Marsh Mite', rarity: 'common', weight: 24 },
+        { species: 'Mossling', rarity: 'common', weight: 18 },
+        { species: 'Bramble Hog', rarity: 'uncommon', weight: 12 },
+        { species: 'Volt Finch', rarity: 'uncommon', weight: 10 },
+        { species: 'Ember Pup', rarity: 'uncommon', weight: 8 },
+        { species: 'Gloom Bat', rarity: 'rare', weight: 4 }
       ],
       fishPool: [
         { species: 'Pebble Koi', rarity: 'common', weight: 34 },
@@ -1652,21 +1915,27 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Tangle Crab', rarity: 'uncommon', weight: 24 },
         { species: 'Lantern Eel', rarity: 'rare', weight: 16 }
       ],
-      fishSpecials: [],
+      fishSpecials: [
+        { species: 'Abyss Pike', rarity: 'legendary', chance: 0.038, minSteps: 170, minCaptures: 3, minDefeated: 5 }
+      ],
       specials: [
         { species: 'Brookfin', rarity: 'legendary', chance: 0.06, minSteps: 110, minDefeated: 4, terrain: 'grass' }
-      ]
+      ],
+      boss: { trainer: 'Angler Nia', badge: 'Creek', species: 'Tide Cub', rewardCoins: 42, requiredBadges: 2, minCaptures: 3, minDefeated: 5, minLeadLevel: 6, levelBonus: 4 }
     },
     {
       label: 'Dusk Hollow',
       palette: { plain: '#8691a8', grass: '#6c7c99', path: '#9b9078', water: '#556f97' },
       landmark: 'obelisk',
       pool: [
-        { species: 'Gloom Bat', rarity: 'common', weight: 34 },
-        { species: 'Mossling', rarity: 'common', weight: 22 },
-        { species: 'Tide Cub', rarity: 'uncommon', weight: 18 },
-        { species: 'Ember Pup', rarity: 'uncommon', weight: 16 },
-        { species: 'Volt Finch', rarity: 'rare', weight: 10 }
+        { species: 'Gloom Bat', rarity: 'common', weight: 24 },
+        { species: 'Marsh Mite', rarity: 'common', weight: 18 },
+        { species: 'Quartz Beetle', rarity: 'common', weight: 18 },
+        { species: 'Mossling', rarity: 'uncommon', weight: 12 },
+        { species: 'Tide Cub', rarity: 'uncommon', weight: 10 },
+        { species: 'Ember Pup', rarity: 'uncommon', weight: 8 },
+        { species: 'Volt Finch', rarity: 'rare', weight: 6 },
+        { species: 'Cinder Moth', rarity: 'rare', weight: 4 }
       ],
       fishPool: [
         { species: 'Lantern Eel', rarity: 'common', weight: 42 },
@@ -1678,19 +1947,24 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Storm Ray', rarity: 'legendary', chance: 0.05, minSteps: 150, minCaptures: 3 }
       ],
       specials: [
-        { species: 'Mire Owl', rarity: 'legendary', chance: 0.055, minSteps: 160, minCaptures: 4, minDefeated: 6, terrain: 'grass' }
-      ]
+        { species: 'Mire Owl', rarity: 'legendary', chance: 0.055, minSteps: 160, minCaptures: 4, minDefeated: 6, terrain: 'grass' },
+        { species: 'Hollow Hydra', rarity: 'legendary', chance: 0.03, minSteps: 235, minCaptures: 5, minDefeated: 8, terrain: 'grass' }
+      ],
+      boss: { trainer: 'Warden Noir', badge: 'Dusk', species: 'Gloom Bat', rewardCoins: 52, requiredBadges: 3, minCaptures: 4, minDefeated: 7, minLeadLevel: 7, levelBonus: 5 }
     },
     {
       label: 'Thunder Ridge',
       palette: { plain: '#c5b17b', grass: '#b59753', path: '#d7c48d', water: '#6f91b8' },
       landmark: 'teslapost',
       pool: [
-        { species: 'Volt Finch', rarity: 'common', weight: 36 },
-        { species: 'Ember Pup', rarity: 'uncommon', weight: 24 },
-        { species: 'Gloom Bat', rarity: 'uncommon', weight: 20 },
-        { species: 'Tide Cub', rarity: 'uncommon', weight: 12 },
-        { species: 'Mossling', rarity: 'rare', weight: 8 }
+        { species: 'Volt Finch', rarity: 'common', weight: 22 },
+        { species: 'Quartz Beetle', rarity: 'common', weight: 20 },
+        { species: 'Gale Antler', rarity: 'common', weight: 18 },
+        { species: 'Ember Pup', rarity: 'uncommon', weight: 14 },
+        { species: 'Gloom Bat', rarity: 'uncommon', weight: 10 },
+        { species: 'Tide Cub', rarity: 'uncommon', weight: 8 },
+        { species: 'Mossling', rarity: 'rare', weight: 5 },
+        { species: 'Lantern Eel', rarity: 'rare', weight: 3 }
       ],
       fishPool: [
         { species: 'Lantern Eel', rarity: 'common', weight: 34 },
@@ -1702,19 +1976,24 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Storm Ray', rarity: 'legendary', chance: 0.06, minSteps: 210, minDefeated: 6 }
       ],
       specials: [
-        { species: 'Static Ram', rarity: 'legendary', chance: 0.045, minSteps: 220, minDefeated: 8, terrain: 'grass' }
-      ]
+        { species: 'Static Ram', rarity: 'legendary', chance: 0.045, minSteps: 220, minDefeated: 8, terrain: 'grass' },
+        { species: 'Sun Stag', rarity: 'legendary', chance: 0.028, minSteps: 260, minCaptures: 6, minDefeated: 9, terrain: 'grass' }
+      ],
+      boss: { trainer: 'Ace Rook', badge: 'Storm', species: 'Static Ram', rewardCoins: 64, requiredBadges: 4, minCaptures: 5, minDefeated: 9, minLeadLevel: 8, levelBonus: 6 }
     },
     {
       label: 'Wild Crown',
       palette: { plain: '#8cb46f', grass: '#5f8f47', path: '#d5c17d', water: '#6daec8' },
       landmark: 'crowntree',
       pool: [
-        { species: 'Ember Pup', rarity: 'uncommon', weight: 24 },
-        { species: 'Tide Cub', rarity: 'uncommon', weight: 22 },
-        { species: 'Volt Finch', rarity: 'rare', weight: 20 },
-        { species: 'Gloom Bat', rarity: 'rare', weight: 18 },
-        { species: 'Mossling', rarity: 'uncommon', weight: 16 }
+        { species: 'Gale Antler', rarity: 'common', weight: 22 },
+        { species: 'Bramble Hog', rarity: 'common', weight: 20 },
+        { species: 'Ember Pup', rarity: 'uncommon', weight: 14 },
+        { species: 'Tide Cub', rarity: 'uncommon', weight: 14 },
+        { species: 'Quartz Beetle', rarity: 'uncommon', weight: 10 },
+        { species: 'Volt Finch', rarity: 'rare', weight: 8 },
+        { species: 'Gloom Bat', rarity: 'rare', weight: 7 },
+        { species: 'Mossling', rarity: 'uncommon', weight: 5 }
       ],
       fishPool: [
         { species: 'Storm Ray', rarity: 'uncommon', weight: 36 },
@@ -1723,14 +2002,19 @@ function renderMonsterTamer(direction = 'forward') {
         { species: 'Pebble Koi', rarity: 'rare', weight: 16 }
       ],
       fishSpecials: [
-        { species: 'Storm Ray', rarity: 'legendary', chance: 0.08, minSteps: 300, minCaptures: 7, minDefeated: 10 }
+        { species: 'Storm Ray', rarity: 'legendary', chance: 0.08, minSteps: 300, minCaptures: 7, minDefeated: 10 },
+        { species: 'Abyss Pike', rarity: 'legendary', chance: 0.05, minSteps: 320, minCaptures: 7, minDefeated: 10 }
       ],
       specials: [
-        { species: 'Crownwyrm', rarity: 'legendary', chance: 0.03, minSteps: 320, minCaptures: 8, minDefeated: 12, terrain: 'grass' }
-      ]
+        { species: 'Crownwyrm', rarity: 'legendary', chance: 0.03, minSteps: 320, minCaptures: 8, minDefeated: 12, terrain: 'grass' },
+        { species: 'Bloom Seraph', rarity: 'legendary', chance: 0.026, minSteps: 290, minCaptures: 7, minDefeated: 10, terrain: 'grass' },
+        { species: 'Sun Stag', rarity: 'legendary', chance: 0.024, minSteps: 300, minCaptures: 7, minDefeated: 11, terrain: 'grass' }
+      ],
+      boss: { trainer: 'Regent Sol', badge: 'Crown', species: 'Crownwyrm', rewardCoins: 82, requiredBadges: 5, minCaptures: 6, minDefeated: 11, minLeadLevel: 10, levelBonus: 7 }
     }
   ];
   const playerSprite = ['........', '..111...', '.112211.', '..1331..', '.133331.', '..3223..', '..2..2..', '..4..4..'];
+  const trainerSprite = ['........', '..111...', '.122221.', '..1331..', '.133331.', '..3443..', '..4..4..', '.5....5.'];
   const tallGrassSprite = ['........', '.1.1.1..', '..1.1...', '.1.11.1.', '..11....', '.1..1.1.', '........', '........'];
   const treeSprite = ['...11...', '..1221..', '.122221.', '.122221.', '..2332..', '...33...', '...44...', '..4..4..'];
   const fieldStationSprite = ['11111111', '12222221', '12333321', '12344321', '12344321', '12333321', '12222221', '11111111'];
@@ -1753,6 +2037,8 @@ function renderMonsterTamer(direction = 'forward') {
   let chunks = new Map();
   let player = { x: 0, y: 1 };
   let party = [];
+  let storedMonsters = [];
+  const activePartyLimit = 6;
   let activeIndex = 0;
   let captures = 0;
   let defeated = 0;
@@ -1766,12 +2052,14 @@ function renderMonsterTamer(direction = 'forward') {
   let tonics = 0;
   let rods = 0;
   let charms = 0;
+  let badges = [];
   const shinyChance = 1 / 128;
   const maxCapsules = 20;
   const tonicHealAmount = 12;
   const battleRootOptions = [
     { key: 'attack', label: 'Attack' },
     { key: 'item', label: 'Item' },
+    { key: 'switch', label: 'Switch' },
     { key: 'run', label: 'Run' },
     { key: 'capture', label: 'Capture' }
   ];
@@ -1780,13 +2068,25 @@ function renderMonsterTamer(direction = 'forward') {
     { key: 'capsule', label: 'Buy Capsule', cost: 12 },
     { key: 'rod', label: 'Buy Fishing Rod', cost: 14 },
     { key: 'tonic', label: 'Buy Tonic', cost: 12 },
+    { key: 'boss', label: 'Town Boss', cost: 0 },
     { key: 'index', label: 'Monster Index', cost: 0 },
+    { key: 'storage', label: 'Storage Box', cost: 0 },
     { key: 'leave', label: 'Leave Town', cost: 0 }
   ];
   let townMenuOpen = false;
   let townSelection = 0;
   let indexMenuOpen = false;
   let indexSelection = 0;
+  let storageMenuOpen = false;
+  let storageMenuColumn = 'party';
+  let storagePartySelection = 0;
+  let storageBoxSelection = 0;
+  let storageSwapPending = null;
+  let playerMenuOpen = false;
+  let playerMenuMode = 'party';
+  let playerMenuSelection = 0;
+  let playerMenuActionSelection = 0;
+  let playerMenuSwapSelection = 0;
   let townships = [];
   let activeTownship = null;
   let encounterTransition = null;
@@ -1980,7 +2280,11 @@ function renderMonsterTamer(direction = 'forward') {
       ['Your party rested at town.', 'Party healed'],
       ['Town services are open. Stock up or check your index.', 'Town services open'],
       ['Monster Index opened. Browse routes and discoveries.', 'Index open'],
+      ['Storage Box opened. Swap active and stored monsters.', 'Storage open'],
+      ['Party menu opened. Check stats, move partners, or use items.', 'Party menu open'],
       ['Back to town services.', 'Back to town'],
+      ['Back to your party list.', 'Back to party'],
+      ['Closed the party menu.', 'Party menu closed'],
       ['You head back out onto the route.', 'Back on route'],
       ['The town nurse patched up your party.', 'Party healed'],
       ['Not enough coins for that purchase.', 'Not enough coins'],
@@ -1994,6 +2298,10 @@ function renderMonsterTamer(direction = 'forward') {
       ['Stand beside water to fish.', 'Need water'],
       ['Water nearby. Center can fish.', 'Fish here'],
       ['Use Prev/Next or the wheel to browse the Monster Index.', 'Browse index'],
+      ['Use Prev/Next or the wheel to browse the Storage Box.', 'Browse storage'],
+      ['Use Prev/Next or the wheel to browse your party.', 'Browse party'],
+      ['Choose a party action.', 'Choose party action'],
+      ['Choose a partner to swap positions with.', 'Choose swap target'],
       ['Use Prev/Next or the wheel to browse town services.', 'Browse town menu'],
       ['You are in battle. Use Center or Play/Pause.', 'In battle'],
       ['You are back in town. Center opens the shop.', 'Back in town'],
@@ -2021,10 +2329,31 @@ function renderMonsterTamer(direction = 'forward') {
     if (text === 'You found a field tonic.') return '+1 tonic';
     if (text === 'You bought one tonic.') return '+1 tonic';
     if (text === 'You are out of tonics.') return 'Out of tonics';
+    if (text === 'No stored monsters are available right now.') return 'Box empty';
+    if (text === 'Party is full. Choose a party monster to swap out.') return 'Choose party swap';
+    if (text === 'Choose a boxed monster to swap in.') return 'Choose box swap';
+    if (text === 'Choose a party monster to swap out.') return 'Choose party swap';
     if (text === 'Choose an attack.') return 'Choose attack';
     if (text === 'Choose an item.') return 'Choose item';
+    if (text === 'Choose a partner.') return 'Choose partner';
     if (text === 'No usable items right now.') return 'No items';
-    if (text === 'Choose Attack, Item, Run, or Capture.') return 'Choose action';
+    if (text === 'No healthy partners can switch in.') return 'No partner ready';
+    if (text === 'Choose Attack, Item, Switch, Run, or Capture.') return 'Choose action';
+
+    match = text.match(/^Boss (.+) sent out (.+) for the (.+) Badge\.$/);
+    if (match) return `${match[3]} Badge boss`;
+
+    match = text.match(/^(.+) won the (.+) Badge and (\d+)c\.(?: (.+))?$/);
+    if (match) return `${match[2]} Badge +${match[3]}c`;
+
+    match = text.match(/^(.+) stepped in\.$/);
+    if (match) return `Switched ${match[1]}`;
+
+    match = text.match(/^(.+) evolved into (.+)!$/);
+    if (match) return `${match[2]} evolved`;
+
+    match = text.match(/^Need (.+) before (.+) can be challenged\.$/);
+    if (match) return `${match[2]} locked`;
 
     match = text.match(/^You escaped from (.+)\.$/);
     if (match) return `Escaped ${match[1]}`;
@@ -2088,6 +2417,15 @@ function renderMonsterTamer(direction = 'forward') {
     match = text.match(/^Lead monster: (.+)\.$/);
     if (match) return `Lead: ${match[1]}`;
 
+    match = text.match(/^(.+) was sent to storage\.$/);
+    if (match) return `${match[1]} boxed`;
+
+    match = text.match(/^(.+) joined your party from storage\.$/);
+    if (match) return `${match[1]} withdrawn`;
+
+    match = text.match(/^Swapped party (.+) with stored (.+)\.$/);
+    if (match) return `${match[1]} ⇄ ${match[2]}`;
+
     match = text.match(/^You caught the (.+) (.+)! (?:.+ recovered \d+ HP\. )?Party (\d+)\. Capsules left: (\d+)\.$/);
     if (match) return `Caught ${match[2]} · Party ${match[3]} · Cap ${match[4]}`;
 
@@ -2125,6 +2463,657 @@ function renderMonsterTamer(direction = 'forward') {
     return party[activeIndex] || null;
   }
 
+  function badgeCount() {
+    return badges.length;
+  }
+
+  function badgeKeyForProfile(profile) {
+    return profile?.boss?.badge || '';
+  }
+
+  function hasBadge(profile) {
+    const keyName = badgeKeyForProfile(profile);
+    return !!(keyName && badges.includes(keyName));
+  }
+
+  function ensureMonsterState(monster) {
+    if (!monster) return null;
+    if (!monster.statusKey) monster.statusKey = '';
+    if (!Number.isFinite(monster.statusTurns)) monster.statusTurns = 0;
+    if (!Number.isFinite(monster.statusPotency)) monster.statusPotency = 0;
+    return monster;
+  }
+
+  function clearMonsterStatus(monster) {
+    ensureMonsterState(monster);
+    monster.statusKey = '';
+    monster.statusTurns = 0;
+    monster.statusPotency = 0;
+  }
+
+  function statusShortLabel(monster) {
+    ensureMonsterState(monster);
+    if (!monster?.statusKey) return '';
+    const meta = statusMeta[monster.statusKey];
+    return meta ? meta.short : monster.statusKey;
+  }
+
+  function statusText(monster) {
+    const short = statusShortLabel(monster);
+    return short ? ` · ${short}` : '';
+  }
+
+  function setMonsterStatus(monster, effect) {
+    ensureMonsterState(monster);
+    if (!monster || !effect?.type) return false;
+    monster.statusKey = effect.type;
+    monster.statusTurns = Math.max(1, effect.turns || 1);
+    monster.statusPotency = Math.max(1, effect.potency || 1);
+    return true;
+  }
+
+  function effectLabel(effect) {
+    if (!effect?.type) return '';
+    const meta = statusMeta[effect.type];
+    return meta ? meta.label : effect.type;
+  }
+
+  function typeKeyForMonster(monster) {
+    return speciesTypesBySpecies[monster?.species || monster?.name] || 'stone';
+  }
+
+  function typeMetaForMonster(monster) {
+    return typeMeta[typeKeyForMonster(monster)] || typeMeta.stone;
+  }
+
+  function typeLabelForMonster(monster) {
+    return typeMetaForMonster(monster).label;
+  }
+
+  function typeShortForMonster(monster) {
+    return typeMetaForMonster(monster).short;
+  }
+
+  function moveTypeKey(move, source) {
+    return move?.type || typeKeyForMonster(source);
+  }
+
+  function moveTypeLabel(move, source) {
+    return (typeMeta[moveTypeKey(move, source)] || typeMeta.stone).label;
+  }
+
+  function typeModifierForAttack(move, source, target) {
+    const attackType = moveTypeKey(move, source);
+    const defendType = typeKeyForMonster(target);
+    return typeChart[attackType]?.[defendType] || 1;
+  }
+
+  function sameTypeAttackBonus(move, source) {
+    return moveTypeKey(move, source) === typeKeyForMonster(source) ? 1.12 : 1;
+  }
+
+  function typeEffectText(multiplier) {
+    if (multiplier >= 1.25) return ' It is super effective.';
+    if (multiplier <= 0.86) return ' It is not very effective.';
+    return '';
+  }
+
+  function moveDetailText(move) {
+    if (!move) return '';
+    const parts = [moveTypeLabel(move), `${Math.round((move.power || 1) * 100)}%`, `${((move.accuracy || 1) * 100) | 0}%`];
+    if (move.effect) parts.push(effectLabel(move.effect));
+    if (move.selfEffect) parts.push(`Self ${effectLabel(move.selfEffect)}`);
+    if (move.healRatio) parts.push('Drain');
+    return parts.join(' · ');
+  }
+
+  function passiveTraitForMonster(monster) {
+    return passiveTraitsBySpecies[monster?.species] || null;
+  }
+
+  function passiveTraitText(monster) {
+    const trait = passiveTraitForMonster(monster);
+    return trait ? `${trait.name}: ${trait.description}` : 'No passive trait';
+  }
+
+  function passiveTraitShort(monster) {
+    return passiveTraitForMonster(monster)?.name || 'No Trait';
+  }
+
+  function applyPassiveTurnStart(monster) {
+    const trait = passiveTraitForMonster(monster);
+    if (!trait || !trait.turnHeal || monster.hp <= 0 || monster.hp >= monster.maxHp) return '';
+    const recovered = Math.min(trait.turnHeal, monster.maxHp - monster.hp);
+    if (recovered <= 0) return '';
+    monster.hp += recovered;
+    return `${monster.name}'s ${trait.name} restored ${recovered} HP.`;
+  }
+
+  function passiveOutgoingBonus(source, target) {
+    const trait = passiveTraitForMonster(source);
+    if (!trait) return 0;
+    let bonus = 0;
+    if (trait.highHpBonus && source.hp > source.maxHp / 2) bonus += trait.highHpBonus;
+    if (trait.statusHunter && target?.statusKey) bonus += trait.statusHunter;
+    if (trait.enemyHealthyBonus && target && target.hp >= Math.ceil(target.maxHp * 0.7)) bonus += trait.enemyHealthyBonus;
+    if (trait.levelHunter && target && target.level > source.level) bonus += trait.levelHunter;
+    return bonus;
+  }
+
+  function passiveIncomingReduction(target) {
+    return passiveTraitForMonster(target)?.incomingReduction || 0;
+  }
+
+  function passiveAfterHit(source, damage) {
+    const trait = passiveTraitForMonster(source);
+    if (!trait || !trait.healOnHit || damage <= 0 || source.hp <= 0 || source.hp >= source.maxHp) return '';
+    const recovered = Math.min(trait.healOnHit, source.maxHp - source.hp);
+    if (recovered <= 0) return '';
+    source.hp += recovered;
+    return `${source.name}'s ${trait.name} restored ${recovered} HP.`;
+  }
+
+  function joinBattleText(...parts) {
+    return parts.filter(Boolean).join(' ');
+  }
+
+  function startTurnStatus(monster) {
+    ensureMonsterState(monster);
+    if (!monster || !monster.statusKey || monster.hp <= 0) {
+      return { canAct: true, text: '', fainted: false };
+    }
+
+    if (monster.statusKey === 'burn') {
+      const damage = Math.max(1, monster.statusPotency + Math.floor(monster.level / 4));
+      monster.hp = Math.max(0, monster.hp - damage);
+      monster.statusTurns = Math.max(0, monster.statusTurns - 1);
+      const text = `${monster.name} is burned for ${damage}.`;
+      if (monster.statusTurns <= 0 || monster.hp <= 0) clearMonsterStatus(monster);
+      return { canAct: monster.hp > 0, text, fainted: monster.hp <= 0 };
+    }
+
+    if (monster.statusKey === 'regen') {
+      const recovered = Math.min(monster.maxHp - monster.hp, monster.statusPotency + 1);
+      if (recovered > 0) {
+        monster.hp += recovered;
+      }
+      monster.statusTurns = Math.max(0, monster.statusTurns - 1);
+      const text = recovered > 0 ? `${monster.name} recovered ${recovered} HP.` : '';
+      if (monster.statusTurns <= 0) clearMonsterStatus(monster);
+      return { canAct: true, text, fainted: false };
+    }
+
+    if (monster.statusKey === 'stun') {
+      const blocked = Math.random() < Math.min(0.85, 0.45 + monster.statusPotency * 0.1);
+      monster.statusTurns = Math.max(0, monster.statusTurns - 1);
+      if (monster.statusTurns <= 0) clearMonsterStatus(monster);
+      return {
+        canAct: !blocked,
+        text: blocked ? `${monster.name} is stunned and cannot move.` : `${monster.name} shook off the stun.`,
+        fainted: false
+      };
+    }
+
+    if (monster.statusKey === 'exposed') {
+      monster.statusTurns = Math.max(0, monster.statusTurns - 1);
+      const text = monster.statusTurns <= 0 ? `${monster.name} steadied its guard.` : '';
+      if (monster.statusTurns <= 0) clearMonsterStatus(monster);
+      return { canAct: true, text, fainted: false };
+    }
+
+    return { canAct: true, text: '', fainted: false };
+  }
+
+  function damageAgainstTarget(baseDamage, target, move, source) {
+    ensureMonsterState(target);
+    const exposedBonus = target?.statusKey === 'exposed' ? 1 + target.statusPotency : 0;
+    const typedDamage = Math.round((baseDamage + exposedBonus) * sameTypeAttackBonus(move, source) * typeModifierForAttack(move, source, target));
+    return Math.max(1, typedDamage);
+  }
+
+  function applyMoveEffects(source, target, move) {
+    const messages = [];
+    if (move?.effect && target && Math.random() <= (move.effect.chance || 1)) {
+      if (setMonsterStatus(target, move.effect)) {
+        messages.push(`${target.name} is afflicted with ${effectLabel(move.effect).toLowerCase()}.`);
+      }
+    }
+    if (move?.selfEffect && source && Math.random() <= (move.selfEffect.chance || 1)) {
+      if (setMonsterStatus(source, move.selfEffect)) {
+        messages.push(`${source.name} gains ${effectLabel(move.selfEffect).toLowerCase()}.`);
+      }
+    }
+    return messages;
+  }
+
+  function switchLeadToIndex(nextIndex) {
+    if (!Number.isFinite(nextIndex) || nextIndex < 0 || nextIndex >= party.length || nextIndex === activeIndex) return false;
+    if ((party[nextIndex]?.hp || 0) <= 0) return false;
+    activeIndex = nextIndex;
+    return true;
+  }
+
+  function switchMenuEntries() {
+    return party
+      .map((monster, index) => ({
+        index,
+        label: monster.name,
+        detail: `Lv${monster.level} · HP ${monster.hp}/${monster.maxHp}${statusText(monster)}`
+      }))
+      .filter(entry => entry.index !== activeIndex && party[entry.index]?.hp > 0);
+  }
+
+  function selectedStorageMonster(column = storageMenuColumn) {
+    if (column === 'party') return party[storagePartySelection] || null;
+    return storedMonsters[storageBoxSelection] || null;
+  }
+
+  function resetStorageMenuState() {
+    storageMenuColumn = 'party';
+    storagePartySelection = Math.max(0, Math.min(storagePartySelection, Math.max(0, party.length - 1)));
+    storageBoxSelection = Math.max(0, Math.min(storageBoxSelection, Math.max(0, storedMonsters.length - 1)));
+    storageSwapPending = null;
+  }
+
+  function openStorageMenu() {
+    storageMenuOpen = true;
+    indexMenuOpen = false;
+    resetStorageMenuState();
+    storageMenuColumn = storedMonsters.length ? 'storage' : 'party';
+    setMessage('Storage Box opened. Swap active and stored monsters.');
+    drawTamerWorld();
+  }
+
+  function closeStorageMenu(message = 'Back to town services.') {
+    storageMenuOpen = false;
+    resetStorageMenuState();
+    if (message) setMessage(message);
+    updateTamerUi();
+    drawTamerWorld();
+  }
+
+  function moveStorageSelection(step) {
+    if (!storageMenuOpen) return;
+
+    if (storageMenuColumn === 'party') {
+      if (!party.length) return;
+      storagePartySelection = wrapIndex(storagePartySelection + step, party.length);
+      setMessage(`${party[storagePartySelection]?.name || 'Party'} selected.`);
+    } else {
+      if (!storedMonsters.length) {
+        setMessage('No stored monsters are available right now.');
+        drawTamerWorld();
+        return;
+      }
+      storageBoxSelection = wrapIndex(storageBoxSelection + step, storedMonsters.length);
+      setMessage(`${storedMonsters[storageBoxSelection]?.name || 'Stored'} selected.`);
+    }
+
+    drawTamerWorld();
+  }
+
+  function swapPartyWithStorage(partyIndex, storageIndex) {
+    if (partyIndex < 0 || storageIndex < 0 || partyIndex >= party.length || storageIndex >= storedMonsters.length) return false;
+    const partyMonster = party[partyIndex];
+    const storageMonster = storedMonsters[storageIndex];
+    party[partyIndex] = storageMonster;
+    storedMonsters[storageIndex] = partyMonster;
+    if (activeIndex === partyIndex) activeIndex = partyIndex;
+    return { partyName: partyMonster.name, storedName: storageMonster.name };
+  }
+
+  function handleStorageConfirm() {
+    if (!storageMenuOpen) return;
+
+    if (storageSwapPending) {
+      if (storageSwapPending.source === 'party' && storageMenuColumn === 'storage' && storedMonsters.length) {
+        const result = swapPartyWithStorage(storageSwapPending.index, storageBoxSelection);
+        resetStorageMenuState();
+        if (result) {
+          setMessage(`Swapped party ${result.partyName} with stored ${result.storedName}.`);
+          updateTamerUi();
+        }
+        drawTamerWorld();
+        return;
+      }
+
+      if (storageSwapPending.source === 'storage' && storageMenuColumn === 'party' && party.length) {
+        const result = swapPartyWithStorage(storagePartySelection, storageSwapPending.index);
+        resetStorageMenuState();
+        if (result) {
+          setMessage(`Swapped party ${result.partyName} with stored ${result.storedName}.`);
+          updateTamerUi();
+        }
+        drawTamerWorld();
+        return;
+      }
+    }
+
+    if (storageMenuColumn === 'party') {
+      if (!party.length) return;
+      if (!storedMonsters.length) {
+        setMessage('No stored monsters are available right now.');
+        drawTamerWorld();
+        return;
+      }
+      storageSwapPending = { source: 'party', index: storagePartySelection };
+      storageMenuColumn = 'storage';
+      storageBoxSelection = Math.max(0, Math.min(storageBoxSelection, storedMonsters.length - 1));
+      setMessage('Choose a boxed monster to swap in.');
+      drawTamerWorld();
+      return;
+    }
+
+    if (!storedMonsters.length) {
+      setMessage('No stored monsters are available right now.');
+      drawTamerWorld();
+      return;
+    }
+
+    if (party.length < activePartyLimit) {
+      const monster = storedMonsters.splice(storageBoxSelection, 1)[0];
+      party.push(monster);
+      storageBoxSelection = Math.max(0, Math.min(storageBoxSelection, storedMonsters.length - 1));
+      setMessage(`${monster.name} joined your party from storage.`);
+      updateTamerUi();
+      drawTamerWorld();
+      return;
+    }
+
+    storageSwapPending = { source: 'storage', index: storageBoxSelection };
+    storageMenuColumn = 'party';
+    storagePartySelection = Math.max(0, Math.min(storagePartySelection, party.length - 1));
+    setMessage('Party is full. Choose a party monster to swap out.');
+    drawTamerWorld();
+  }
+
+  function selectedPartyMonster() {
+    return party[playerMenuSelection] || null;
+  }
+
+  function swapPartyMembers(firstIndex, secondIndex) {
+    if (firstIndex === secondIndex) return false;
+    if (firstIndex < 0 || secondIndex < 0 || firstIndex >= party.length || secondIndex >= party.length) return false;
+
+    [party[firstIndex], party[secondIndex]] = [party[secondIndex], party[firstIndex]];
+
+    if (activeIndex === firstIndex) {
+      activeIndex = secondIndex;
+    } else if (activeIndex === secondIndex) {
+      activeIndex = firstIndex;
+    }
+
+    return true;
+  }
+
+  function usePotionOnMonster(monster) {
+    if (!monster) return 'No monster selected.';
+    if (tonics <= 0) return 'You are out of tonics.';
+    if (monster.hp >= monster.maxHp) return `${monster.name} is already at full HP.`;
+    tonics -= 1;
+    monster.hp = Math.min(monster.maxHp, monster.hp + tonicHealAmount);
+    return `${monster.name} recovered with a tonic.`;
+  }
+
+  function playerMenuActions(monster = selectedPartyMonster()) {
+    if (!monster) {
+      return [{ key: 'close', label: 'Close', detail: 'Return to play' }];
+    }
+
+    return [
+      { key: 'lead', label: activeIndex === playerMenuSelection ? 'Lead Ready' : 'Set As Lead', detail: activeIndex === playerMenuSelection ? 'Already leading' : 'Make first battler' },
+      { key: 'swap', label: 'Swap Position', detail: party.length > 1 ? 'Reorder party slots' : 'Need another monster' },
+      { key: 'tonic', label: `Use Tonic x${tonics}`, detail: `Heal ${tonicHealAmount} HP` },
+      { key: 'close', label: 'Close', detail: 'Return to play' }
+    ];
+  }
+
+  function openPlayerMenu() {
+    if (gameOver || encounterTransition || battleAnimation || fishingAnimation || battleTarget) return false;
+    playerMenuOpen = true;
+    playerMenuMode = 'party';
+    playerMenuSelection = Math.max(0, Math.min(activeIndex, Math.max(0, party.length - 1)));
+    playerMenuActionSelection = 0;
+    playerMenuSwapSelection = Math.max(0, Math.min(playerMenuSelection, Math.max(0, party.length - 1)));
+    setMessage('Party menu opened. Check stats, move partners, or use items.');
+    updateTamerUi();
+    drawTamerWorld();
+    return true;
+  }
+
+  function closePlayerMenu(message = 'Closed the party menu.') {
+    playerMenuOpen = false;
+    playerMenuMode = 'party';
+    playerMenuActionSelection = 0;
+    playerMenuSwapSelection = 0;
+    if (message) setMessage(message);
+    updateTamerUi();
+    drawTamerWorld();
+  }
+
+  function movePlayerMenuSelection(step) {
+    if (!playerMenuOpen) return;
+
+    if (playerMenuMode === 'party') {
+      if (!party.length) return;
+      playerMenuSelection = wrapIndex(playerMenuSelection + step, party.length);
+      setMessage(`${selectedPartyMonster()?.name || 'Party'} selected.`);
+    } else if (playerMenuMode === 'actions') {
+      const actions = playerMenuActions();
+      playerMenuActionSelection = wrapIndex(playerMenuActionSelection + step, actions.length);
+      setMessage(`${actions[playerMenuActionSelection]?.label || 'Action'} selected.`);
+    } else if (playerMenuMode === 'swap') {
+      if (party.length <= 1) return;
+      playerMenuSwapSelection = wrapIndex(playerMenuSwapSelection + step, party.length);
+      setMessage(`${party[playerMenuSwapSelection]?.name || 'Partner'} selected.`);
+    }
+
+    drawTamerWorld();
+  }
+
+  function handlePlayerMenuConfirm() {
+    if (!playerMenuOpen) return;
+
+    const monster = selectedPartyMonster();
+    if (!monster) {
+      closePlayerMenu();
+      return;
+    }
+
+    if (playerMenuMode === 'party') {
+      playerMenuMode = 'actions';
+      playerMenuActionSelection = 0;
+      setMessage('Choose a party action.');
+      drawTamerWorld();
+      return;
+    }
+
+    if (playerMenuMode === 'swap') {
+      if (playerMenuSwapSelection === playerMenuSelection) {
+        setMessage('Choose a different partner to swap with.');
+        drawTamerWorld();
+        return;
+      }
+      if (swapPartyMembers(playerMenuSelection, playerMenuSwapSelection)) {
+        const movedMonster = party[playerMenuSwapSelection];
+        playerMenuSelection = playerMenuSwapSelection;
+        playerMenuMode = 'party';
+        playerMenuActionSelection = 0;
+        setMessage(`${movedMonster?.name || 'Party'} moved to slot ${playerMenuSelection + 1}.`);
+        updateTamerUi();
+        drawTamerWorld();
+      }
+      return;
+    }
+
+    const action = playerMenuActions(monster)[playerMenuActionSelection];
+    if (!action) return;
+
+    if (action.key === 'lead') {
+      activeIndex = playerMenuSelection;
+      playerMenuMode = 'party';
+      setMessage(`Lead monster: ${activeMonster()?.name || monster.name}.`);
+      updateTamerUi();
+      drawTamerWorld();
+      return;
+    }
+
+    if (action.key === 'swap') {
+      if (party.length <= 1) {
+        setMessage('Only one partner is in your party right now.');
+        drawTamerWorld();
+        return;
+      }
+      playerMenuMode = 'swap';
+      playerMenuSwapSelection = wrapIndex(playerMenuSelection + 1, party.length);
+      setMessage('Choose a partner to swap positions with.');
+      drawTamerWorld();
+      return;
+    }
+
+    if (action.key === 'tonic') {
+      const result = usePotionOnMonster(monster);
+      playerMenuMode = 'party';
+      setMessage(result);
+      updateTamerUi();
+      drawTamerWorld();
+      return;
+    }
+
+    if (action.key === 'close') {
+      closePlayerMenu();
+    }
+  }
+
+  function handlePlayerMenuBack() {
+    if (!playerMenuOpen) return false;
+    if (playerMenuMode === 'swap' || playerMenuMode === 'actions') {
+      playerMenuMode = 'party';
+      playerMenuActionSelection = 0;
+      setMessage('Back to your party list.');
+      drawTamerWorld();
+      return true;
+    }
+    closePlayerMenu();
+    return true;
+  }
+
+  function maybeEvolveMonster(monster) {
+    ensureMonsterState(monster);
+    const rule = evolutionData[monster?.species];
+    if (!rule || monster.level < rule.minLevel || badgeCount() < rule.minBadges) return '';
+    const evolvedSpecies = speciesByName[rule.evolvesTo];
+    if (!evolvedSpecies) return '';
+
+    const previousName = monster.name;
+    const hpRatio = monster.maxHp > 0 ? monster.hp / monster.maxHp : 1;
+    monster.species = evolvedSpecies.name;
+    monster.name = evolvedSpecies.name;
+    monster.color = evolvedSpecies.color;
+    monster.accent = evolvedSpecies.accent;
+    monster.sprite = evolvedSpecies.sprite;
+    monster.catchBase = evolvedSpecies.catchBase;
+    monster.maxHp = Math.max(monster.maxHp + 4, evolvedSpecies.hp + monster.level + 2);
+    monster.atkMin = Math.max(monster.atkMin + 1, evolvedSpecies.atkMin + Math.floor((monster.level - 1) / 2));
+    monster.atkMax = Math.max(monster.atkMax + 1, evolvedSpecies.atkMax + Math.floor(monster.level / 2));
+    monster.hp = Math.max(1, Math.min(monster.maxHp, Math.round(monster.maxHp * Math.max(0.45, hpRatio))));
+    clearMonsterStatus(monster);
+    return `${previousName} evolved into ${monster.name}!`;
+  }
+
+  function maybeEvolveParty() {
+    return party.map(monster => maybeEvolveMonster(monster)).filter(Boolean);
+  }
+
+  function bossStateForTown(town = activeTownship || getTownshipAt()) {
+    const boss = town?.profile?.boss;
+    if (!boss) {
+      return { ready: false, cleared: true, short: 'None', message: 'No boss battle is set for this town.' };
+    }
+
+    if (hasBadge(town.profile)) {
+      return { ready: false, cleared: true, short: 'Won', message: `${boss.badge} Badge already earned here.` };
+    }
+
+    const needs = [];
+    if (badgeCount() < (boss.requiredBadges || 0)) needs.push(`${boss.requiredBadges - badgeCount()} badge${boss.requiredBadges - badgeCount() === 1 ? '' : 's'}`);
+    if (captures < (boss.minCaptures || 0)) needs.push(`${boss.minCaptures - captures} capture${boss.minCaptures - captures === 1 ? '' : 's'}`);
+    if (defeated < (boss.minDefeated || 0)) needs.push(`${boss.minDefeated - defeated} win${boss.minDefeated - defeated === 1 ? '' : 's'}`);
+    if ((activeMonster()?.level || 0) < (boss.minLeadLevel || 1)) needs.push(`lead Lv${boss.minLeadLevel}`);
+    if (needs.length) {
+      return { ready: false, cleared: false, short: 'Locked', message: `Need ${needs.join(', ')} before ${boss.trainer} can be challenged.` };
+    }
+
+    return { ready: true, cleared: false, short: 'Ready', message: `${boss.trainer} is ready. Win the ${boss.badge} Badge.` };
+  }
+
+  function createBossMonster(town) {
+    const boss = town?.profile?.boss;
+    const species = speciesByName[boss?.species] || speciesList[0];
+    const level = Math.max(boss?.minLeadLevel || 4, regionLevel(town.x, town.y) + (boss?.levelBonus || 0));
+    const monster = {
+      ...cloneMonster(species, level),
+      id: `mt-boss-${town.key}`,
+      x: town.x,
+      y: town.y,
+      route: town.name,
+      rarity: 'legendary',
+      ephemeral: true,
+      isBoss: true,
+      trainerName: boss.trainer,
+      badgeName: boss.badge,
+      bossRewardCoins: boss.rewardCoins || 0,
+      bossMove: {
+        name: `${boss.badge} Burst`,
+        power: 1.45,
+        accuracy: 0.88,
+        effect: ['Fern Trail'].includes(town.profile.label) ? null : { type: ['Dusk Hollow', 'Thunder Ridge'].includes(town.profile.label) ? 'stun' : town.profile.label === 'Wild Crown' ? 'burn' : 'exposed', turns: 2, potency: 1, chance: 0.65 },
+        selfEffect: ['Fern Trail'].includes(town.profile.label) ? { type: 'regen', turns: 2, potency: 2, chance: 1 } : null
+      }
+    };
+    monster.maxHp += 8 + routeProfiles.indexOf(town.profile) * 3;
+    monster.hp = monster.maxHp;
+    monster.atkMin += 1 + Math.floor(routeProfiles.indexOf(town.profile) / 2);
+    monster.atkMax += 2 + Math.floor(routeProfiles.indexOf(town.profile) / 2);
+    return monster;
+  }
+
+  function startBossBattle() {
+    const town = activeTownship || getTownshipAt();
+    const state = bossStateForTown(town);
+    if (state.cleared || !town?.profile?.boss) {
+      setMessage(state.message);
+      drawTamerWorld();
+      return;
+    }
+    if (!state.ready) {
+      setMessage(state.message);
+      drawTamerWorld();
+      return;
+    }
+    townMenuOpen = false;
+    indexMenuOpen = false;
+    beginBattle(createBossMonster(town));
+  }
+
+  function currentTownSelectionDetail() {
+    if (!townMenuOpen || indexMenuOpen) return '';
+    const choice = shopItems[townSelection];
+    if (!choice) return '';
+    if (choice.key === 'storage') return `Storage holds ${storedMonsters.length} monster${storedMonsters.length === 1 ? '' : 's'}. Active party ${party.length}/${activePartyLimit}.`;
+    if (choice.key !== 'boss') return `${choice.label} selected.`;
+
+    const bossState = bossStateForTown(activeTownship || getTownshipAt());
+    if (bossState.cleared) return bossState.message;
+    if (bossState.ready) return `${activeTownship?.profile?.boss?.trainer || 'Town boss'} is ready. Win the ${activeTownship?.profile?.boss?.badge || 'town'} Badge.`;
+    return bossState.message;
+  }
+
+  function fitTownFooterText(text, maxLength = 44) {
+    if (!text) return '';
+    return text.length <= maxLength ? text : `${text.slice(0, maxLength - 3)}...`;
+  }
+
   function resetBattleMenu() {
     battleMenuMode = 'root';
     battleMenuSelection = 0;
@@ -2150,26 +3139,44 @@ function renderMonsterTamer(direction = 'forward') {
       hp: species.hp + level,
       atkMin: species.atkMin + Math.floor((level - 1) / 2),
       atkMax: species.atkMax + Math.floor(level / 2),
-      catchBase: species.catchBase
+      catchBase: species.catchBase,
+      statusKey: '',
+      statusTurns: 0,
+      statusPotency: 0
     };
   }
 
   const signatureMovesBySpecies = {
-    'Ember Pup': { name: 'Cinder Dash', power: 1.2, accuracy: 0.9 },
-    'Mossling': { name: 'Sap Sip', power: 0.8, accuracy: 0.95, healRatio: 0.45 },
-    'Volt Finch': { name: 'Bolt Dive', power: 1.35, accuracy: 0.82 },
-    'Gloom Bat': { name: 'Night Siphon', power: 0.9, accuracy: 0.93, healRatio: 0.35 },
-    'Tide Cub': { name: 'Wave Crash', power: 1.15, accuracy: 0.92 },
-    'Petal Lynx': { name: 'Bloom Slash', power: 1.25, accuracy: 0.88 },
-    'Brookfin': { name: 'Current Snap', power: 1.15, accuracy: 0.92 },
-    'Ripple Fry': { name: 'Bubble Pop', power: 0.95, accuracy: 0.96 },
-    'Pebble Koi': { name: 'Stone Spray', power: 1.05, accuracy: 0.94 },
-    'Tangle Crab': { name: 'Clamp Crush', power: 1.25, accuracy: 0.87 },
-    'Lantern Eel': { name: 'Flash Surge', power: 1.3, accuracy: 0.84 },
-    'Storm Ray': { name: 'Tempest Arc', power: 1.4, accuracy: 0.8 },
-    'Mire Owl': { name: 'Dusk Cry', power: 1.1, accuracy: 0.92 },
-    'Static Ram': { name: 'Thunder Rush', power: 1.35, accuracy: 0.83 },
-    'Crownwyrm': { name: 'Royal Flame', power: 1.45, accuracy: 0.79 }
+    'Ember Pup': { name: 'Cinder Dash', power: 1.2, accuracy: 0.9, effect: { type: 'burn', turns: 2, potency: 1, chance: 0.55 } },
+    'Mossling': { name: 'Sap Sip', power: 0.8, accuracy: 0.95, healRatio: 0.45, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.8 } },
+    'Volt Finch': { name: 'Bolt Dive', power: 1.35, accuracy: 0.82, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.5 } },
+    'Gloom Bat': { name: 'Night Siphon', power: 0.9, accuracy: 0.93, healRatio: 0.35, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.55 } },
+    'Tide Cub': { name: 'Wave Crash', power: 1.15, accuracy: 0.92, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.65 } },
+    'Petal Lynx': { name: 'Bloom Slash', power: 1.25, accuracy: 0.88, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.55 } },
+    'Brookfin': { name: 'Current Snap', power: 1.15, accuracy: 0.92, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.5 } },
+    'Cinder Moth': { name: 'Ash Flutter', power: 1.1, accuracy: 0.93, effect: { type: 'burn', turns: 2, potency: 1, chance: 0.42 } },
+    'Bramble Hog': { name: 'Thorn Rush', power: 1.15, accuracy: 0.91, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.46 } },
+    'Marsh Mite': { name: 'Bog Bubble', power: 0.95, accuracy: 0.96, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.28 } },
+    'Quartz Beetle': { name: 'Prism Shell', type: 'volt', power: 1.05, accuracy: 0.94, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.55 } },
+    'Gale Antler': { name: 'Wind Rack', power: 1.2, accuracy: 0.9, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.38 } },
+    'Ripple Fry': { name: 'Bubble Pop', power: 0.95, accuracy: 0.96, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.3 } },
+    'Pebble Koi': { name: 'Stone Spray', power: 1.05, accuracy: 0.94, effect: { type: 'exposed', turns: 2, potency: 1, chance: 0.45 } },
+    'Tangle Crab': { name: 'Clamp Crush', power: 1.25, accuracy: 0.87, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.35 } },
+    'Lantern Eel': { name: 'Flash Surge', power: 1.3, accuracy: 0.84, effect: { type: 'burn', turns: 2, potency: 1, chance: 0.4 } },
+    'Storm Ray': { name: 'Tempest Arc', power: 1.4, accuracy: 0.8, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.55 } },
+    'Mire Owl': { name: 'Dusk Cry', type: 'gale', power: 1.1, accuracy: 0.92, effect: { type: 'burn', turns: 2, potency: 1, chance: 0.4 } },
+    'Static Ram': { name: 'Thunder Rush', power: 1.35, accuracy: 0.83, effect: { type: 'stun', turns: 1, potency: 1, chance: 0.5 } },
+    'Crownwyrm': { name: 'Royal Flame', power: 1.45, accuracy: 0.79, effect: { type: 'burn', turns: 3, potency: 1, chance: 0.6 } },
+    'Bloom Seraph': { name: 'Halo Bloom', power: 1.38, accuracy: 0.87, selfEffect: { type: 'regen', turns: 3, potency: 2, chance: 0.9 } },
+    'Abyss Pike': { name: 'Undertow Lance', power: 1.4, accuracy: 0.86, effect: { type: 'exposed', turns: 3, potency: 1, chance: 0.72 } },
+    'Hollow Hydra': { name: 'Grave Torrent', power: 1.42, accuracy: 0.84, effect: { type: 'burn', turns: 2, potency: 2, chance: 0.58 } },
+    'Sun Stag': { name: 'Solar Charge', type: 'flame', power: 1.46, accuracy: 0.83, effect: { type: 'stun', turns: 1, potency: 2, chance: 0.6 } },
+    'Ember Hound': { name: 'Blaze Charge', power: 1.35, accuracy: 0.9, effect: { type: 'burn', turns: 2, potency: 2, chance: 0.65 } },
+    'Moss Guardian': { name: 'Verdant Ward', power: 0.95, accuracy: 0.94, selfEffect: { type: 'regen', turns: 3, potency: 2, chance: 1 } },
+    'Volt Talon': { name: 'Storm Talon', power: 1.45, accuracy: 0.84, effect: { type: 'stun', turns: 1, potency: 2, chance: 0.6 } },
+    'Dread Bat': { name: 'Nocturne Fang', power: 1.15, accuracy: 0.92, healRatio: 0.45, effect: { type: 'exposed', turns: 2, potency: 2, chance: 0.7 } },
+    Riverclaw: { name: 'Riptide Crush', power: 1.3, accuracy: 0.91, effect: { type: 'exposed', turns: 3, potency: 1, chance: 0.75 } },
+    'Rose Lynx': { name: 'Petal Storm', power: 1.4, accuracy: 0.89, selfEffect: { type: 'regen', turns: 2, potency: 2, chance: 0.8 } }
   };
 
   function attacksForMonster(monster) {
@@ -2183,6 +3190,11 @@ function renderMonsterTamer(direction = 'forward') {
       'Tide Cub': 'Splash Bite',
       'Petal Lynx': 'Petal Claw',
       'Brookfin': 'Fin Jab',
+      'Cinder Moth': 'Wing Ember',
+      'Bramble Hog': 'Bramble Nudge',
+      'Marsh Mite': 'Mud Nip',
+      'Quartz Beetle': 'Carapace Tap',
+      'Gale Antler': 'Hoof Slice',
       'Ripple Fry': 'Tail Flick',
       'Pebble Koi': 'Koi Bump',
       'Tangle Crab': 'Pinch',
@@ -2190,13 +3202,23 @@ function renderMonsterTamer(direction = 'forward') {
       'Storm Ray': 'Glide Cut',
       'Mire Owl': 'Shadow Peck',
       'Static Ram': 'Horn Jab',
-      'Crownwyrm': 'Scale Strike'
+      'Crownwyrm': 'Scale Strike',
+      'Bloom Seraph': 'Petal Lance',
+      'Abyss Pike': 'Deep Bite',
+      'Hollow Hydra': 'Night Snap',
+      'Sun Stag': 'Radiant Kick'
     }[monster.species] || 'Strike';
 
-    return [
-      { name: basicName, power: 1, accuracy: 0.96 },
-      signatureMovesBySpecies[monster.species] || { name: 'Wild Burst', power: 1.2, accuracy: 0.9 }
+    const nativeType = typeKeyForMonster(monster);
+    const moves = [
+      { name: basicName, power: 1, accuracy: 0.96, type: nativeType },
+      { type: nativeType, ...(signatureMovesBySpecies[monster.species] || { name: 'Wild Burst', power: 1.2, accuracy: 0.9 }) },
+      { type: nativeType, ...(thirdMovesBySpecies[monster.species] || { name: 'Second Wind', power: 1.02, accuracy: 0.94, selfEffect: { type: 'regen', turns: 2, potency: 1, chance: 0.5 } }) }
     ];
+    if (monster.bossMove) {
+      moves.push({ type: nativeType, ...monster.bossMove });
+    }
+    return moves.map(move => ({ ...move, detail: move.detail || moveDetailText(move) }));
   }
 
   function battleItemsForPlayer() {
@@ -2213,6 +3235,9 @@ function renderMonsterTamer(direction = 'forward') {
     }
     if (battleMenuMode === 'item') {
       return battleItemsForPlayer();
+    }
+    if (battleMenuMode === 'switch') {
+      return switchMenuEntries();
     }
     return battleRootOptions;
   }
@@ -2277,6 +3302,7 @@ function renderMonsterTamer(direction = 'forward') {
     const leadEl = document.getElementById('mtLead');
     const hpEl = document.getElementById('mtPartyHp');
     const caughtEl = document.getElementById('mtCaught');
+    const badgeEl = document.getElementById('mtBadges');
     const capsuleEl = document.getElementById('mtCapsules');
     const tonicEl = document.getElementById('mtTonics');
     const rodEl = document.getElementById('mtRods');
@@ -2284,9 +3310,10 @@ function renderMonsterTamer(direction = 'forward') {
     const charmEl = document.getElementById('mtCharm');
     const scoreEl = document.getElementById('mtScore');
     const highEl = document.getElementById('mtHigh');
-    if (leadEl) leadEl.textContent = lead ? `Lead: ${lead.name} Lv${lead.level}` : 'Lead: None';
+    if (leadEl) leadEl.textContent = lead ? `Lead: ${lead.name} Lv${lead.level}${statusText(lead)}` : 'Lead: None';
     if (hpEl) hpEl.textContent = lead ? `HP: ${lead.hp}/${lead.maxHp} XP:${lead.xp}/${lead.xpToNext}` : 'HP: 0/0';
     if (caughtEl) caughtEl.textContent = `Caught: ${captures} Party:${party.length}`;
+    if (badgeEl) badgeEl.textContent = `Badges: ${badgeCount()}/${routeProfiles.length}`;
     if (capsuleEl) capsuleEl.textContent = `Capsules: ${capsules}`;
     if (tonicEl) tonicEl.textContent = `Tonics: ${tonics}`;
     if (rodEl) rodEl.textContent = `Rods: ${rods}`;
@@ -2472,6 +3499,57 @@ function renderMonsterTamer(direction = 'forward') {
     return monster;
   }
 
+  function trainerTeamPoolForProfile(profile) {
+    const poolSpecies = [
+      ...(profile.pool || []).map(entry => entry.species),
+      ...(profile.fishPool || []).map(entry => entry.species),
+      ...(profile.specials || []).map(entry => entry.species),
+      ...(profile.fishSpecials || []).map(entry => entry.species)
+    ];
+    return [...new Set(poolSpecies)].filter(name => speciesByName[name]);
+  }
+
+  function createRouteTrainer(x, y, seedOffset = 0) {
+    const profile = routeProfileAt(x, y);
+    const profileIndex = Math.max(0, routeProfiles.indexOf(profile));
+    const namePool = routeTrainerNames[profile.label] || ['Ari', 'Tess', 'Milo', 'Rune'];
+    const trainerName = `${routeTrainerTitles[Math.floor(hashValue(x, y, 571 + seedOffset) * routeTrainerTitles.length)]} ${namePool[Math.floor(hashValue(x, y, 577 + seedOffset) * namePool.length)]}`;
+    const teamPool = trainerTeamPoolForProfile(profile);
+    const teamSize = Math.min(3, 1 + Math.floor(profileIndex / 2) + (hashValue(x, y, 583 + seedOffset) > 0.72 ? 1 : 0));
+    const team = [];
+
+    for (let index = 0; index < teamSize; index++) {
+      const speciesName = teamPool[Math.floor(hashValue(x, y, 589 + seedOffset * 3 + index) * teamPool.length)] || profile.pool[0]?.species || speciesList[0].name;
+      const species = speciesByName[speciesName] || speciesList[0];
+      const level = Math.min(14, Math.max(2, regionLevel(x, y) + (index === 0 ? 1 : 0) + Math.floor(hashValue(x, y, 601 + index + seedOffset) * 2)));
+      team.push({
+        ...cloneMonster(species, level),
+        shiny: false,
+        rarity: index === 0 ? 'rare' : 'uncommon',
+        route: profile.label,
+        trainerRewardCoins: 14 + profileIndex * 9
+      });
+    }
+
+    const [leadMonster, ...reserve] = team;
+    return {
+      id: `mt-trainer-${x}-${y}-${seedOffset}`,
+      x,
+      y,
+      ...leadMonster,
+      isTrainer: true,
+      trainerName,
+      trainerReserve: reserve,
+      trainerPalette: {
+        '1': '#5d6f4d',
+        '2': '#f0e0c3',
+        '3': '#8aa665',
+        '4': '#4e5a70',
+        '5': '#704f7d'
+      }
+    };
+  }
+
   function createLandmarkLoot(x, y, seedOffset = 0) {
     const profile = routeProfileAt(x, y);
     const tier = lootTierAt(x, y);
@@ -2556,6 +3634,20 @@ function renderMonsterTamer(direction = 'forward') {
         if (terrain !== 'grass' && terrain !== 'plain') continue;
         occupied.add(key(mx, my));
         chunk.monsters.push(createWildMonster(mx, my, i % 2));
+      }
+
+      if (distanceFromOrigin(cx * chunkSize, cy * chunkSize) > 12 && hashValue(cx, cy, 565) > 0.62) {
+        for (let i = 0; i < 3; i++) {
+          const tx = cx * chunkSize + Math.floor(hashValue(cx, cy, 567 + i) * chunkSize);
+          const ty = cy * chunkSize + Math.floor(hashValue(cx, cy, 573 + i) * chunkSize);
+          const terrain = terrainAt(tx, ty);
+          if (occupied.has(key(tx, ty))) continue;
+          if (terrain !== 'plain' && terrain !== 'path') continue;
+          if (getTownshipAt(tx, ty)) continue;
+          occupied.add(key(tx, ty));
+          chunk.monsters.push(createRouteTrainer(tx, ty, i));
+          break;
+        }
       }
 
       const lootAttempts = Math.floor(hashValue(cx, cy, 71) * 3) + (distanceFromOrigin(cx * chunkSize, cy * chunkSize) > 30 ? 1 : 0);
@@ -2697,8 +3789,10 @@ function renderMonsterTamer(direction = 'forward') {
     activeTownship = getTownshipAt();
     townMenuOpen = true;
     indexMenuOpen = false;
+    storageMenuOpen = false;
     townSelection = 0;
-    setMessage('Town services are open. Stock up or check your index.');
+    const bossState = bossStateForTown(activeTownship);
+    setMessage(bossState.ready ? `${activeTownship?.profile?.boss?.trainer || 'Town boss'} is ready. Win the ${activeTownship?.profile?.boss?.badge || 'town'} Badge.` : 'Town services are open. Stock up or check your index.');
     drawTamerWorld();
   }
 
@@ -2732,6 +3826,7 @@ function renderMonsterTamer(direction = 'forward') {
   function closeTownMenu(message) {
     townMenuOpen = false;
     indexMenuOpen = false;
+    storageMenuOpen = false;
     activeTownship = null;
     if (message) setMessage(message);
     updateTamerUi();
@@ -2744,8 +3839,12 @@ function renderMonsterTamer(direction = 'forward') {
       moveIndexSelection(step);
       return;
     }
+    if (storageMenuOpen) {
+      moveStorageSelection(step);
+      return;
+    }
     townSelection = wrapIndex(townSelection + step, shopItems.length);
-    setMessage(`${shopItems[townSelection].label} selected.`);
+    setMessage(currentTownSelectionDetail());
     drawTamerWorld();
   }
 
@@ -2771,17 +3870,17 @@ function renderMonsterTamer(direction = 'forward') {
   function usePotionOnLead() {
     const lead = activeMonster();
     if (!lead) return 'No lead monster to treat.';
-    if (tonics <= 0) return 'You are out of tonics.';
-    if (lead.hp >= lead.maxHp) return `${lead.name} is already at full HP.`;
-    tonics -= 1;
-    lead.hp = Math.min(lead.maxHp, lead.hp + tonicHealAmount);
-    return `${lead.name} recovered with a tonic.`;
+    return usePotionOnMonster(lead);
   }
 
   function buyTownItem() {
     if (!townMenuOpen) return;
     if (indexMenuOpen) {
       closeMonsterIndex('Back to town services.');
+      return;
+    }
+    if (storageMenuOpen) {
+      handleStorageConfirm();
       return;
     }
     const choice = shopItems[townSelection];
@@ -2792,6 +3891,14 @@ function renderMonsterTamer(direction = 'forward') {
     }
     if (choice.key === 'index') {
       openMonsterIndex();
+      return;
+    }
+    if (choice.key === 'storage') {
+      openStorageMenu();
+      return;
+    }
+    if (choice.key === 'boss') {
+      startBossBattle();
       return;
     }
     if (choice.key === 'heal') {
@@ -2840,6 +3947,42 @@ function renderMonsterTamer(direction = 'forward') {
         ctx.fillRect(px + sx * scale, py + sy * scale, scale, scale);
       }
     }
+  }
+
+  function drawTypeBadge(typeKey, label, x, y, options = {}) {
+    const meta = typeMeta[typeKey] || typeMeta.stone;
+    const text = label || meta.short;
+    const font = options.font || 'bold 8px Trebuchet MS';
+    const paddingX = options.paddingX || 4;
+    const height = options.height || 11;
+    const minWidth = options.minWidth || 26;
+    const radius = options.radius || 2;
+
+    ctx.save();
+    ctx.font = font;
+    const width = Math.max(minWidth, Math.ceil(ctx.measureText(text).width) + paddingX * 2);
+    ctx.fillStyle = colorWithAlpha(meta.color, 0.95);
+    ctx.strokeStyle = 'rgba(49,63,42,0.45)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#f8fff0';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + width / 2, y + height / 2 + 0.5);
+    ctx.restore();
+    return width;
   }
 
   function drawOutlinedPixelSprite(sprite, palette, outlineColor, px, py, scale) {
@@ -2994,6 +4137,7 @@ function renderMonsterTamer(direction = 'forward') {
     battleTarget = nextMonster;
     resetBattleMenu();
     recordDexEntry(nextMonster, 'seen');
+    ensureMonsterState(nextMonster);
     const rarityLabel = (rarityMeta[nextMonster.rarity] || rarityMeta.common).label.toLowerCase();
     let unlockSuffix = '';
     if (nextMonster.shiny) {
@@ -3002,7 +4146,13 @@ function renderMonsterTamer(direction = 'forward') {
         unlockSuffix = ' Shiny Glint theme unlocked.';
       }
     }
-    setMessage(`A ${nextMonster.shiny ? 'shiny ' : ''}${rarityLabel} ${nextMonster.name} appeared on ${nextMonster.route || routeLabelAt(nextMonster.x, nextMonster.y)}. Capsules left: ${capsules}.${unlockSuffix}`);
+    if (nextMonster.isBoss) {
+      setMessage(`Boss ${nextMonster.trainerName} sent out ${nextMonster.name} for the ${nextMonster.badgeName} Badge.`);
+    } else if (nextMonster.isTrainer) {
+      setMessage(`Trainer ${nextMonster.trainerName} challenged you with ${nextMonster.name}.`);
+    } else {
+      setMessage(`A ${nextMonster.shiny ? 'shiny ' : ''}${rarityLabel} ${nextMonster.name} appeared on ${nextMonster.route || routeLabelAt(nextMonster.x, nextMonster.y)}. Capsules left: ${capsules}.${unlockSuffix}`);
+    }
     updateTamerUi();
     drawTamerWorld();
   }
@@ -3237,14 +4387,19 @@ function renderMonsterTamer(direction = 'forward') {
     drawLandmark(profile, sx, sy, worldX, worldY, type);
   }
 
-  function drawMonsterSprite(monster, sx, sy, scale) {
+  function drawMonsterSprite(monster, sx, sy, scale, variant = 'field') {
     const shinyPalette = monster?.shiny ? shinyPaletteForMonster(monster) : null;
-    drawPixelSprite(monster.sprite, {
+    const sprite = variant === 'battle' && monster?.battleSprite ? monster.battleSprite : monster.sprite;
+    const spriteWidth = Math.max(...sprite.map(row => row.length));
+    const spriteHeight = sprite.length;
+    const offsetX = Math.floor((8 - spriteWidth) * scale / 2);
+    const offsetY = Math.floor((8 - spriteHeight) * scale / 2);
+    drawPixelSprite(sprite, {
       '1': shinyPalette ? shinyPalette.color : monster.color,
       '2': shinyPalette ? shinyPalette.accent : monster.accent,
       '3': '#2f2f2f',
       '4': '#ffffff'
-    }, sx, sy, scale);
+    }, sx + offsetX, sy + offsetY, scale);
   }
 
   function drawShinySparkles(cx, cy, radius = 22, phase = performance.now() * 0.004) {
@@ -3266,11 +4421,11 @@ function renderMonsterTamer(direction = 'forward') {
   function battleLayout() {
     return {
       enemyX: 206,
-      enemyY: 72,
+      enemyY: 50,
       allyX: 54,
       allyY: 116,
       enemyCenterX: 222,
-      enemyCenterY: 88,
+      enemyCenterY: 66,
       allyCenterX: 70,
       allyCenterY: 132
     };
@@ -3426,8 +4581,18 @@ function renderMonsterTamer(direction = 'forward') {
       return;
     }
 
+    if (playerMenuOpen) {
+      drawPlayerMenu();
+      return;
+    }
+
     if (indexMenuOpen) {
       drawMonsterIndex();
+      return;
+    }
+
+    if (storageMenuOpen) {
+      drawStorageMenu();
       return;
     }
 
@@ -3522,7 +4687,12 @@ function renderMonsterTamer(direction = 'forward') {
       const idleBob = Math.sin((renderTick + sx * 3 + sy * 5) * 0.16) * 1.2;
       ctx.fillStyle = 'rgba(0,0,0,0.14)';
       ctx.fillRect(mapOffsetX + sx * tile + 4, sy * tile + 11, 8, 3);
-      drawMonsterSprite(monster, mapOffsetX + sx * tile, sy * tile + idleBob, 2);
+      if (monster.isTrainer) {
+        drawOutlinedPixelSprite(trainerSprite, monster.trainerPalette || { '1': '#5d6f4d', '2': '#f0e0c3', '3': '#8aa665', '4': '#4e5a70', '5': '#704f7d' }, 'rgba(57,70,46,0.35)', mapOffsetX + sx * tile, sy * tile + idleBob, 2);
+        drawTypeBadge(typeKeyForMonster(monster), typeShortForMonster(monster), mapOffsetX + sx * tile - 2, sy * tile - 2 + idleBob, { minWidth: 20, height: 9, font: 'bold 7px Trebuchet MS', paddingX: 3 });
+      } else {
+        drawMonsterSprite(monster, mapOffsetX + sx * tile, sy * tile + idleBob, 2);
+      }
     });
 
     const playerBob = Math.sin(renderTick * 0.18) * 0.6;
@@ -3538,6 +4708,8 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.font = 'bold 10px Courier New';
     ctx.textAlign = 'left';
     ctx.fillText(routeLabelAt(), 8, 12);
+    ctx.textAlign = 'center';
+    ctx.fillText(`Badges ${badgeCount()}/${routeProfiles.length}`, canvas.width / 2, 12);
     ctx.textAlign = 'right';
     ctx.fillText(`X:${player.x} Y:${player.y}`, canvas.width - 8, 12);
 
@@ -3560,6 +4732,14 @@ function renderMonsterTamer(direction = 'forward') {
     const profile = town?.profile || routeProfiles[0];
     const panelFill = 'rgba(255,255,255,0.95)';
     const landmark = landmarkSprites[profile.landmark];
+    const boss = profile.boss;
+    const bossState = bossStateForTown(town);
+    const visibleShopRows = 5;
+    const shopListStart = Math.max(0, Math.min(
+      townSelection - Math.floor(visibleShopRows / 2),
+      Math.max(0, shopItems.length - visibleShopRows)
+    ));
+    const visibleShopItems = shopItems.slice(shopListStart, shopListStart + visibleShopRows);
 
     ctx.fillStyle = profile.palette?.plain || '#d7efc3';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -3588,22 +4768,27 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.strokeStyle = '#465538';
     ctx.lineWidth = 2;
     ctx.strokeRect(14, 12, 284, 184);
+    ctx.fillStyle = 'rgba(207,229,184,0.38)';
+    ctx.fillRect(22, 18, 268, 32);
+    ctx.fillStyle = 'rgba(70,85,56,0.12)';
+    ctx.fillRect(22, 56, 268, 108);
 
     ctx.fillStyle = '#465538';
     ctx.font = 'bold 14px Courier New';
     ctx.textAlign = 'center';
-    ctx.fillText(town ? town.name : 'Town Services', canvas.width / 2, 32);
+    ctx.fillText(town ? town.name : 'Town Services', canvas.width / 2, 29);
     ctx.font = 'bold 10px Courier New';
-    ctx.fillText(`Coins ${coins}  Cap ${capsules}/${maxCapsules}  Rods ${rods}`, canvas.width / 2, 48);
+    ctx.fillText(boss ? `${boss.badge} Badge · ${boss.trainer} · ${bossState.short}` : `Coins ${coins}  Cap ${capsules}/${maxCapsules}  Rods ${rods}`, canvas.width / 2, 42);
 
-    drawPixelSprite(capsuleSprite, { '1': '#7b5cff', '2': '#c6b8ff', '3': '#2d2d2d', '4': '#ffffff' }, 32, 22, 2);
-    drawPixelSprite(coinSprite, { '1': '#c9922d', '2': '#f2cf67', '3': '#9b6b22' }, 258, 22, 2);
+    drawPixelSprite(capsuleSprite, { '1': '#7b5cff', '2': '#c6b8ff', '3': '#2d2d2d', '4': '#ffffff' }, 30, 21, 2);
+    drawPixelSprite(coinSprite, { '1': '#c9922d', '2': '#f2cf67', '3': '#9b6b22' }, 256, 21, 2);
     if (landmark) {
-      drawPixelSprite(landmark.sprite, landmark.palette, 144, 20, 2);
+      drawPixelSprite(landmark.sprite, landmark.palette, 148, 48, 1);
     }
 
-    shopItems.forEach((item, index) => {
-      const y = 60 + index * 19;
+    visibleShopItems.forEach((item, offset) => {
+      const index = shopListStart + offset;
+      const y = 74 + offset * 18;
       if (index === townSelection) {
         ctx.fillStyle = colorWithAlpha('#cfe5b8', 0.8 + Math.sin(performance.now() * 0.01) * 0.08);
         ctx.fillRect(26, y - 10, 260, 16);
@@ -3612,15 +4797,36 @@ function renderMonsterTamer(direction = 'forward') {
       ctx.textAlign = 'left';
       ctx.fillText(item.label, 34, y);
       ctx.textAlign = 'right';
-      ctx.fillText(item.cost ? `${item.cost}c` : item.key === 'leave' ? 'Exit' : 'Free', 278, y);
+      ctx.fillText(item.cost
+        ? `${item.cost}c`
+        : item.key === 'leave'
+          ? 'Exit'
+          : item.key === 'boss'
+            ? bossState.short
+            : 'Free', 278, y);
     });
 
+    if (shopListStart > 0) {
+      ctx.fillStyle = '#5c724a';
+      ctx.font = 'bold 9px Courier New';
+      ctx.textAlign = 'right';
+      ctx.fillText('^', 284, 63);
+    }
+    if (shopListStart + visibleShopRows < shopItems.length) {
+      ctx.fillStyle = '#5c724a';
+      ctx.font = 'bold 9px Courier New';
+      ctx.textAlign = 'right';
+      ctx.fillText('v', 284, 160);
+    }
+
+    const footerDetail = fitTownFooterText(currentTownSelectionDetail());
     ctx.fillStyle = 'rgba(45,56,34,0.92)';
     ctx.fillRect(14, 176, 284, 22);
     ctx.fillStyle = '#eff7df';
     ctx.textAlign = 'center';
+    ctx.font = `bold ${footerDetail ? 8 : 9}px Courier New`;
+    ctx.fillText(footerDetail || 'Wheel/Prev/Next: Browse', canvas.width / 2, 185);
     ctx.font = 'bold 9px Courier New';
-    ctx.fillText('Wheel/Prev/Next: Browse', canvas.width / 2, 185);
     ctx.fillText('Center: Select  |  Play: Exit', canvas.width / 2, 194);
   }
 
@@ -3630,6 +4836,8 @@ function renderMonsterTamer(direction = 'forward') {
     const knownRoutes = dex.routes.length ? dex.routes : routesForSpecies(species.name);
     const rarity = routeProfiles.flatMap(profile => ([...(profile.pool || []), ...(profile.specials || []), ...(profile.fishPool || []), ...(profile.fishSpecials || [])]))
       .find(entry => entry.species === species.name)?.rarity || 'common';
+    const passiveText = passiveTraitText(species);
+    const typeText = typeLabelForMonster(species);
 
     ctx.fillStyle = '#eef4df';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -3645,6 +4853,7 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.fillText('Monster Index', canvas.width / 2, 28);
     ctx.font = 'bold 11px Courier New';
     ctx.fillText(`${species.name}  |  ${(rarityMeta[rarity] || rarityMeta.common).label}`, canvas.width / 2, 44);
+    drawTypeBadge(typeKeyForMonster(species), typeLabelForMonster(species), 212, 52, { minWidth: 44, height: 12, font: 'bold 8px Trebuchet MS' });
 
     drawMonsterSprite({ ...species, sprite: species.sprite }, 32, 58, 4);
 
@@ -3653,15 +4862,25 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.fillStyle = '#415435';
     ctx.fillText(`Seen: ${dex.seen ? 'Yes' : 'No'}`, 138, 70);
     ctx.fillText(`Caught: ${dex.caught ? 'Yes' : 'No'}`, 138, 86);
-    ctx.fillText(`Base HP: ${species.hp}`, 138, 102);
-    ctx.fillText(`Atk: ${species.atkMin}-${species.atkMax}`, 138, 118);
-    ctx.fillText('Routes:', 138, 136);
+    ctx.fillText(`Type: ${typeText}`, 138, 102);
+    ctx.fillText(`Base HP: ${species.hp}`, 138, 118);
+    ctx.fillText(`Atk: ${species.atkMin}-${species.atkMax}`, 138, 134);
+    ctx.fillText(`Trait: ${passiveTraitShort(species)}`, 138, 150);
+
+    ctx.font = '9px Courier New';
+    const passiveLines = (passiveText.match(/.{1,24}(?:\s|$)/g) || [passiveText]).slice(0, 2);
+    passiveLines.forEach((line, index) => {
+      ctx.fillText(line.trim(), 138, 160 + index * 9);
+    });
+
+    ctx.font = 'bold 10px Courier New';
+    ctx.fillText('Routes:', 138, 180);
 
     ctx.font = '10px Courier New';
     const routeText = knownRoutes.length ? knownRoutes.join(', ') : 'Unknown';
     const routeLines = routeText.match(/.{1,24}(?:, |$)/g) || [routeText];
-    routeLines.slice(0, 3).forEach((line, index) => {
-      ctx.fillText(line.trim(), 138, 150 + index * 12);
+    routeLines.slice(0, 1).forEach((line, index) => {
+      ctx.fillText(line.trim(), 138, 191 + index * 10);
     });
 
     ctx.fillStyle = 'rgba(45,56,34,0.92)';
@@ -3671,16 +4890,313 @@ function renderMonsterTamer(direction = 'forward') {
     ctx.fillText('Prev/Next or Wheel: Browse  |  Center/Play: Back', canvas.width / 2, 191);
   }
 
+  function drawStorageMenu() {
+    const uiFont = 'Trebuchet MS';
+    const fitText = (text, maxWidth) => {
+      const value = String(text || '');
+      if (ctx.measureText(value).width <= maxWidth) return value;
+      let trimmed = value;
+      while (trimmed.length > 1 && ctx.measureText(`${trimmed}...`).width > maxWidth) {
+        trimmed = trimmed.slice(0, -1);
+      }
+      return `${trimmed}...`;
+    };
+    const selectedMonster = selectedStorageMonster();
+    const activeStart = Math.max(0, Math.min(storagePartySelection, Math.max(0, party.length - 5)));
+    const storedStart = Math.max(0, Math.min(storageBoxSelection, Math.max(0, storedMonsters.length - 5)));
+
+    ctx.fillStyle = '#edf3e2';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#d8e5cd';
+    ctx.fillRect(10, 10, 292, 188);
+    ctx.strokeStyle = '#5a7044';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(10, 10, 292, 188);
+
+    ctx.fillStyle = '#415435';
+    ctx.font = `bold 14px ${uiFont}`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Storage Box', canvas.width / 2, 26);
+    ctx.font = `bold 9px ${uiFont}`;
+    ctx.fillText(`Party ${party.length}/${activePartyLimit}  •  Stored ${storedMonsters.length}`, canvas.width / 2, 39);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fillRect(18, 48, 110, 108);
+    ctx.fillRect(134, 48, 110, 108);
+    ctx.fillRect(250, 48, 44, 108);
+    ctx.strokeStyle = '#6a7f57';
+    ctx.strokeRect(18, 48, 110, 108);
+    ctx.strokeRect(134, 48, 110, 108);
+    ctx.strokeRect(250, 48, 44, 108);
+
+    ctx.fillStyle = '#415435';
+    ctx.font = `bold 10px ${uiFont}`;
+    ctx.textAlign = 'left';
+    ctx.fillText('Active', 24, 62);
+    ctx.fillText('Stored', 140, 62);
+    ctx.fillText('Info', 256, 62);
+
+    party.slice(activeStart, activeStart + 5).forEach((monster, offset) => {
+      const index = activeStart + offset;
+      const rowY = 72 + offset * 16;
+      const highlighted = storageMenuColumn === 'party' && index === storagePartySelection;
+      const pending = storageSwapPending?.source === 'party' && storageSwapPending.index === index;
+      ctx.fillStyle = pending ? '#f6e29d' : highlighted ? '#d5ebb9' : 'rgba(81,100,69,0.08)';
+      ctx.fillRect(22, rowY - 10, 102, 14);
+      ctx.fillStyle = '#304027';
+      ctx.font = `bold 8px ${uiFont}`;
+      ctx.fillText(fitText(`${index === activeIndex ? '> ' : ''}${monster.name}`, 70), 25, rowY - 1);
+      ctx.textAlign = 'right';
+      ctx.fillText(`Lv${monster.level}`, 120, rowY - 1);
+      ctx.textAlign = 'left';
+    });
+
+    storedMonsters.slice(storedStart, storedStart + 5).forEach((monster, offset) => {
+      const index = storedStart + offset;
+      const rowY = 72 + offset * 16;
+      const highlighted = storageMenuColumn === 'storage' && index === storageBoxSelection;
+      const pending = storageSwapPending?.source === 'storage' && storageSwapPending.index === index;
+      ctx.fillStyle = pending ? '#f6e29d' : highlighted ? '#d5ebb9' : 'rgba(81,100,69,0.08)';
+      ctx.fillRect(138, rowY - 10, 102, 14);
+      ctx.fillStyle = '#304027';
+      ctx.font = `bold 8px ${uiFont}`;
+      ctx.fillText(fitText(monster.name, 70), 141, rowY - 1);
+      ctx.textAlign = 'right';
+      ctx.fillText(`Lv${monster.level}`, 236, rowY - 1);
+      ctx.textAlign = 'left';
+    });
+
+    if (selectedMonster) {
+      drawMonsterSprite(selectedMonster, 258, 70, 3, 'battle');
+      ctx.fillStyle = '#415435';
+      ctx.font = `bold 8px ${uiFont}`;
+      ctx.fillText(typeShortForMonster(selectedMonster), 254, 104);
+      ctx.fillText(`HP ${selectedMonster.hp}/${selectedMonster.maxHp}`, 254, 116);
+      ctx.fillText(`ATK ${selectedMonster.atkMin}-${selectedMonster.atkMax}`, 254, 128);
+      ctx.fillText(passiveTraitShort(selectedMonster), 254, 140);
+    }
+
+    ctx.fillStyle = 'rgba(45,56,34,0.92)';
+    ctx.fillRect(18, 164, 276, 26);
+    ctx.fillStyle = '#eff7df';
+    ctx.textAlign = 'center';
+    ctx.font = `bold 8px ${uiFont}`;
+    if (storageSwapPending?.source === 'party') {
+      ctx.fillText('Choose a stored monster to swap into the active party.', canvas.width / 2, 174);
+      ctx.fillText('Prev/Next Browse  •  Center Confirm Swap  •  Play Back', canvas.width / 2, 184);
+    } else if (storageSwapPending?.source === 'storage') {
+      ctx.fillText('Choose the active party monster to swap out.', canvas.width / 2, 174);
+      ctx.fillText('Prev/Next Browse  •  Center Confirm Swap  •  Play Back', canvas.width / 2, 184);
+    } else if (storageMenuColumn === 'storage' && party.length < activePartyLimit) {
+      ctx.fillText('Center on a stored monster to move it into an open party slot.', canvas.width / 2, 174);
+      ctx.fillText('Prev/Next Browse  •  Center Withdraw  •  Play Back', canvas.width / 2, 184);
+    } else {
+      ctx.fillText('Center begins a swap. Stored monsters can join if party has room.', canvas.width / 2, 174);
+      ctx.fillText('Prev/Next Browse  •  Play Back  •  Use menu row to reopen town', canvas.width / 2, 184);
+    }
+  }
+
+  function drawPlayerMenu() {
+    const monster = selectedPartyMonster();
+    const actions = playerMenuActions(monster);
+    const selectedAction = actions[playerMenuActionSelection] || actions[0];
+    const currentListIndex = playerMenuMode === 'swap' ? playerMenuSwapSelection : playerMenuSelection;
+    const listStart = Math.max(0, Math.min(currentListIndex, Math.max(0, party.length - 5)));
+    const uiFont = 'Trebuchet MS';
+    const fitText = (text, maxWidth) => {
+      const value = String(text || '');
+      if (ctx.measureText(value).width <= maxWidth) return value;
+      let trimmed = value;
+      while (trimmed.length > 1 && ctx.measureText(`${trimmed}...`).width > maxWidth) {
+        trimmed = trimmed.slice(0, -1);
+      }
+      return `${trimmed}...`;
+    };
+    const wrapText = (text, maxWidth, maxLines = 2) => {
+      const words = String(text || '').split(/\s+/).filter(Boolean);
+      const lines = [];
+      let current = '';
+
+      words.forEach(word => {
+        const next = current ? `${current} ${word}` : word;
+        if (ctx.measureText(next).width <= maxWidth || !current) {
+          current = next;
+          return;
+        }
+        lines.push(current);
+        current = word;
+      });
+
+      if (current) lines.push(current);
+      if (lines.length <= maxLines) return lines;
+
+      const clipped = lines.slice(0, maxLines);
+      clipped[maxLines - 1] = fitText(clipped[maxLines - 1], maxWidth);
+      return clipped;
+    };
+    const drawMeter = (x, y, width, height, fillRatio, fillColor, backColor = 'rgba(57,80,57,0.16)', borderColor = 'rgba(63,87,63,0.55)') => {
+      const clamped = Math.max(0, Math.min(1, fillRatio || 0));
+      ctx.fillStyle = backColor;
+      ctx.fillRect(x, y, width, height);
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(x + 1, y + 1, Math.max(0, Math.round((width - 2) * clamped)), Math.max(0, height - 2));
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, width, height);
+    };
+
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGradient.addColorStop(0, '#edf4e4');
+    bgGradient.addColorStop(1, '#c9dcb8');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(116,149,94,0.18)';
+    for (let y = 0; y < canvas.height; y += 12) {
+      ctx.fillRect(0, y, canvas.width, 5);
+    }
+
+    ctx.fillStyle = '#d8e4cf';
+    ctx.fillRect(8, 8, canvas.width - 16, canvas.height - 16);
+    ctx.fillStyle = '#5b7247';
+    ctx.fillRect(8, 8, canvas.width - 16, 6);
+    ctx.fillRect(8, canvas.height - 14, canvas.width - 16, 6);
+    ctx.fillRect(8, 8, 6, canvas.height - 16);
+    ctx.fillRect(canvas.width - 14, 8, 6, canvas.height - 16);
+    ctx.strokeStyle = '#516445';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+    ctx.strokeStyle = 'rgba(247,252,238,0.8)';
+    ctx.strokeRect(13, 13, canvas.width - 26, canvas.height - 26);
+
+    [[20, 20], [canvas.width - 20, 20], [20, canvas.height - 20], [canvas.width - 20, canvas.height - 20]].forEach(([cx, cy]) => {
+      ctx.fillStyle = '#f4f7ec';
+      ctx.fillRect(cx - 2, cy - 2, 4, 4);
+      ctx.fillStyle = '#7a9460';
+      ctx.fillRect(cx - 1, cy - 1, 2, 2);
+    });
+
+    ctx.fillStyle = '#395039';
+    ctx.font = `bold 15px ${uiFont}`;
+    ctx.textAlign = 'center';
+    ctx.fillText('Party', canvas.width / 2, 24);
+    ctx.font = `600 9px ${uiFont}`;
+    ctx.fillText(`Party ${party.length}  •  Tonics ${tonics}  •  Lead ${fitText(activeMonster()?.name || 'None', 92)}`, canvas.width / 2, 38);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fillRect(16, 48, 104, 120);
+    ctx.fillRect(126, 48, 168, 120);
+    ctx.strokeStyle = '#6a7f57';
+    ctx.strokeRect(16, 48, 104, 120);
+    ctx.strokeRect(126, 48, 168, 120);
+
+    ctx.fillStyle = '#395039';
+    ctx.font = `bold 10px ${uiFont}`;
+    ctx.textAlign = 'left';
+    ctx.fillText(playerMenuMode === 'swap' ? 'Swap Target' : 'Party List', 24, 62);
+
+    party.slice(listStart, listStart + 5).forEach((entry, offset) => {
+      const index = listStart + offset;
+      const rowY = 74 + offset * 18;
+      const highlighted = playerMenuMode === 'swap' ? index === playerMenuSwapSelection : index === playerMenuSelection;
+      ctx.fillStyle = highlighted ? '#d5ebb9' : 'rgba(81,100,69,0.08)';
+      ctx.fillRect(20, rowY - 11, 96, 18);
+      ctx.fillStyle = highlighted ? '#263926' : '#395039';
+      ctx.font = `bold 9px ${uiFont}`;
+      ctx.fillText(fitText(`${index === activeIndex ? '> ' : ''}${entry.name}`, 66), 24, rowY - 1);
+      ctx.textAlign = 'right';
+      ctx.fillText(`Lv${entry.level}`, 112, rowY - 1);
+      ctx.textAlign = 'left';
+      ctx.font = `8px ${uiFont}`;
+      ctx.fillStyle = '#546954';
+      ctx.fillText(fitText(`HP ${entry.hp}/${entry.maxHp}${statusText(entry)}`, 88), 24, rowY + 7);
+    });
+
+    if (monster) {
+      drawMonsterSprite(monster, 134, 56, 3, 'battle');
+      drawTypeBadge(typeKeyForMonster(monster), typeLabelForMonster(monster), 244, 56, { minWidth: 42, height: 12, font: 'bold 8px Trebuchet MS' });
+      ctx.fillStyle = '#395039';
+      ctx.font = `bold 12px ${uiFont}`;
+      ctx.textAlign = 'left';
+      ctx.fillText(fitText(`${monster.name}${monster.shiny ? ' *' : ''}`, 56), 182, 64);
+
+      ctx.font = `9px ${uiFont}`;
+      ctx.fillStyle = '#4e624e';
+      ctx.fillText(fitText(`Species: ${monster.species}`, 52), 182, 76);
+      ctx.fillText(fitText(`Type: ${typeLabelForMonster(monster)}`, 52), 182, 86);
+
+      const hpRatio = monster.maxHp > 0 ? monster.hp / monster.maxHp : 0;
+      const xpRatio = monster.xpToNext > 0 ? monster.xp / monster.xpToNext : 0;
+      ctx.font = `bold 8px ${uiFont}`;
+      ctx.fillStyle = '#395039';
+      ctx.fillText('HP', 182, 98);
+      ctx.fillText('XP', 238, 98);
+      drawMeter(182, 101, 48, 7, hpRatio, '#da6f6f');
+      drawMeter(238, 101, 48, 7, xpRatio, '#6d96d7');
+
+      const statLines = [
+        `Lv ${monster.level}`,
+        `HP ${monster.hp}/${monster.maxHp}`,
+        `XP ${monster.xp}/${monster.xpToNext}`,
+        `ATK ${monster.atkMin}-${monster.atkMax}`,
+        `Status ${statusShortLabel(monster) || 'OK'}`
+      ];
+      ctx.font = `bold 9px ${uiFont}`;
+      ctx.fillStyle = '#395039';
+      statLines.forEach((line, index) => {
+        ctx.fillText(line, 182, 118 + index * 8);
+      });
+
+      ctx.font = `bold 9px ${uiFont}`;
+      ctx.fillText('Trait', 132, 122);
+      ctx.font = `8px ${uiFont}`;
+      ctx.fillStyle = '#4e624e';
+      wrapText(passiveTraitText(monster), 44, 4).forEach((line, index) => {
+        ctx.fillText(line, 132, 132 + index * 8);
+      });
+
+      ctx.font = `bold 9px ${uiFont}`;
+      ctx.fillStyle = '#395039';
+      ctx.fillText('Moves', 238, 118);
+      ctx.font = `8px ${uiFont}`;
+      attacksForMonster(monster).slice(0, 4).forEach((move, index) => {
+        ctx.fillText(fitText(`${index + 1}. ${move.name}`, 48), 238, 128 + index * 8);
+      });
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.94)';
+    ctx.fillRect(16, 172, 278, 26);
+    ctx.strokeStyle = '#6a7f57';
+    ctx.strokeRect(16, 172, 278, 26);
+    ctx.fillStyle = '#395039';
+    ctx.font = `bold 8px ${uiFont}`;
+    ctx.textAlign = 'center';
+
+    if (playerMenuMode === 'actions') {
+      ctx.fillText(fitText(`${selectedAction?.label || 'Action'} • ${selectedAction?.detail || ''}`, 248), canvas.width / 2, 181);
+      ctx.fillText('Prev/Next Action  •  Center Confirm  •  Play Back', canvas.width / 2, 191);
+    } else if (playerMenuMode === 'swap') {
+      ctx.fillText('Choose who trades positions with the selected monster.', canvas.width / 2, 181);
+      ctx.fillText('Prev/Next Target  •  Center Swap  •  Play Cancel', canvas.width / 2, 191);
+    } else {
+      ctx.fillText('Prev/Next or Wheel Browse  •  Center Actions', canvas.width / 2, 181);
+      ctx.fillText('Play Close  •  > marks the current lead monster', canvas.width / 2, 191);
+    }
+  }
+
   function drawBattleScene() {
     const lead = activeMonster();
     const layout = battleLayout();
     const now = performance.now();
     const enemyIdle = Math.sin(now * 0.005 + 0.8) * 1.3;
     const allyIdle = Math.sin(now * 0.005 + 2.4) * 1.1;
-    const enemyNameText = `${shinyLabel(battleTarget)}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label} ${battleTarget.name} Lv${battleTarget.level}`;
+    const enemyNameText = battleTarget.isBoss
+      ? `${battleTarget.trainerName} · ${battleTarget.name} Lv${battleTarget.level}${statusText(battleTarget)}`
+      : `${shinyLabel(battleTarget)}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label} ${battleTarget.name} Lv${battleTarget.level}${statusText(battleTarget)}`;
     const enemyHpText = `HP ${battleTarget.hp}/${battleTarget.maxHp}`;
-    const leadNameText = `${lead ? `${shinyLabel(lead)}${lead.name}` : 'No Lead'} Lv${lead ? lead.level : 0}`;
+    const enemyTraitText = `${typeShortForMonster(battleTarget)} · ${passiveTraitShort(battleTarget)}`;
+    const leadNameText = `${lead ? `${shinyLabel(lead)}${lead.name}` : 'No Lead'} Lv${lead ? lead.level : 0}${lead ? statusText(lead) : ''}`;
     const leadHpText = `HP ${lead ? lead.hp : 0}/${lead ? lead.maxHp : 0}`;
+    const leadTraitText = lead ? `${typeShortForMonster(lead)} · ${passiveTraitShort(lead)}` : 'No Trait';
 
     ctx.fillStyle = '#d6efbf';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -3703,64 +5219,107 @@ function renderMonsterTamer(direction = 'forward') {
     );
     const enemyPanelX = 14;
     const leadPanelX = canvas.width - 14 - leadPanelWidth;
+    const wrapBattleText = (text, maxWidth, maxLines = Infinity) => {
+      const words = String(text || '').split(/\s+/).filter(Boolean);
+      const lines = [];
+      let current = '';
 
-    ctx.fillStyle = '#eef7df';
-    ctx.fillRect(enemyPanelX, 18, enemyPanelWidth, 36);
-    ctx.fillRect(leadPanelX, 118, leadPanelWidth, 36);
-    ctx.strokeStyle = '#39462e';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(enemyPanelX, 18, enemyPanelWidth, 36);
-    ctx.strokeRect(leadPanelX, 118, leadPanelWidth, 36);
+      words.forEach(word => {
+        const next = current ? `${current} ${word}` : word;
+        if (!current || ctx.measureText(next).width <= maxWidth) {
+          current = next;
+          return;
+        }
+        lines.push(current);
+        current = word;
+      });
 
-    ctx.fillStyle = '#39462e';
-    ctx.textAlign = 'left';
-    ctx.fillText(enemyNameText, enemyPanelX + panelPadding, 32);
-    ctx.fillText(enemyHpText, enemyPanelX + panelPadding, 46);
-    ctx.fillText(leadNameText, leadPanelX + panelPadding, 132);
-    ctx.fillText(leadHpText, leadPanelX + panelPadding, 146);
+      if (current) lines.push(current);
+      return lines.slice(0, maxLines);
+    };
+    const enemyNameLines = wrapBattleText(enemyNameText, enemyPanelWidth - 48, 2);
+    const enemyTraitLines = wrapBattleText(enemyTraitText, enemyPanelWidth - 48, 2);
+    const leadNameLines = wrapBattleText(leadNameText, leadPanelWidth - 48, 2);
+    const leadTraitLines = wrapBattleText(leadTraitText, leadPanelWidth - 48, 2);
+    const panelLineHeight = 9;
+    const panelTopPadding = 10;
+    const enemyPanelHeight = panelTopPadding + (enemyNameLines.length * panelLineHeight) + panelLineHeight + (enemyTraitLines.length * panelLineHeight) + 6;
+    const leadPanelHeight = panelTopPadding + (leadNameLines.length * panelLineHeight) + panelLineHeight + (leadTraitLines.length * panelLineHeight) + 6;
 
     ctx.fillStyle = 'rgba(0,0,0,0.12)';
     ctx.beginPath();
-    ctx.ellipse(232, 108, 28 + Math.sin(now * 0.004) * 1.5, 8, 0, 0, Math.PI * 2);
-    ctx.ellipse(86, 160, 26 + Math.sin(now * 0.004 + 1.2) * 1.2, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(layout.enemyCenterX + 10, layout.enemyCenterY + 24, 28 + Math.sin(now * 0.004) * 1.5, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(layout.allyCenterX + 16, layout.allyCenterY + 28, 26 + Math.sin(now * 0.004 + 1.2) * 1.2, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
     const animationEffects = drawBattleAnimationEffects(layout);
 
-    drawMonsterSprite(battleTarget, layout.enemyX + animationEffects.enemyOffsetX, layout.enemyY + animationEffects.enemyOffsetY + enemyIdle, 4);
+    drawMonsterSprite(battleTarget, layout.enemyX + animationEffects.enemyOffsetX, layout.enemyY + animationEffects.enemyOffsetY + enemyIdle, 4, 'battle');
     if (battleTarget.shiny) {
       drawShinySparkles(layout.enemyCenterX, layout.enemyCenterY - 2, 25, now * 0.006);
     }
     if (lead) {
-      drawMonsterSprite(lead, layout.allyX + animationEffects.allyOffsetX, layout.allyY + animationEffects.allyOffsetY + allyIdle, 4);
+      drawMonsterSprite(lead, layout.allyX + animationEffects.allyOffsetX, layout.allyY + animationEffects.allyOffsetY + allyIdle, 4, 'battle');
       if (lead.shiny) {
         drawShinySparkles(layout.allyCenterX, layout.allyCenterY, 20, now * 0.006 + 1.2);
       }
     }
 
+    ctx.fillStyle = '#eef7df';
+    ctx.fillRect(enemyPanelX, 14, enemyPanelWidth, enemyPanelHeight);
+    ctx.fillRect(leadPanelX, 98, leadPanelWidth, leadPanelHeight);
+    ctx.strokeStyle = '#39462e';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(enemyPanelX, 14, enemyPanelWidth, enemyPanelHeight);
+    ctx.strokeRect(leadPanelX, 98, leadPanelWidth, leadPanelHeight);
+
+    ctx.fillStyle = '#39462e';
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 9px Courier New';
+    enemyNameLines.forEach((line, index) => {
+      ctx.fillText(line, enemyPanelX + panelPadding, 24 + index * panelLineHeight);
+    });
+    ctx.fillText(enemyHpText, enemyPanelX + panelPadding, 24 + enemyNameLines.length * panelLineHeight + 2);
+    enemyTraitLines.forEach((line, index) => {
+      ctx.fillText(line, enemyPanelX + panelPadding, 24 + enemyNameLines.length * panelLineHeight + 2 + panelLineHeight + index * panelLineHeight);
+    });
+    drawTypeBadge(typeKeyForMonster(battleTarget), typeShortForMonster(battleTarget), enemyPanelX + enemyPanelWidth - 30, 17, { minWidth: 22, height: 10, font: 'bold 7px Trebuchet MS' });
+    leadNameLines.forEach((line, index) => {
+      ctx.fillText(line, leadPanelX + panelPadding, 108 + index * panelLineHeight);
+    });
+    ctx.fillText(leadHpText, leadPanelX + panelPadding, 108 + leadNameLines.length * panelLineHeight + 2);
+    leadTraitLines.forEach((line, index) => {
+      ctx.fillText(line, leadPanelX + panelPadding, 108 + leadNameLines.length * panelLineHeight + 2 + panelLineHeight + index * panelLineHeight);
+    });
+    if (lead) {
+      drawTypeBadge(typeKeyForMonster(lead), typeShortForMonster(lead), leadPanelX + leadPanelWidth - 30, 101, { minWidth: 22, height: 10, font: 'bold 7px Trebuchet MS' });
+    }
+
     ctx.fillStyle = 'rgba(45,56,34,0.94)';
-    ctx.fillRect(0, 152, canvas.width, 56);
+    ctx.fillRect(0, 148, canvas.width, 60);
     ctx.strokeStyle = 'rgba(239,247,223,0.18)';
-    ctx.strokeRect(0, 152, canvas.width, 56);
+    ctx.strokeRect(0, 148, canvas.width, 60);
     ctx.font = 'bold 10px Courier New';
 
     if (battleMenuMode === 'root') {
       ctx.fillStyle = '#eff7df';
       ctx.textAlign = 'center';
-      ctx.fillText('Choose action', canvas.width / 2, 164);
+      ctx.fillText('Choose action', canvas.width / 2, 160);
       battleRootOptions.forEach((option, index) => {
-        const col = index % 2;
+        const isLast = index === battleRootOptions.length - 1 && battleRootOptions.length % 2 === 1;
+        const col = isLast ? 0 : index % 2;
         const row = Math.floor(index / 2);
-        const boxX = 10 + col * 148;
-        const boxY = 170 + row * 18;
+        const boxX = isLast ? 10 : 10 + col * 148;
+        const boxY = 166 + row * 13;
+        const boxWidth = isLast ? 292 : 144;
         const selected = index === battleMenuSelection;
         ctx.fillStyle = selected ? '#d7efb9' : 'rgba(239,247,223,0.14)';
-        ctx.fillRect(boxX, boxY, 144, 16);
+        ctx.fillRect(boxX, boxY, boxWidth, 12);
         ctx.strokeStyle = selected ? '#eff7df' : 'rgba(239,247,223,0.22)';
-        ctx.strokeRect(boxX, boxY, 144, 16);
+        ctx.strokeRect(boxX, boxY, boxWidth, 12);
         ctx.fillStyle = selected ? '#304027' : '#eff7df';
         ctx.textAlign = 'center';
-        ctx.fillText(option.label, boxX + 72, boxY + 11);
+        ctx.fillText(option.label, boxX + boxWidth / 2, boxY + 8);
       });
       return;
     }
@@ -3768,25 +5327,42 @@ function renderMonsterTamer(direction = 'forward') {
     const entries = currentBattleMenuEntries();
     ctx.fillStyle = '#eff7df';
     ctx.textAlign = 'center';
-    ctx.fillText(battleMenuMode === 'attack' ? 'Choose an attack' : 'Choose an item', canvas.width / 2, 164);
+    ctx.fillText(battleMenuMode === 'attack' ? 'Choose an attack' : battleMenuMode === 'item' ? 'Choose an item' : 'Choose a partner', canvas.width / 2, 159);
 
     if (!entries.length) {
-      ctx.fillText('No usable items', canvas.width / 2, 186);
+      ctx.fillText(battleMenuMode === 'switch' ? 'No healthy partners' : 'No usable items', canvas.width / 2, 184);
     } else {
-      entries.slice(0, 2).forEach((entry, index) => {
-        const boxY = 171 + index * 18;
+      const windowStart = Math.max(0, Math.min(battleSubSelection, Math.max(0, entries.length - 2)));
+      entries.slice(windowStart, windowStart + 2).forEach((entry, offset) => {
+        const index = windowStart + offset;
+        const boxY = 165 + offset * 21;
+        const boxHeight = 19;
         const selected = index === battleSubSelection;
+        const titleLines = wrapBattleText(entry.name || entry.label, 150, 2);
         ctx.fillStyle = selected ? '#d7efb9' : 'rgba(239,247,223,0.14)';
-        ctx.fillRect(12, boxY, 288, 16);
+        ctx.fillRect(12, boxY, 288, boxHeight);
         ctx.strokeStyle = selected ? '#eff7df' : 'rgba(239,247,223,0.22)';
-        ctx.strokeRect(12, boxY, 288, 16);
+        ctx.strokeRect(12, boxY, 288, boxHeight);
         ctx.fillStyle = selected ? '#304027' : '#eff7df';
         ctx.textAlign = 'left';
-        ctx.fillText(entry.name || entry.label, 18, boxY + 11);
-        ctx.textAlign = 'right';
-        const detail = entry.detail || `${Math.round((entry.power || 1) * 100)}% · ${(entry.accuracy || 1) * 100 | 0}%`;
-        ctx.fillText(detail, 294, boxY + 11);
+        ctx.font = 'bold 9px Courier New';
+        titleLines.forEach((line, lineIndex) => {
+          ctx.fillText(line, 18, boxY + 8 + lineIndex * 7);
+        });
+        const detail = entry.detail || moveDetailText(entry);
+        const detailLines = wrapBattleText(detail, 116, 2);
+        ctx.font = '7px Courier New';
+        ctx.fillStyle = selected ? '#304027' : '#d9ebc8';
+        detailLines.forEach((line, lineIndex) => {
+          ctx.fillText(line, 174, boxY + 8 + lineIndex * 7);
+        });
       });
+      if (entries.length > 2) {
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 9px Courier New';
+        ctx.fillStyle = '#eff7df';
+        ctx.fillText(`${battleSubSelection + 1}/${entries.length}`, canvas.width / 2, 205);
+      }
     }
   }
 
@@ -3832,6 +5408,7 @@ function renderMonsterTamer(direction = 'forward') {
     worldTick += 1;
     getRelevantChunks(chunkRadius + 1).forEach(chunk => {
       chunk.monsters.forEach(monster => {
+        if (monster.isTrainer) return;
         if (Math.random() < 0.68) return;
         const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
         const choice = dirs[wrapIndex(monster.roamBias + worldTick + monster.x + monster.y, dirs.length)];
@@ -3869,19 +5446,68 @@ function renderMonsterTamer(direction = 'forward') {
     drawTamerWorld();
   }
 
+  function sendNextTrainerMonster(trainerMonster, introMessage = '') {
+    if (!trainerMonster?.isTrainer || !trainerMonster.trainerReserve?.length) return false;
+
+    const nextMonster = trainerMonster.trainerReserve.shift();
+    const preserved = {
+      id: trainerMonster.id,
+      x: trainerMonster.x,
+      y: trainerMonster.y,
+      isTrainer: true,
+      trainerName: trainerMonster.trainerName,
+      trainerReserve: trainerMonster.trainerReserve,
+      trainerPalette: trainerMonster.trainerPalette
+    };
+
+    Object.assign(trainerMonster, nextMonster, preserved);
+    battleTarget = trainerMonster;
+    resetBattleMenu();
+    setMessage(joinBattleText(introMessage, `Trainer ${trainerMonster.trainerName} sent out ${trainerMonster.name}.`));
+    updateHighScore();
+    updateTamerUi();
+    drawTamerWorld();
+    return true;
+  }
+
   function resolveBattleVictory(ally, defeatedMonster) {
     const xpGain = 3 + defeatedMonster.level * 2;
-    const coinGain = 5 + defeatedMonster.level * 3 + (rarityMeta[defeatedMonster.rarity] || rarityMeta.common).coinBonus;
+    const finalTrainerMon = defeatedMonster.isTrainer && !(defeatedMonster.trainerReserve || []).length;
+    const coinGain = 5 + defeatedMonster.level * 3 + (rarityMeta[defeatedMonster.rarity] || rarityMeta.common).coinBonus + (defeatedMonster.bossRewardCoins || 0) + (finalTrainerMon ? (defeatedMonster.trainerRewardCoins || 0) : 0);
     const levels = awardExperience(ally, xpGain);
     coins += coinGain;
     const recovery = recoverLeadAfterEncounter(2, defeatedMonster.x, defeatedMonster.y);
-    setMessage(levels > 0
+    const evolutionMessage = maybeEvolveMonster(ally);
+    let victoryMessage = levels > 0
       ? recovery > 0
         ? `${ally.name} won, earned ${coinGain}c, grew to Lv${ally.level}, and recovered ${recovery} HP.`
         : `${ally.name} won, earned ${coinGain}c, and grew to Lv${ally.level}.`
       : recovery > 0
         ? `${ally.name} defeated ${defeatedMonster.name}, earned ${coinGain}c, and recovered ${recovery} HP.`
-        : `${ally.name} defeated ${defeatedMonster.name} and earned ${coinGain}c.`);
+        : `${ally.name} defeated ${defeatedMonster.name} and earned ${coinGain}c.`;
+
+    if (defeatedMonster.isBoss && defeatedMonster.badgeName && !badges.includes(defeatedMonster.badgeName)) {
+      badges.push(defeatedMonster.badgeName);
+      victoryMessage = `${ally.name} won the ${defeatedMonster.badgeName} Badge and ${coinGain}c.`;
+      const badgeEvolutions = maybeEvolveParty();
+      if (badgeEvolutions.length) {
+        victoryMessage = joinBattleText(victoryMessage, badgeEvolutions.join(' '));
+      }
+    }
+
+    if (defeatedMonster.isTrainer && defeatedMonster.trainerReserve?.length) {
+      defeated += 1;
+      sendNextTrainerMonster(defeatedMonster, joinBattleText(victoryMessage, evolutionMessage));
+      return;
+    }
+
+    if (finalTrainerMon) {
+      victoryMessage = `${ally.name} beat Trainer ${defeatedMonster.trainerName} and earned ${coinGain}c.`;
+      if (levels > 0) victoryMessage = `${victoryMessage} ${ally.name} grew to Lv${ally.level}.`;
+      if (recovery > 0) victoryMessage = `${victoryMessage} ${ally.name} recovered ${recovery} HP.`;
+    }
+
+    setMessage(joinBattleText(victoryMessage, evolutionMessage));
     removeMonster(defeatedMonster);
     battleTarget = null;
     defeated += 1;
@@ -3889,68 +5515,142 @@ function renderMonsterTamer(direction = 'forward') {
     stepWorld();
   }
 
-  function resolveEnemyRetaliation(retaliation, message) {
+  function chooseEnemyMove(enemy) {
+    const moves = attacksForMonster(enemy);
+    if (!moves.length) return null;
+    if (enemy.hp <= Math.ceil(enemy.maxHp * 0.4)) {
+      const sustainMove = moves.find(move => move.healRatio || move.selfEffect?.type === 'regen');
+      if (sustainMove && Math.random() < 0.7) return sustainMove;
+    }
+    if (enemy.statusKey !== 'stun') {
+      const controlMove = moves.find(move => move.effect?.type === 'stun');
+      if (controlMove && Math.random() < 0.35) return controlMove;
+    }
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
+
+  function resolveEnemyRetaliation(move, message) {
     const ally = activeMonster();
+    if (!battleTarget || !ally || !move) return;
+    const enemyState = startTurnStatus(battleTarget);
+    const passiveStartMessage = applyPassiveTurnStart(battleTarget);
+    if (enemyState.fainted) {
+      resolveBattleVictory(ally, battleTarget);
+      return;
+    }
+    if (!enemyState.canAct) {
+      setMessage(joinBattleText(message, enemyState.text, passiveStartMessage));
+      updateHighScore();
+      updateTamerUi();
+      drawTamerWorld();
+      return;
+    }
     startBattleAnimation('attack-projectile', { from: 'enemy', monster: battleTarget }, () => {
-      if (ally) {
-        ally.hp = Math.max(0, ally.hp - retaliation);
+      if (!battleTarget) return;
+
+      if (Math.random() > (move.accuracy || 1)) {
+        setMessage(joinBattleText(message, enemyState.text, passiveStartMessage, `${battleTarget.name}'s ${move.name} missed.`));
+        updateHighScore();
+        updateTamerUi();
+        drawTamerWorld();
+        return;
       }
-      setMessage(message);
+
+      const baseDamage = battleTarget.atkMin + Math.floor(Math.random() * (battleTarget.atkMax - battleTarget.atkMin + 1));
+      const typeMultiplier = typeModifierForAttack(move, battleTarget, ally);
+      const retaliation = Math.max(
+        1,
+        damageAgainstTarget(easeRetaliationDamage(Math.max(1, Math.round(baseDamage * (move.power || 1))), battleTarget.x, battleTarget.y), ally, move, battleTarget)
+        + passiveOutgoingBonus(battleTarget, ally)
+        - passiveIncomingReduction(ally)
+      );
+      ally.hp = Math.max(0, ally.hp - retaliation);
+      let recovered = 0;
+      if (move.healRatio) {
+        recovered = Math.min(Math.max(1, Math.round(retaliation * move.healRatio)), battleTarget.maxHp - battleTarget.hp);
+        battleTarget.hp += recovered;
+      }
+      const effectMessages = applyMoveEffects(battleTarget, ally, move);
+      const passiveAfterMessage = passiveAfterHit(battleTarget, retaliation);
+      let followUpMessage = joinBattleText(message, enemyState.text, passiveStartMessage, `${battleTarget.name} used ${move.name} for ${retaliation}.${typeEffectText(typeMultiplier)}${recovered > 0 ? ` ${battleTarget.name} recovered ${recovered} HP.` : ''}`, passiveAfterMessage, ...effectMessages);
 
       if (!ally || ally.hp <= 0) {
         if (!switchToHealthyLead()) {
           endRun('All your monsters fainted.');
           return;
         }
+        followUpMessage = joinBattleText(followUpMessage, `${activeMonster()?.name || 'A partner'} stepped in.`);
       }
 
+      setMessage(followUpMessage);
       updateHighScore();
       updateTamerUi();
       drawTamerWorld();
     }, 400);
   }
 
-  function enemyRetaliationDamage() {
-    if (!battleTarget) return 0;
-    return easeRetaliationDamage(
-      battleTarget.atkMin + Math.floor(Math.random() * (battleTarget.atkMax - battleTarget.atkMin + 1)),
-      battleTarget.x,
-      battleTarget.y
-    );
+  function takePlayerTurn(onAct) {
+    const ally = activeMonster();
+    if (!ally || !battleTarget) return;
+    const state = startTurnStatus(ally);
+    const passiveStartMessage = applyPassiveTurnStart(ally);
+    if (state.fainted) {
+      if (!switchToHealthyLead()) {
+        endRun('All your monsters fainted.');
+        return;
+      }
+      const enemyMove = chooseEnemyMove(battleTarget);
+      resolveEnemyRetaliation(enemyMove, joinBattleText(state.text, passiveStartMessage, `${activeMonster()?.name || 'A partner'} stepped in.`));
+      return;
+    }
+    if (!state.canAct) {
+      const enemyMove = chooseEnemyMove(battleTarget);
+      resolveEnemyRetaliation(enemyMove, joinBattleText(state.text, passiveStartMessage));
+      return;
+    }
+    onAct(joinBattleText(state.text, passiveStartMessage));
   }
 
   function useBattleAttack(move) {
     const ally = activeMonster();
     if (!ally || !battleTarget || !move) return;
 
-    startBattleAnimation('attack-projectile', { from: 'ally', monster: ally }, () => {
-      if (!battleTarget) return;
+    takePlayerTurn((prefix) => {
+      startBattleAnimation('attack-projectile', { from: 'ally', monster: ally }, () => {
+        if (!battleTarget) return;
 
-      if (Math.random() > (move.accuracy || 1)) {
-        const retaliation = enemyRetaliationDamage();
-        resolveEnemyRetaliation(retaliation, `${ally.name}'s ${move.name} missed. ${battleTarget.name} counters for ${retaliation}.`);
-        return;
-      }
+        if (Math.random() > (move.accuracy || 1)) {
+          const enemyMove = chooseEnemyMove(battleTarget);
+          resolveEnemyRetaliation(enemyMove, joinBattleText(prefix, `${ally.name}'s ${move.name} missed.`));
+          return;
+        }
 
-      const baseDamage = ally.atkMin + Math.floor(Math.random() * (ally.atkMax - ally.atkMin + 1));
-      const damage = Math.max(1, Math.round(baseDamage * (move.power || 1)));
-      battleTarget.hp -= damage;
-      let recovered = 0;
+        const baseDamage = ally.atkMin + Math.floor(Math.random() * (ally.atkMax - ally.atkMin + 1));
+        const typeMultiplier = typeModifierForAttack(move, ally, battleTarget);
+        const damage = Math.max(
+          1,
+          damageAgainstTarget(Math.max(1, Math.round(baseDamage * (move.power || 1))), battleTarget, move, ally)
+          + passiveOutgoingBonus(ally, battleTarget)
+          - passiveIncomingReduction(battleTarget)
+        );
+        battleTarget.hp = Math.max(0, battleTarget.hp - damage);
+        let recovered = 0;
+        if (move.healRatio) {
+          recovered = Math.min(Math.max(1, Math.round(damage * move.healRatio)), ally.maxHp - ally.hp);
+          ally.hp += recovered;
+        }
+        const effectMessages = applyMoveEffects(ally, battleTarget, move);
+        const passiveAfterMessage = passiveAfterHit(ally, damage);
 
-      if (move.healRatio) {
-        recovered = Math.min(Math.max(1, Math.round(damage * move.healRatio)), ally.maxHp - ally.hp);
-        ally.hp += recovered;
-      }
+        if (battleTarget.hp <= 0) {
+          resolveBattleVictory(ally, battleTarget);
+          return;
+        }
 
-      if (battleTarget.hp <= 0) {
-        resolveBattleVictory(ally, battleTarget);
-        return;
-      }
-
-      const retaliation = enemyRetaliationDamage();
-      const healSuffix = recovered > 0 ? ` and recovered ${recovered} HP` : '';
-      resolveEnemyRetaliation(retaliation, `${ally.name} used ${move.name} for ${damage}${healSuffix}. ${battleTarget.name} hits back for ${retaliation}.`);
-    }, 380);
+        const enemyMove = chooseEnemyMove(battleTarget);
+        resolveEnemyRetaliation(enemyMove, joinBattleText(prefix, `${ally.name} used ${move.name} for ${damage}.${typeEffectText(typeMultiplier)}${recovered > 0 ? ` ${ally.name} recovered ${recovered} HP.` : ''}`, passiveAfterMessage, ...effectMessages));
+      }, 380);
+    });
   }
 
   function useBattleItem(item) {
@@ -3960,17 +5660,19 @@ function renderMonsterTamer(direction = 'forward') {
       return;
     }
 
-    const result = usePotionOnLead();
-    if (result === 'You are out of tonics.' || /full HP|No lead/.test(result)) {
-      setMessage(result);
-      updateTamerUi();
-      drawTamerWorld();
-      return;
-    }
+    takePlayerTurn((prefix) => {
+      const result = usePotionOnLead();
+      if (result === 'You are out of tonics.' || /full HP|No lead/.test(result)) {
+        setMessage(result);
+        updateTamerUi();
+        drawTamerWorld();
+        return;
+      }
 
-    const retaliation = enemyRetaliationDamage();
-    resetBattleMenu();
-    resolveEnemyRetaliation(retaliation, `${result} ${battleTarget.name} presses for ${retaliation}.`);
+      resetBattleMenu();
+      const enemyMove = chooseEnemyMove(battleTarget);
+      resolveEnemyRetaliation(enemyMove, joinBattleText(prefix, result));
+    });
   }
 
   function escapeChanceForTarget(target) {
@@ -3983,20 +5685,43 @@ function renderMonsterTamer(direction = 'forward') {
 
   function attemptRunFromBattle() {
     if (!battleTarget) return;
-    const currentTarget = battleTarget;
-    const chance = escapeChanceForTarget(currentTarget);
-    if (Math.random() < chance) {
-      battleTarget = null;
-      resetBattleMenu();
-      setMessage(`You escaped from ${currentTarget.name}.`);
+    if (battleTarget.isTrainer) {
+      setMessage(`Trainer ${battleTarget.trainerName} will not let you run.`);
       updateTamerUi();
       drawTamerWorld();
       return;
     }
+    const currentTarget = battleTarget;
+    takePlayerTurn((prefix) => {
+      const chance = escapeChanceForTarget(currentTarget) - (currentTarget.isBoss ? 0.28 : 0);
+      if (Math.random() < chance) {
+        battleTarget = null;
+        resetBattleMenu();
+        setMessage(joinBattleText(prefix, `You escaped from ${currentTarget.name}.`));
+        updateTamerUi();
+        drawTamerWorld();
+        return;
+      }
 
-    const retaliation = enemyRetaliationDamage();
-    resetBattleMenu();
-    resolveEnemyRetaliation(retaliation, `Couldn't escape! ${currentTarget.name} cuts you off for ${retaliation}.`);
+      resetBattleMenu();
+      const enemyMove = chooseEnemyMove(currentTarget);
+      resolveEnemyRetaliation(enemyMove, joinBattleText(prefix, `Couldn't escape! ${currentTarget.name} cuts you off.`));
+    });
+  }
+
+  function useBattleSwitch(entry) {
+    takePlayerTurn((prefix) => {
+      if (!switchLeadToIndex(entry?.index)) {
+        setMessage('No healthy partners can switch in.');
+        updateTamerUi();
+        drawTamerWorld();
+        return;
+      }
+
+      resetBattleMenu();
+      const enemyMove = chooseEnemyMove(battleTarget);
+      resolveEnemyRetaliation(enemyMove, joinBattleText(prefix, `${activeMonster().name} stepped in.`));
+    });
   }
 
   function handleBattleConfirm() {
@@ -4017,6 +5742,13 @@ function renderMonsterTamer(direction = 'forward') {
         battleMenuMode = 'item';
         battleSubSelection = 0;
         setMessage(battleItemsForPlayer().length ? 'Choose an item.' : 'No usable items right now.');
+        drawTamerWorld();
+        return;
+      }
+      if (action.key === 'switch') {
+        battleMenuMode = 'switch';
+        battleSubSelection = 0;
+        setMessage(switchMenuEntries().length ? 'Choose a partner.' : 'No healthy partners can switch in.');
         drawTamerWorld();
         return;
       }
@@ -4046,6 +5778,11 @@ function renderMonsterTamer(direction = 'forward') {
 
     if (battleMenuMode === 'item') {
       useBattleItem(selected);
+      return;
+    }
+
+    if (battleMenuMode === 'switch') {
+      useBattleSwitch(selected);
     }
   }
 
@@ -4053,11 +5790,11 @@ function renderMonsterTamer(direction = 'forward') {
     if (!battleTarget) return false;
     if (battleMenuMode !== 'root') {
       resetBattleMenu();
-      setMessage('Choose Attack, Item, Run, or Capture.');
+      setMessage('Choose Attack, Item, Switch, Run, or Capture.');
       drawTamerWorld();
       return true;
     }
-    setMessage('Choose Attack, Item, Run, or Capture.');
+    setMessage('Choose Attack, Item, Switch, Run, or Capture.');
     drawTamerWorld();
     return true;
   }
@@ -4074,6 +5811,10 @@ function renderMonsterTamer(direction = 'forward') {
     }
     if (gameOver) {
       startRun();
+      return;
+    }
+    if (playerMenuOpen) {
+      handlePlayerMenuConfirm();
       return;
     }
     const ally = activeMonster();
@@ -4132,26 +5873,24 @@ function renderMonsterTamer(direction = 'forward') {
       startRun();
       return;
     }
+    if (playerMenuOpen) {
+      handlePlayerMenuBack();
+      return;
+    }
     if (townMenuOpen) {
       if (indexMenuOpen) {
         closeMonsterIndex('Back to town services.');
+        return;
+      }
+      if (storageMenuOpen) {
+        closeStorageMenu('Back to town services.');
         return;
       }
       closeTownMenu('You leave the shop and head back outside.');
       return;
     }
     if (!battleTarget) {
-      const healthy = party.filter(monster => monster.hp > 0);
-      if (healthy.length > 1) {
-        do {
-          activeIndex = (activeIndex + 1) % party.length;
-        } while (party[activeIndex].hp <= 0);
-        setMessage(`Lead monster: ${activeMonster().name}.`);
-        updateTamerUi();
-        drawTamerWorld();
-      } else {
-        setMessage('Only one healthy partner is ready right now.');
-      }
+      openPlayerMenu();
       return;
     }
 
@@ -4161,83 +5900,82 @@ function renderMonsterTamer(direction = 'forward') {
       return;
     }
 
-    capsules -= 1;
-
-    const healthFactor = 1 - (battleTarget.hp / battleTarget.maxHp);
-    const chance = Math.min(0.92, battleTarget.catchBase + healthFactor * 0.55 + earlyGameRelief(battleTarget.x, battleTarget.y) * 0.08);
-    const usedCharm = charms > 0;
-    const boostedChance = Math.min(0.96, chance + (usedCharm ? 0.14 : 0));
-    const catchSucceeded = Math.random() < boostedChance;
-    if (usedCharm) {
-      charms -= 1;
+    if (battleTarget.isBoss || battleTarget.isTrainer) {
+      setMessage(battleTarget.isTrainer ? 'Trainer monsters cannot be captured.' : 'Boss monsters refuse capture.');
+      drawTamerWorld();
+      return;
     }
 
-    startBattleAnimation('capsule-throw', { success: catchSucceeded }, () => {
-      if (catchSucceeded) {
-        const caughtMonster = battleTarget;
-        party.push({
-          name: battleTarget.name,
-          species: battleTarget.species,
-          color: battleTarget.color,
-          accent: battleTarget.accent,
-          shiny: !!battleTarget.shiny,
-          sprite: battleTarget.sprite,
-          level: battleTarget.level,
-          xp: 0,
-          xpToNext: 5 + battleTarget.level * 4,
-          maxHp: battleTarget.maxHp,
-          hp: Math.max(1, Math.floor(battleTarget.maxHp * 0.75)),
-          atkMin: battleTarget.atkMin,
-          atkMax: battleTarget.atkMax,
-          catchBase: battleTarget.catchBase,
-          rarity: battleTarget.rarity || 'common'
-        });
-        captures += 1;
-        coins += 10 + battleTarget.level * 2;
-        const recovery = recoverLeadAfterEncounter(3, caughtMonster.x, caughtMonster.y);
-        recordDexEntry(battleTarget, 'caught');
-        removeMonster(battleTarget);
-        setMessage(usedCharm
-          ? recovery > 0
-            ? `Capture charm flared. You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! ${activeMonster()?.name || 'Lead'} recovered ${recovery} HP. Party ${party.length}. Capsules left: ${capsules}.`
-            : `Capture charm flared. You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! Party ${party.length}. Capsules left: ${capsules}.`
-          : recovery > 0
-            ? `You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! ${activeMonster()?.name || 'Lead'} recovered ${recovery} HP. Party ${party.length}. Capsules left: ${capsules}.`
-            : `You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! Party ${party.length}. Capsules left: ${capsules}.`);
-        battleTarget = null;
-        resetBattleMenu();
-        updateHighScore();
-        updateTamerUi();
-        drawTamerWorld();
-        return;
+    takePlayerTurn((prefix) => {
+      capsules -= 1;
+
+      const healthFactor = 1 - (battleTarget.hp / battleTarget.maxHp);
+      const chance = Math.min(0.92, battleTarget.catchBase + healthFactor * 0.55 + earlyGameRelief(battleTarget.x, battleTarget.y) * 0.08);
+      const usedCharm = charms > 0;
+      const boostedChance = Math.min(0.96, chance + (usedCharm ? 0.14 : 0));
+      const catchSucceeded = Math.random() < boostedChance;
+      if (usedCharm) {
+        charms -= 1;
       }
 
-      const ally = activeMonster();
-      const retaliation = easeRetaliationDamage(
-        battleTarget.atkMin + Math.floor(Math.random() * (battleTarget.atkMax - battleTarget.atkMin + 1)),
-        battleTarget.x,
-        battleTarget.y
-      );
-      startBattleAnimation('attack-projectile', { from: 'enemy', monster: battleTarget }, () => {
-        if (ally) {
-          ally.hp = Math.max(0, ally.hp - retaliation);
-        }
-        setMessage(usedCharm
-          ? `Capture charm faded. ${battleTarget.name} lashes out for ${retaliation}. Capsules left: ${capsules}.`
-          : `Capture failed. ${battleTarget.name} lashes out for ${retaliation}. Capsules left: ${capsules}.`);
-
-        if (!ally || ally.hp <= 0) {
-          if (!switchToHealthyLead()) {
-            endRun('All your monsters fainted.');
-            return;
+      startBattleAnimation('capsule-throw', { success: catchSucceeded }, () => {
+        if (!battleTarget) return;
+        if (catchSucceeded) {
+          const caughtEncounter = battleTarget;
+          const caughtMonster = {
+            name: battleTarget.name,
+            species: battleTarget.species,
+            color: battleTarget.color,
+            accent: battleTarget.accent,
+            shiny: !!battleTarget.shiny,
+            sprite: battleTarget.sprite,
+            level: battleTarget.level,
+            xp: 0,
+            xpToNext: 5 + battleTarget.level * 4,
+            maxHp: battleTarget.maxHp,
+            hp: Math.max(1, Math.floor(battleTarget.maxHp * 0.75)),
+            atkMin: battleTarget.atkMin,
+            atkMax: battleTarget.atkMax,
+            catchBase: battleTarget.catchBase,
+            rarity: battleTarget.rarity || 'common',
+            statusKey: '',
+            statusTurns: 0,
+            statusPotency: 0
+          };
+          const caughtX = battleTarget.x;
+          const caughtY = battleTarget.y;
+          const sentToStorage = party.length >= activePartyLimit;
+          if (sentToStorage) {
+            storedMonsters.push(caughtMonster);
+          } else {
+            party.push(caughtMonster);
           }
+          captures += 1;
+          coins += 10 + battleTarget.level * 2;
+          const recovery = recoverLeadAfterEncounter(3, caughtEncounter.x, caughtEncounter.y);
+          recordDexEntry(battleTarget, 'caught');
+          removeMonster(battleTarget);
+          setMessage(joinBattleText(prefix, usedCharm
+            ? recovery > 0
+              ? `Capture charm flared. You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! ${activeMonster()?.name || 'Lead'} recovered ${recovery} HP. ${sentToStorage ? `${battleTarget.name} was sent to storage.` : `Party ${party.length}.`} Capsules left: ${capsules}.`
+              : `Capture charm flared. You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! ${sentToStorage ? `${battleTarget.name} was sent to storage.` : `Party ${party.length}.`} Capsules left: ${capsules}.`
+            : recovery > 0
+              ? `You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! ${activeMonster()?.name || 'Lead'} recovered ${recovery} HP. ${sentToStorage ? `${battleTarget.name} was sent to storage.` : `Party ${party.length}.`} Capsules left: ${capsules}.`
+              : `You caught the ${battleTarget.shiny ? 'shiny ' : ''}${(rarityMeta[battleTarget.rarity] || rarityMeta.common).label.toLowerCase()} ${battleTarget.name}! ${sentToStorage ? `${battleTarget.name} was sent to storage.` : `Party ${party.length}.`} Capsules left: ${capsules}.`));
+          battleTarget = null;
+          resetBattleMenu();
+          updateHighScore();
+          updateTamerUi();
+          drawTamerWorld();
+          return;
         }
 
-        updateHighScore();
-        updateTamerUi();
-        drawTamerWorld();
-      }, 400);
-    }, 700);
+        const enemyMove = chooseEnemyMove(battleTarget);
+        resolveEnemyRetaliation(enemyMove, joinBattleText(prefix, usedCharm
+          ? `Capture charm faded. Capsules left: ${capsules}.`
+          : `Capture failed. Capsules left: ${capsules}.`));
+      }, 700);
+    });
   }
 
   function movePlayer(dx, dy) {
@@ -4251,6 +5989,11 @@ function renderMonsterTamer(direction = 'forward') {
       return;
     }
     if (gameOver) {
+      drawTamerWorld();
+      return;
+    }
+    if (playerMenuOpen) {
+      setMessage('Use Prev/Next or the wheel to browse your party.');
       drawTamerWorld();
       return;
     }
@@ -4328,16 +6071,28 @@ function renderMonsterTamer(direction = 'forward') {
     townSelection = 0;
     indexMenuOpen = false;
     indexSelection = 0;
+    storageMenuOpen = false;
+    storageMenuColumn = 'party';
+    storagePartySelection = 0;
+    storageBoxSelection = 0;
+    storageSwapPending = null;
+    playerMenuOpen = false;
+    playerMenuMode = 'party';
+    playerMenuSelection = 0;
+    playerMenuActionSelection = 0;
+    playerMenuSwapSelection = 0;
     townships = buildTownships();
     activeTownship = null;
     chunks = new Map();
     party = [cloneMonster(speciesList[0], 1), cloneMonster(speciesList[1], 1)];
+    storedMonsters = [];
     activeIndex = 0;
     coins = 24;
     capsules = 6;
     tonics = 0;
     rods = 0;
     charms = 0;
+    badges = [];
     const homeTown = townships[0] || { x: 0, y: 0 };
     player = { x: homeTown.x, y: homeTown.y + 1 };
     ensureWorld();
@@ -4350,13 +6105,29 @@ function renderMonsterTamer(direction = 'forward') {
   startAmbientAnimation();
 
   releaseGameControls = useGameControls({
-    onLeft: () => battleTarget ? moveBattleSelection(-1) : (townMenuOpen || indexMenuOpen) ? moveTownSelection(-1) : movePlayer(-1, 0),
-    onRight: () => battleTarget ? moveBattleSelection(1) : (townMenuOpen || indexMenuOpen) ? moveTownSelection(1) : movePlayer(1, 0),
+    onLeft: () => playerMenuOpen ? movePlayerMenuSelection(-1) : battleTarget ? moveBattleSelection(-1) : (townMenuOpen || indexMenuOpen) ? moveTownSelection(-1) : movePlayer(-1, 0),
+    onRight: () => playerMenuOpen ? movePlayerMenuSelection(1) : battleTarget ? moveBattleSelection(1) : (townMenuOpen || indexMenuOpen) ? moveTownSelection(1) : movePlayer(1, 0),
     onConfirm: () => attackWild(),
-    onPlayPause: () => battleTarget ? handleBattleBack() : tryCatch()
+    onPlayPause: () => gameOver
+      ? startRun()
+      : playerMenuOpen
+        ? handlePlayerMenuBack()
+        : battleTarget
+          ? handleBattleBack()
+          : storageMenuOpen
+            ? closeStorageMenu('Back to town services.')
+            : indexMenuOpen
+              ? closeMonsterIndex('Back to town services.')
+              : townMenuOpen
+                ? closeTownMenu('You leave the shop and head back outside.')
+                : openPlayerMenu()
   });
 
   window.onGameScroll = (dir) => {
+    if (playerMenuOpen) {
+      movePlayerMenuSelection(dir > 0 ? 1 : -1);
+      return;
+    }
     if (battleTarget) {
       moveBattleSelection(dir > 0 ? 1 : -1);
       return;
