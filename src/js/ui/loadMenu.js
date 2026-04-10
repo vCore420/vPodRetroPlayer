@@ -3,9 +3,28 @@
 function renderLoadMusic(direction = 'forward') {
   app.state.currentMenuIndex = 0;
 
+  const canChooseFolder = (() => {
+    const input = document.createElement('input');
+    return 'webkitdirectory' in input || 'directory' in input;
+  })();
+
+  const loadActions = canChooseFolder
+    ? `
+        <li data-idx="0">Choose Folder</li>
+        <li data-idx="1">Choose Files</li>
+      `
+    : `
+        <li data-idx="0">Choose Files</li>
+      `;
+
+  const loadCopy = canChooseFolder
+    ? 'Import a full music folder with nested artist, album and disc subfolders. If folder access is blocked on your device, use Choose Files instead.'
+    : 'Choose your music files directly. Folder import is not available on this device, but songs, JSON metadata, CUE files and artwork can still be loaded.';
+
   const { root } = renderScreen(`
     <div class="ipod-utility-screen load-music-screen load-music-screen--import">
-      <input type="file" id="fileInput" accept=".mp3,.flac,.cue" multiple webkitdirectory directory style="display:none;">
+      <input type="file" id="folderInput" accept=".mp3,.flac,.cue,.json,.jpg,.jpeg,audio/*,application/json,image/jpeg" multiple webkitdirectory directory style="display:none;">
+      <input type="file" id="filesInput" accept=".mp3,.flac,.cue,.json,.jpg,.jpeg,audio/*,application/json,image/jpeg" multiple style="display:none;">
 
       <div class="ipod-utility-header">
         <div class="ipod-utility-kicker">Music</div>
@@ -18,33 +37,45 @@ function renderLoadMusic(direction = 'forward') {
         </div>
 
         <div class="ipod-utility-copy">
-          Import a full music folder with nested artist, album and disc subfolders.
-          vPod can read deep folder structures, plus CUE files and album artwork.
+          ${loadCopy}
         </div>
 
         <ul class="menu-list load-music-actions" id="loadMusicActions">
-          <li data-idx="0">Choose Folder</li>
+          ${loadActions}
         </ul>
       </div>
     </div>
   `, direction);
 
-  const fileInput = root.querySelector('#fileInput');
+  const folderInput = root.querySelector('#folderInput');
+  const filesInput = root.querySelector('#filesInput');
   const actions = root.querySelector('#loadMusicActions');
-  const action = actions?.querySelector('li[data-idx="0"]');
+  const rows = Array.from(actions?.querySelectorAll('li[data-idx]') || []);
 
   if (actions) {
-    actions.dataset.itemCount = String(actions.querySelectorAll('li').length);
+    actions.dataset.itemCount = String(rows.length);
   }
 
-  if (action) {
-    action.classList.add('active');
-    action.onclick = () => fileInput.click();
-  }
+  const openPicker = (input) => {
+    if (!input) return;
+    input.value = '';
+    input.click();
+  };
 
-  fileInput.onchange = handleFiles;
+  rows.forEach((row, idx) => {
+    row.classList.toggle('active', idx === app.state.currentMenuIndex);
+    row.onclick = () => {
+      if (canChooseFolder && idx === 0) {
+        openPicker(folderInput);
+        return;
+      }
+      openPicker(filesInput);
+    };
+  });
+
+  if (folderInput) folderInput.onchange = handleFiles;
+  if (filesInput) filesInput.onchange = handleFiles;
   window.updateHighlightedSong = () => {
-    const rows = Array.from(actions?.querySelectorAll('li') || []);
     rows.forEach((row, idx) => row.classList.toggle('active', idx === app.state.currentMenuIndex));
   };
 }

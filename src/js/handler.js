@@ -527,11 +527,25 @@ function handleFiles(e) {
 
   // Check for tracks-meta.json first
   const files = Array.from(e.target.files);
+  if (!files.length) {
+    stopLoadingDebugTracker(loadDebug, 'Debug: no files selected');
+    if (typeof showHotBarMessage === 'function') {
+      showHotBarMessage('No files selected', 1800);
+    }
+    return;
+  }
+
   const metaFile = files.find(f => f.name === 'tracks-meta.json');
   const audioFiles = files.filter(f => f.name.match(/\.(mp3|flac)$/i));
   const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
   const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
   const audioFileLookups = buildAudioFileLookupMaps(audioFiles);
+
+  if (!audioFiles.length && !cueFiles.length && !metaFile) {
+    stopLoadingDebugTracker(loadDebug, 'Debug: unsupported selection');
+    alert('No supported music files were selected. Choose MP3, FLAC, CUE, artwork, and optional tracks-meta.json files.');
+    return;
+  }
   
   window.imageFiles = window.imageFiles ? window.imageFiles.concat(imageFiles) : imageFiles;
 
