@@ -1,11 +1,7 @@
 // --- ALBUMS MENU ---
 
 function renderAlbumsMenu(direction = 'forward', selectedIdx = 0) {
-  const allAlbums = app.state.albums;
-  const albumKeys = Object.keys(allAlbums).sort((a, b) =>
-    (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
-    (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
-  );
+  const albumKeys = app.state.derivedData.sortedAlbumKeys || [];
 
   if (albumKeys.length === 0) {
     renderScreen(
@@ -42,7 +38,7 @@ function renderAlbumSongsMenu(direction = 'forward', albumKey, albumIdx = 0, art
     albumCover: albumObj.cover,
     onSongClick: (track, idx) => {
       app.state.currentMenuIndex = idx;
-      player.playTrackFromAlbum(track, albumObj.songs);
+      player.playTrackFromAlbum(track, albumObj.songs, { queueSignature: `album:${albumKey}` });
     },
     showBack: true,
     onBack: () => {
@@ -149,4 +145,5 @@ function setCarouselAlbum(idx, albumKeys) {
 
   const albumObj = app.state.albums[albumKeys[idx]] || {};
   title.textContent = albumObj.title || '';
+  carousel.dataset.activeIndex = String(idx);
 }

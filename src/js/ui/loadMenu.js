@@ -3,7 +3,7 @@
 function renderLoadMusic(direction = 'forward') {
   app.state.currentMenuIndex = 0;
 
-  renderScreen(`
+  const { root } = renderScreen(`
     <div class="ipod-utility-screen load-music-screen load-music-screen--import">
       <input type="file" id="fileInput" accept=".mp3,.flac,.cue" multiple webkitdirectory directory style="display:none;">
 
@@ -29,9 +29,13 @@ function renderLoadMusic(direction = 'forward') {
     </div>
   `, direction);
 
-  const fileInput = document.getElementById('fileInput');
-  const actions = document.getElementById('loadMusicActions');
+  const fileInput = root.querySelector('#fileInput');
+  const actions = root.querySelector('#loadMusicActions');
   const action = actions?.querySelector('li[data-idx="0"]');
+
+  if (actions) {
+    actions.dataset.itemCount = String(actions.querySelectorAll('li').length);
+  }
 
   if (action) {
     action.classList.add('active');
@@ -80,7 +84,7 @@ function renderLoadingScreen(message = "Loading your music...", loaded = 0, tota
 function renderSaveMetadataPrompt() {
   app.state.currentMenuIndex = 0;
 
-  renderScreen(`
+  const { root } = renderScreen(`
     <div class="ipod-utility-screen load-music-screen load-music-screen--meta">
       <div class="ipod-utility-header">
         <div class="ipod-utility-kicker">Import Complete</div>
@@ -105,8 +109,12 @@ function renderSaveMetadataPrompt() {
     </div>
   `, 'forward');
 
-  const actions = document.getElementById('loadMusicActions');
-  const rows = Array.from(actions.querySelectorAll('li'));
+  const actions = root.querySelector('#loadMusicActions');
+  const rows = Array.from(actions?.querySelectorAll('li') || []);
+
+  if (rows.length < 2) return;
+
+  actions.dataset.itemCount = String(rows.length);
 
   rows[0].onclick = () => {
     exportMetadata();

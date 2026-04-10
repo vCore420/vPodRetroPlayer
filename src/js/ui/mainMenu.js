@@ -281,12 +281,9 @@ function updateMainMenuHighlight(menuItems) {
   const list = document.getElementById('menuList');
   if (!list) return;
 
-  const items = Array.from(list.querySelectorAll('li'));
   const idx = app.state.currentMenuIndex;
 
-  items.forEach((el, itemIdx) => {
-    el.classList.toggle('active', itemIdx === idx);
-  });
+  setActiveIndexedItem(list, 'li', idx, { scrollIntoView: true });
 
   const preview = document.getElementById('mainMenuPreview');
   if (preview) {
@@ -315,7 +312,7 @@ function renderMainMenu(direction = 'forward') {
 
   const menuItems = getMainMenuItems();
 
-  renderScreen(`
+  const { reused } = renderScreen(() => `
     <div class="classic-main-menu">
       <div class="classic-main-list">
         <ul class="menu-list" id="menuList">
@@ -329,18 +326,25 @@ function renderMainMenu(direction = 'forward') {
       </div>
       <div class="classic-main-preview" id="mainMenuPreview"></div>
     </div>
-  `, direction);
+  `, direction, { screenKey: 'main-menu', reuseCached: true });
 
-  menuItems.forEach((item, idx) => {
-    const row = document.querySelector(`#menuList li[data-idx="${idx}"]`);
-    if (!row) return;
+  const list = document.getElementById('menuList');
+  if (!list) return;
+  list.dataset.itemCount = String(menuItems.length);
 
-    row.onclick = () => {
+  if (!reused || !list.dataset.boundClick) {
+    list.onclick = (event) => {
+      const row = event.target.closest('li[data-idx]');
+      if (!row || !list.contains(row)) return;
+
+      const idx = Number(row.dataset.idx || 0);
+      const item = menuItems[idx];
       app.state.currentMenuIndex = idx;
       updateMainMenuHighlight(menuItems);
       openMainMenuItem(item);
     };
-  });
+    list.dataset.boundClick = 'true';
+  }
 
   window.updateHighlightedSong = () => updateMainMenuHighlight(menuItems);
 

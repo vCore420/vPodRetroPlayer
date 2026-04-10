@@ -424,7 +424,7 @@ function finalizeWeekIfNeeded() {
   };
   saveUserStatsMeta(meta);
 
-  console.log('Weekly stats finalized for', meta.lastFinalizedWeekKey);
+  debugLog('Weekly stats finalized for', meta.lastFinalizedWeekKey);
   return true;
 }
 
@@ -453,15 +453,23 @@ function initializeUserStatsStorage() {
 
 // Get a unique track ID
 function getTrackId(track) {
+  if (!track) return 'unknown_track';
+
+  const cachedId = app.state.trackIdCache.get(track);
+  if (cachedId) return cachedId;
+
   const rawRel = (track.file && track.file.webkitRelativePath) || track.relativePath || '';
   const rel = (typeof normalizePath === 'function') ? normalizePath(rawRel) : rawRel;
   const name = (track.file && track.file.name) || track.fileName || '';
   const title = track.title || name || 'unknown_title';
   const artist = track.artist || 'unknown_artist';
   const album = track.album || 'unknown_album';
-  if (rel) return rel.toLowerCase();
-  if (name) return `${name}|${album}|${artist}`.toLowerCase();
-  return `${title}|${artist}|${album}`.toLowerCase();
+  const trackId = rel
+    ? rel.toLowerCase()
+    : (name ? `${name}|${album}|${artist}`.toLowerCase() : `${title}|${artist}|${album}`.toLowerCase());
+
+  app.state.trackIdCache.set(track, trackId);
+  return trackId;
 }
 
 // Log when a song is played
@@ -774,9 +782,9 @@ function getSuggestedRecommendations(tracks, options = {}) {
     if (albumKey) albumSeen.set(albumKey, albumCount + 1);
   });
 
-  console.log("Top Suggestions:");
+  debugLog('Top Suggestions:');
   picked.slice(0, 5).forEach(obj => {
-    console.log(
+    debugLog(
       `${obj.track.title} (${obj.track.artist}) | Score: ${obj.score}`,
       obj.habit
     );
@@ -817,26 +825,26 @@ function debugUserHabits() {
   const habitsArr = Object.entries(loadUserHabits()).map(([id, data]) => ({ id, ...syncHabitShape(data) }));
   habitsArr.sort((a, b) => (b.lifetimePlays || 0) - (a.lifetimePlays || 0));
 
-  console.log("Most Played Songs:");
+  debugLog('Most Played Songs:');
   habitsArr.slice(0, 5).forEach(h => {
-    console.log(`${h.id} | Lifetime Plays: ${h.lifetimePlays}, Weekly Plays: ${h.weeklyPlays}, Lifetime Skips: ${h.lifetimeSkips}`);
+    debugLog(`${h.id} | Lifetime Plays: ${h.lifetimePlays}, Weekly Plays: ${h.weeklyPlays}, Lifetime Skips: ${h.lifetimeSkips}`);
   });
 
-  console.log("Most Liked Songs:");
+  debugLog('Most Liked Songs:');
   habitsArr
     .filter(h => (h.likeCount || 0) > 0)
     .slice(0, 5)
     .forEach(h => {
-      console.log(`${h.id} | Lifetime Likes: ${h.likeCount}, Weekly Likes: ${h.weeklyLikes}`);
+      debugLog(`${h.id} | Lifetime Likes: ${h.likeCount}, Weekly Likes: ${h.weeklyLikes}`);
     });
 
-  console.log("Most Skipped Songs:");
+  debugLog('Most Skipped Songs:');
   habitsArr
     .slice()
     .sort((a, b) => (b.lifetimeSkips || 0) - (a.lifetimeSkips || 0))
     .slice(0, 3)
     .forEach(h => {
-      console.log(`${h.id} | Lifetime Skips: ${h.lifetimeSkips}, Weekly Skips: ${h.weeklySkips}`);
+      debugLog(`${h.id} | Lifetime Skips: ${h.lifetimeSkips}, Weekly Skips: ${h.weeklySkips}`);
     });
 }
 
@@ -978,7 +986,9 @@ function renderSuggestedMenu(direction = 'forward') {
       row.onclick = () => {
         app.state.currentMenuIndex = idx;
         renderSuggestedHighlight();
-        playTrackFromAlbum(track, suggested.map(entry => entry.track));
+        playTrackFromAlbum(track, suggested.map(entry => entry.track), {
+          queueSignature: `suggested:${tuneMode}:${Number(app.state.suggestedRefreshNonce || 0)}`
+        });
       };
 
       fragment.appendChild(row);
@@ -1441,6 +1451,8 @@ function startSmartMixFromList(list, startIdx = 0) {
 
   app.state.smartMixHistory = [];
   app.state.smartMixQueue = queueTracks.slice();
+  app.state.smartMixPlaybackHistory = [];
+  app.state.smartMixHistoryCursor = -1;
   app.state.smartMixSessionSkips = [];
   app.state.smartMixSkipArtists = [];
   app.state.smartMixLikedArtists = [];

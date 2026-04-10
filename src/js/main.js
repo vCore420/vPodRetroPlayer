@@ -28,17 +28,17 @@ function clearAllAlbumCoverURLs() {
   const urls = app.state.albumCoverURLs;
   urls.forEach(url => URL.revokeObjectURL(url));
   app.state.albumCoverURLs = [];
-  console.log("Cleared all album cover object URLs.");
+  debugLog('Cleared all album cover object URLs.');
 }
 
 function applyTheme(name) {
   const cont = document.querySelector('.vpod-container');
   const theme = name || 'default';
   document.body.setAttribute('data-theme', theme);
-  localStorage.setItem('themeName', theme);
+  setLocalStorageValue('themeName', theme);
 
   if (theme === 'default') {
-    const savedColour = localStorage.getItem('vpodColour');
+    const savedColour = getLocalStorageValue('vpodColour', '');
     if (cont) cont.style.background = savedColour || '';
   } else {
     // let CSS theme background show
@@ -117,7 +117,7 @@ async function initBatteryIndicator() {
 
 window.onload = () => {
   clearAllAlbumCoverURLs();
-  const savedTheme = localStorage.getItem('themeName') || 'default';
+  const savedTheme = getLocalStorageValue('themeName', 'default');
   const ps = document.getElementById('hotBarPlayState');
   
   applyTheme(savedTheme);
@@ -179,6 +179,23 @@ if ('mediaSession' in navigator) {
     const idx = app.state.currentSongIndex;
     const track = app.state.currentTrack;
 
+    if (app.state.smartMixActive) {
+      const previousEntry = typeof getSmartMixHistoryEntry === 'function'
+        ? getSmartMixHistoryEntry(-1)
+        : null;
+
+      if (previousEntry) {
+        if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
+          window.logTrackSkip(track);
+        }
+        await playTrackFromAlbum(previousEntry.track, previousEntry.queue, {
+          smartMix: true,
+          smartMixHistoryCursor: previousEntry.cursor
+        });
+      }
+      return;
+    }
+
     if (songs.length && idx > 0) {
       if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
         window.logTrackSkip(track);
@@ -191,6 +208,23 @@ if ('mediaSession' in navigator) {
     const songs = app.state.currentAlbumSongs || [];
     const idx = app.state.currentSongIndex;
     const track = app.state.currentTrack;
+
+    if (app.state.smartMixActive) {
+      const forwardEntry = typeof getSmartMixHistoryEntry === 'function'
+        ? getSmartMixHistoryEntry(1)
+        : null;
+
+      if (forwardEntry) {
+        if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {
+          window.logTrackSkip(track);
+        }
+        await playTrackFromAlbum(forwardEntry.track, forwardEntry.queue, {
+          smartMix: true,
+          smartMixHistoryCursor: forwardEntry.cursor
+        });
+        return;
+      }
+    }
 
     if (songs.length && idx < songs.length - 1) {
       if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && track) {

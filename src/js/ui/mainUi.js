@@ -1,15 +1,96 @@
 // --- Main Ui Features ---
 
+function cacheScreenContent(screenContent) {
+  if (!screenContent?.dataset?.screenKey) return;
+
+  const cache = app.state.screenCache;
+  cache.set(screenContent.dataset.screenKey, screenContent);
+
+  if (cache.size > 12) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey && oldestKey !== screenContent.dataset.screenKey) {
+      cache.delete(oldestKey);
+    }
+  }
+}
+
+function takeCachedScreen(screenKey) {
+  if (!screenKey) return null;
+
+  const cache = app.state.screenCache;
+  const cached = cache.get(screenKey) || null;
+  if (cached) {
+    cache.delete(screenKey);
+  }
+  return cached;
+}
+
+function stripIdsForTransition(node) {
+  if (!node) return;
+
+  if (node.id) {
+    node.removeAttribute('id');
+  }
+
+  node.querySelectorAll('[id]').forEach(element => {
+    element.removeAttribute('id');
+  });
+}
+
+function createTransitionGhost(screenNode, direction) {
+  if (!screenNode) return null;
+
+  const ghost = screenNode.cloneNode(true);
+  stripIdsForTransition(ghost);
+  ghost.classList.remove('screen-active');
+  ghost.classList.add(direction === 'forward' ? 'screen-fade-out' : 'screen-fade-in');
+  ghost.dataset.transitionGhost = 'true';
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.style.pointerEvents = 'none';
+  return ghost;
+}
+
+function getIndexedItem(container, itemsSelector, idx) {
+  if (!container || idx == null || idx < 0) return null;
+  return container.querySelector(`${itemsSelector}[data-idx="${idx}"]`) || null;
+}
+
+function ensureIndexedItemVisible(container, item, { center = false } = {}) {
+  if (!container || !item) return;
+  if (container.id === 'albumCarousel') return;
+  item.scrollIntoView({ block: 'nearest' });
+}
+
+function setActiveIndexedItem(container, itemsSelector, idx, { scrollIntoView = false, center = false } = {}) {
+  if (!container) return null;
+
+  const previousIdx = Number(container.dataset.activeIndex ?? -1);
+  if (previousIdx !== idx) {
+    const previousItem = getIndexedItem(container, itemsSelector, previousIdx);
+    if (previousItem) previousItem.classList.remove('active');
+  }
+
+  const nextItem = getIndexedItem(container, itemsSelector, idx);
+  if (nextItem) {
+    nextItem.classList.add('active');
+    if (scrollIntoView) {
+      ensureIndexedItemVisible(container, nextItem, { center });
+    }
+  }
+
+  container.dataset.activeIndex = String(idx);
+  return nextItem;
+}
+
+window.setActiveIndexedItem = setActiveIndexedItem;
+
 // Master Highlight
 function masterHighlight({ containerSelector, itemsSelector, tracks, albumArtSelector }) {
   const container = document.querySelector(containerSelector);
   if (!container) return;
-  const items = Array.from(container.querySelectorAll(itemsSelector));
   const idx = app.state.currentMenuIndex;
 
-  items.forEach((el, i) => {
-    el.classList.toggle('active', i === idx);
-  });
+  setActiveIndexedItem(container, itemsSelector, idx);
 
   if (albumArtSelector && tracks && tracks[idx]) {
     const allAlbums = app.state.albums;
@@ -22,31 +103,60 @@ function masterHighlight({ containerSelector, itemsSelector, tracks, albumArtSel
 // --- GENERIC RENDERERS ---
 
 // Render main screen
-function renderScreen(content, direction = 'forward') {
+function renderScreen(content, direction = 'forward', options = {}) {
+  const { screenKey = '', reuseCached = false } = options;
+  if (typeof window.onScreenCleanup === 'function') {
+    const cleanup = window.onScreenCleanup;
+    window.onScreenCleanup = null;
+    cleanup();
+  }
   window.updateHighlightedSong = null;
 
   if (typeof window.onRecapScroll === 'function') {
     window.onRecapScroll = null;
   }
   
-  const oldContent = vpodScreen.querySelector('.screen-content');
+  const oldContent = vpodScreen.querySelector('.screen-content.screen-active') || vpodScreen.querySelector('.screen-content');
   if (oldContent) {
-    oldContent.classList.remove('screen-active');
-    oldContent.classList.add(direction === 'forward' ? 'screen-fade-out' : 'screen-fade-in');
-    setTimeout(() => oldContent.remove(), 350);
+    const shouldCache = oldContent.dataset.preserveScreen === 'true' && oldContent.dataset.screenKey;
+    const transitionGhost = createTransitionGhost(oldContent, direction);
+
+    if (oldContent.parentNode) oldContent.remove();
+    if (shouldCache) cacheScreenContent(oldContent);
+
+    if (transitionGhost) {
+      vpodScreen.appendChild(transitionGhost);
+      setTimeout(() => {
+        if (transitionGhost.parentNode) transitionGhost.remove();
+      }, 350);
+    }
   }
 
-  const div = document.createElement('div');
+  const cachedScreen = reuseCached && screenKey ? takeCachedScreen(screenKey) : null;
+  const div = cachedScreen || document.createElement('div');
   div.className = 'screen-content screen-active screen-fade-in';
-  div.innerHTML = content;
+
+  if (screenKey) {
+    div.dataset.screenKey = screenKey;
+    div.dataset.preserveScreen = 'true';
+  }
+
+  if (!cachedScreen) {
+    div.innerHTML = typeof content === 'function' ? content() : content;
+  }
+
   vpodScreen.appendChild(div);
 
   updateHotBarTime();
+  return {
+    root: div,
+    reused: !!cachedScreen
+  };
 }
 
 // Render Menu Screen
-function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "menuList", before = "" }, direction = 'forward') {
-  renderScreen(`
+function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "menuList", before = "", cacheKey = "" }, direction = 'forward') {
+  const { reused } = renderScreen(() => `
     ${before}
     <div>
       ${title ? `<div class="menu-title" style="font-weight:bold;font-size:1.2em;text-align:center;margin-bottom:12px;">${title}</div>` : ''}
@@ -54,26 +164,55 @@ function renderMenuList({ title, items, onItemClick, showBack, onBack, id = "men
         ${items.map((item, idx) => `<li data-idx="${idx}">${item.label}</li>`).join('')}
       </ul>
     </div>
-  `, direction);
+  `, direction, { screenKey: cacheKey, reuseCached: !!cacheKey });
 
-  items.forEach((item, idx) => {
-    document.querySelector(`#${id} li[data-idx="${idx}"]`).onclick = () => {
+  const list = document.getElementById(id);
+  if (!list) return;
+
+  list.dataset.itemCount = String(items.length);
+
+  if (!reused || !list.dataset.boundClick) {
+    list.onclick = (event) => {
+      const row = event.target.closest('li[data-idx]');
+      if (!row || !list.contains(row)) return;
+
+      const idx = Number(row.dataset.idx || 0);
+      const item = items[idx];
       app.state.currentMenuIndex = idx;
-      masterHighlight({
-        containerSelector: `#${id}`,
-        itemsSelector: 'li'
-      });
+      setActiveIndexedItem(list, 'li', idx, { scrollIntoView: true });
       onItemClick(idx, item);
     };
-    window.updateHighlightedSong = () => masterHighlight({
-      containerSelector: `#${id}`,
-      itemsSelector: 'li'
-    });
+    list.dataset.boundClick = 'true';
+  }
+
+  window.updateHighlightedSong = () => masterHighlight({
+    containerSelector: `#${id}`,
+    itemsSelector: 'li'
   });
 }
 
 // Update Hotbar time
 let hotBarMessageActive = false;
+let hotBarClockTimeoutId = null;
+
+function clearHotBarClockTimer() {
+  if (!hotBarClockTimeoutId) return;
+  clearTimeout(hotBarClockTimeoutId);
+  hotBarClockTimeoutId = null;
+}
+
+function scheduleHotBarClockUpdate() {
+  clearHotBarClockTimer();
+
+  if (hotBarMessageActive || document.hidden) return;
+
+  const now = new Date();
+  const delay = ((60 - now.getSeconds()) * 1000) - now.getMilliseconds();
+  hotBarClockTimeoutId = setTimeout(() => {
+    hotBarClockTimeoutId = null;
+    updateHotBarTime();
+  }, Math.max(250, delay));
+}
 
 function updateHotBarTime() {
   if (hotBarMessageActive) return;
@@ -91,8 +230,18 @@ function updateHotBarTime() {
     }
     el.textContent = `${h}:${m}${ampm}`;
   }
+
+  scheduleHotBarClockUpdate();
 }
-setInterval(updateHotBarTime, 1000);
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearHotBarClockTimer();
+    return;
+  }
+
+  updateHotBarTime();
+});
 
 let hotBarMessageTimeoutId = null;
 
@@ -149,58 +298,72 @@ function preloadCarouselCovers(albumKeys, centerIdx, radius = 2) {
 
 function renderAlbumCarousel({ albumsList, onAlbumClick, title, showDone, onDone, selectedIdx = 0 }, direction = 'forward') {
   const allAlbums = app.state.albums;
+  const cacheKey = `album-carousel:${albumsList.join('|')}`;
 
-  renderScreen(`
+  const { reused } = renderScreen(() => `
     <div class="album-carousel-container">
       <div class="album-carousel" id="albumCarousel"></div>
       <div class="album-title" id="albumTitle"></div>
       ${showDone ? `<button id="donePlaylistBtn" style="margin-top:12px;font-size:1em;">Done</button>` : ''}
     </div>
-  `, direction);
+  `, direction, { screenKey: cacheKey, reuseCached: true });
 
   const carousel = document.getElementById('albumCarousel');
-  carousel.innerHTML = '';
+  if (!carousel) return;
+  carousel.dataset.itemCount = String(albumsList.length);
 
-  albumsList.forEach((album, idx) => {
-    const albumObj = allAlbums[album] || {};
-    const cover = albumObj.cover || 'src/img/default-cover.png';
+  if (!reused) {
+    const fragment = document.createDocumentFragment();
 
-    const div = document.createElement('div');
-    div.className = 'carousel-album';
+    albumsList.forEach((album, idx) => {
+      const albumObj = allAlbums[album] || {};
+      const cover = albumObj.cover || 'src/img/default-cover.png';
 
-    div.innerHTML = `
-      <div class="carousel-cover-reflect">
-        <img
-          src="${cover}"
-          class="carousel-cover"
-          alt="Album Cover"
-          decoding="async"
-          fetchpriority="${Math.abs(idx - selectedIdx) <= 1 ? 'high' : 'low'}"
-          draggable="false"
-        >
-        <img
-          src="${cover}"
-          class="reflection"
-          alt=""
-          aria-hidden="true"
-          decoding="async"
-          draggable="false"
-        >
-      </div>
-    `;
+      const div = document.createElement('div');
+      div.className = 'carousel-album';
+      div.dataset.idx = String(idx);
 
-    const coverImg = div.querySelector('.carousel-cover');
-    const onLoaded = () => div.classList.add('carousel-album-loaded');
-    coverImg.addEventListener('load', onLoaded, { once: true });
-    if (coverImg.complete) onLoaded();
+      div.innerHTML = `
+        <div class="carousel-cover-reflect">
+          <img
+            src="${cover}"
+            class="carousel-cover"
+            alt="Album Cover"
+            decoding="async"
+            fetchpriority="${Math.abs(idx - selectedIdx) <= 1 ? 'high' : 'low'}"
+            draggable="false"
+          >
+          <img
+            src="${cover}"
+            class="reflection"
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+            draggable="false"
+          >
+        </div>
+      `;
 
-    div.onclick = () => {
-      app.state.currentMenuIndex = idx;
-      onAlbumClick(album, idx);
-    };
+      const coverImg = div.querySelector('.carousel-cover');
+      const onLoaded = () => div.classList.add('carousel-album-loaded');
+      coverImg.addEventListener('load', onLoaded, { once: true });
+      if (coverImg.complete) onLoaded();
 
-    carousel.appendChild(div);
-  });
+      fragment.appendChild(div);
+    });
+
+    carousel.innerHTML = '';
+    carousel.appendChild(fragment);
+  }
+
+  carousel.onclick = (event) => {
+    const item = event.target.closest('.carousel-album[data-idx]');
+    if (!item || !carousel.contains(item)) return;
+
+    const idx = Number(item.dataset.idx || 0);
+    app.state.currentMenuIndex = idx;
+    onAlbumClick(albumsList[idx], idx);
+  };
 
   setCarouselAlbum(selectedIdx, albumsList);
   preloadCarouselCovers(albumsList, selectedIdx);
@@ -220,7 +383,7 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
 
   renderScreen(
     `<div class="album-list">
-      <div class="album-list-left" id="songsListContainer" ${selectMode ? 'data-playlist-select="true"' : ''}>
+      <div class="album-list-left" id="songsListContainer" data-scroll-container="true" ${selectMode ? 'data-playlist-select="true"' : ''}>
         <div id="songsList"></div>
       </div>
       <div class="album-list-right">
@@ -231,7 +394,18 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
   `, direction);
 
   const songsList = document.getElementById('songsList');
+  const songsListContainer = document.getElementById('songsListContainer');
+
+  if (songsListContainer) {
+    songsListContainer.style.overflowY = 'auto';
+    songsListContainer.onwheel = (event) => {
+      songsListContainer.scrollTop += event.deltaY;
+      event.preventDefault();
+    };
+  }
+
   songsList.innerHTML = '';
+  const fragment = document.createDocumentFragment();
   songs.forEach((track, idx) => {
     const isSelected = selectedTracks.some(t =>
       (t.relativePath && t.relativePath === (track.file?.webkitRelativePath || '')) ||
@@ -251,19 +425,28 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
 
     const div = document.createElement('div');
     div.className = 'menu-list-song';
+    div.dataset.idx = String(idx);
     div.innerHTML = `
       ${nowPlayingLabel}
       <span style="padding-left:6px;">
         ${selectedIcon}${track.title}${track.artist ? ` - ${track.artist}` : ''}
       </span>
     `;
-    div.onclick = () => {
-      currentMenuIndex = idx;
-      window.updateHighlightedSong();
-      onSongClick(track, idx);
-    };
-    songsList.appendChild(div);
+    fragment.appendChild(div);
   });
+
+  songsList.appendChild(fragment);
+  songsList.dataset.itemCount = String(songs.length);
+
+  songsList.onclick = (event) => {
+    const row = event.target.closest('.menu-list-song[data-idx]');
+    if (!row || !songsList.contains(row)) return;
+
+    const idx = Number(row.dataset.idx || 0);
+    app.state.currentMenuIndex = idx;
+    window.updateHighlightedSong();
+    onSongClick(songs[idx], idx);
+  };
 
   window.updateHighlightedSong = () => masterHighlight({
     containerSelector: '#songsList',
@@ -277,7 +460,7 @@ function renderSongList({ songs, onSongClick, selectedTracks = [], showBack, onB
 // --- SET SCROLLING SONG ---
 
 function setScrollingSong(idx) {
-  console.log("Setting scrolling song index:", idx);
+  debugLog('Setting scrolling song index:', idx);
   const songsList = document.getElementById('songsList');
   if (!songsList) return; 
   Array.from(songsList.children).forEach((el, i) => {
@@ -286,7 +469,7 @@ function setScrollingSong(idx) {
 }
 
 function clearScrollingSong(idx) {
-  console.log("Clearing scrolling song index:", idx);
+  debugLog('Clearing scrolling song index:', idx);
   const songsList = document.getElementById('songsList');
   if (songsList.children[idx]) {
     songsList.children[idx].classList.remove('scrolling');
@@ -343,8 +526,10 @@ function resetUiState() {
   app.state.originalAlbumSongs = null;
   app.state.originalSongIndex = -1;
   app.state.queueSignature = null;
+  app.state.smartMixPlaybackHistory = [];
+  app.state.smartMixHistoryCursor = -1;
 
-  console.log("UI state has been reset.");
+  debugLog('UI state has been reset.');
   
   // Re-render main menu as fresh entry point
   renderMainMenu('forward');

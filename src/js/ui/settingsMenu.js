@@ -500,20 +500,36 @@ function renderColourMenu(direction = 'forward') {
 
 // About Menu
 function renderAboutMenu(direction = 'forward') {
+  const debugEnabled = typeof isDebugLoggingEnabled === 'function' && isDebugLoggingEnabled();
   renderScreen(
     `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
       <div style="font-size:1.3em;font-weight:bold;margin-bottom:18px;">About vRetro Player</div>
       <div style="font-size:1em;color:#444;text-align:center;max-width:320px;margin-bottom:18px;">
         vRetro Player is a web-based local music player inspired by the 7th Gen iPod Classic with some modern features.<br>
         <br>        
-        Version: <b>2.9.5</b><br>
+        Version: <b>2.9.6</b><br>
         Developed by: <b>vCore</b><br>
         <br>
         Enjoy your music with a retro touch!
       </div>
+      <label for="aboutDebugLogging" style="display:flex;align-items:center;gap:8px;font-size:0.85em;color:#666;margin-top:10px;cursor:pointer;user-select:none;">
+        <input id="aboutDebugLogging" type="checkbox" ${debugEnabled ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
+        <span>Enable debug logging</span>
+      </label>
     </div>`,
     direction
   );
+
+  const debugCheckbox = document.getElementById('aboutDebugLogging');
+  if (debugCheckbox) {
+    debugCheckbox.onchange = (event) => {
+      const nextValue = !!event.target.checked;
+      setDebugLogging(nextValue);
+      if (typeof showHotBarMessage === 'function') {
+        showHotBarMessage(`Debug logging ${nextValue ? 'enabled' : 'disabled'}`, 1600);
+      }
+    };
+  }
 }
 
 function renderUserStatsMenu(direction = 'forward') {

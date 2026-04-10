@@ -1,7 +1,12 @@
 // --- FILE HANDLING, ALBUM GROUPING, ETC. ---
 
-const LOAD_DEBUG_ENABLED = true;
+const LOAD_DEBUG_ENABLED = false;
 const LOAD_DEBUG_WATCHDOG_MS = 5000;
+const TRACK_METADATA_CACHE_DB = 'vretro-player-cache';
+const TRACK_METADATA_CACHE_STORE = 'trackMetadata';
+const TRACK_METADATA_CACHE_VERSION = 1;
+
+let trackMetadataDbPromise = null;
 
 function updateLoadingCounter(loaded, total) {
   const counter = document.getElementById('loadingCounter');
@@ -47,7 +52,7 @@ function createLoadingDebugTracker() {
       .sort((a, b) => a.startedAt - b.startedAt);
     const oldestPending = pendingEntries[0];
 
-    console.debug('[load-debug] Watchdog', {
+    debugTrace('[load-debug] Watchdog', {
       pendingCount: pendingEntries.length,
       lastStarted: loadDebug.lastStarted || null,
       oldestPending: oldestPending ? {
@@ -92,7 +97,7 @@ function beginLoadingDebug(loadDebug, file, phase) {
 
   loadDebug.lastStarted = label;
   loadDebug.pending.set(key, entry);
-  console.debug(`[load-debug] START ${phase}`, {
+  debugTrace(`[load-debug] START ${phase}`, {
     label,
     size: file?.size ?? null,
     lastModified: file?.lastModified ?? null
@@ -108,7 +113,7 @@ function endLoadingDebug(loadDebug, key, status) {
   if (!entry) return;
 
   loadDebug.pending.delete(key);
-  console.debug(`[load-debug] ${status} ${entry.phase}`, {
+  debugTrace(`[load-debug] ${status} ${entry.phase}`, {
     label: entry.label,
     ageMs: Date.now() - entry.startedAt
   });
@@ -283,11 +288,36 @@ function migrateHabitsToStableIds(tracks = []) {
   }
 
   if (moved > 0) {
-    console.log(`Migrated ${moved} habit entries to stable IDs${skipped ? `; ${skipped} skipped` : ''}`);
+    debugLog(`Migrated ${moved} habit entries to stable IDs${skipped ? `; ${skipped} skipped` : ''}`);
   } else {
-    console.log('No habit entries migrated; none matched loaded tracks.');
+    debugLog('No habit entries migrated; none matched loaded tracks.');
   }
 }
+
+function refreshDerivedData() {
+  const allAlbums = app.state.albums || {};
+  const allTracks = app.state.tracks || [];
+
+  app.state.derivedData.sortedAlbumKeys = Object.keys(allAlbums).sort((a, b) =>
+    (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
+    (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
+  );
+
+  const artistMap = new Map();
+  allTracks.forEach(track => {
+    const rawArtist = track.artist || 'Unknown Artist';
+    const key = rawArtist.trim().toLowerCase();
+    if (!artistMap.has(key)) {
+      artistMap.set(key, rawArtist.replace(/\b\w/g, char => char.toUpperCase()));
+    }
+  });
+
+  app.state.derivedData.artistMenuItems = Array.from(artistMap.entries())
+    .map(([key, label]) => ({ key, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+window.refreshDerivedData = refreshDerivedData;
 
 function normalizePath(p = '') {
   const dec = decodeURIComponent(p);
@@ -302,13 +332,189 @@ function parseTrackNumber(raw) {
   return m ? parseInt(m[0], 10) : null;
 }
 
+function buildAudioFileLookupMaps(files = []) {
+  const byRelativePath = new Map();
+  const byName = new Map();
+
+  files.forEach(file => {
+    const relativePath = normalizePath(file.webkitRelativePath || '');
+    const lowerName = (file.name || '').toLowerCase();
+
+    if (relativePath) {
+      byRelativePath.set(relativePath.toLowerCase(), file);
+    }
+
+    if (!byName.has(lowerName)) {
+      byName.set(lowerName, []);
+    }
+    byName.get(lowerName).push(file);
+  });
+
+  return { byRelativePath, byName };
+}
+
+function findAudioFileForMetadata(metaTrack, lookupMaps) {
+  const relativePath = normalizePath(metaTrack.relativePath || '').toLowerCase();
+  if (relativePath && lookupMaps.byRelativePath.has(relativePath)) {
+    return lookupMaps.byRelativePath.get(relativePath);
+  }
+
+  const candidates = lookupMaps.byName.get((metaTrack.fileName || '').toLowerCase()) || [];
+  if (!candidates.length) return null;
+
+  if (Number.isFinite(metaTrack.size)) {
+    const sizeMatch = candidates.find(file => file.size === metaTrack.size);
+    if (sizeMatch) return sizeMatch;
+  }
+
+  return candidates[0] || null;
+}
+
+function makeLoadedTrackSignature(source = {}) {
+  const relativePath = normalizePath(
+    source.relativePath || source.webkitRelativePath || source.file?.webkitRelativePath || ''
+  ).toLowerCase();
+  if (relativePath) return `rel:${relativePath}`;
+
+  const fileName = (source.fileName || source.name || source.file?.name || '').toLowerCase();
+  const size = source.size ?? source.file?.size ?? '';
+  return `file:${fileName}|${size}`;
+}
+
+function pushUniqueTrack(stateTracks, track, signatures) {
+  const signature = makeLoadedTrackSignature(track);
+  if (signatures.has(signature)) return false;
+
+  signatures.add(signature);
+  stateTracks.push(track);
+  return true;
+}
+
+function makeTrackMetadataCacheKey(file) {
+  const relativePath = normalizePath(file.webkitRelativePath || '').toLowerCase();
+  const prefix = relativePath
+    ? `rel:${relativePath}`
+    : `file:${(file.name || '').toLowerCase()}`;
+
+  return `${prefix}|${file.size}|${file.lastModified}`;
+}
+
+function createTrackMetadataCacheEntry(file, metadata = {}) {
+  return {
+    cacheKey: makeTrackMetadataCacheKey(file),
+    fileName: metadata.fileName || file.name,
+    relativePath: normalizePath(metadata.relativePath || file.webkitRelativePath || ''),
+    size: Number(metadata.size || file.size || 0),
+    lastModified: Number(metadata.lastModified || file.lastModified || 0),
+    title: metadata.title || file.name.replace(/\.(mp3|flac)$/i, ''),
+    artist: metadata.artist || 'Unknown Artist',
+    album: metadata.album || 'Unidentified Album',
+    genre: metadata.genre || 'Unknown Genre',
+    year: metadata.year,
+    trackNumber: parseTrackNumber(metadata.trackNumber),
+    duration: Number(metadata.duration || 0) || undefined
+  };
+}
+
+function buildTrackFromCachedMetadata(file, metadata = {}) {
+  const cached = createTrackMetadataCacheEntry(file, metadata);
+  return {
+    file,
+    fileName: cached.fileName,
+    relativePath: cached.relativePath,
+    size: cached.size,
+    lastModified: cached.lastModified,
+    title: cached.title,
+    artist: cached.artist,
+    album: cached.album,
+    genre: cached.genre,
+    year: cached.year,
+    trackNumber: cached.trackNumber,
+    duration: cached.duration
+  };
+}
+
+function openTrackMetadataDb() {
+  if (!('indexedDB' in window)) {
+    return Promise.resolve(null);
+  }
+
+  if (trackMetadataDbPromise) return trackMetadataDbPromise;
+
+  trackMetadataDbPromise = new Promise(resolve => {
+    const request = indexedDB.open(TRACK_METADATA_CACHE_DB, TRACK_METADATA_CACHE_VERSION);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(TRACK_METADATA_CACHE_STORE)) {
+        db.createObjectStore(TRACK_METADATA_CACHE_STORE, { keyPath: 'cacheKey' });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => resolve(null);
+  });
+
+  return trackMetadataDbPromise;
+}
+
+async function loadTrackMetadataCacheMap() {
+  const db = await openTrackMetadataDb();
+  if (!db) return new Map();
+
+  return new Promise(resolve => {
+    const tx = db.transaction(TRACK_METADATA_CACHE_STORE, 'readonly');
+    const store = tx.objectStore(TRACK_METADATA_CACHE_STORE);
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      const cacheMap = new Map();
+      (request.result || []).forEach(entry => {
+        cacheMap.set(entry.cacheKey, entry);
+      });
+      resolve(cacheMap);
+    };
+
+    request.onerror = () => resolve(new Map());
+  });
+}
+
+async function persistTrackMetadataCache(entries = []) {
+  if (!entries.length) return;
+
+  const db = await openTrackMetadataDb();
+  if (!db) return;
+
+  const uniqueEntries = new Map();
+  entries.forEach(entry => {
+    if (entry?.cacheKey) uniqueEntries.set(entry.cacheKey, entry);
+  });
+
+  if (!uniqueEntries.size) return;
+
+  return new Promise(resolve => {
+    const tx = db.transaction(TRACK_METADATA_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(TRACK_METADATA_CACHE_STORE);
+
+    uniqueEntries.forEach(entry => {
+      store.put(entry);
+    });
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+    tx.onabort = () => resolve();
+  });
+}
+
 function handleFiles(e) {
-  console.log("Handling files:", e.target.files);
+  debugLog('Handling files:', e.target.files);
   const loadDebug = createLoadingDebugTracker();
+  const metadataCacheMapPromise = loadTrackMetadataCacheMap();
 
   // Reset all global state
   app.state.tracks = [];
   app.state.albums = {};
+  resetDerivedData();
   app.state.currentTrack = null;
   app.state.currentAlbumSongs = [];
   app.state.currentSongIndex = -1;
@@ -325,6 +531,7 @@ function handleFiles(e) {
   const audioFiles = files.filter(f => f.name.match(/\.(mp3|flac)$/i));
   const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
   const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
+  const audioFileLookups = buildAudioFileLookupMaps(audioFiles);
   
   window.imageFiles = window.imageFiles ? window.imageFiles.concat(imageFiles) : imageFiles;
 
@@ -350,21 +557,23 @@ function handleFiles(e) {
 
       const total = meta.tracks.length || 0;
       let loaded = 0;
+      const cacheEntries = [];
+      const loadedSignatures = new Set();
 
       meta.tracks.forEach(metaTrack => {
-        const file = audioFiles.find(f =>
-          (metaTrack.relativePath && f.webkitRelativePath === metaTrack.relativePath) ||
-          f.name === metaTrack.fileName
-        );
+        const file = findAudioFileForMetadata(metaTrack, audioFileLookups);
         if (file) {
-          stateTracks.push({
+          const track = {
             ...metaTrack,
             file,
             fileName: metaTrack.fileName || file.name,
             relativePath: normalizePath(metaTrack.relativePath || file.webkitRelativePath || ''),
             size: metaTrack.size || file.size,
             lastModified: metaTrack.lastModified || file.lastModified
-          });
+          };
+          if (pushUniqueTrack(stateTracks, track, loadedSignatures)) {
+            cacheEntries.push(createTrackMetadataCacheEntry(file, track));
+          }
         }
         loaded++;
         updateLoadingCounter(loaded, total);
@@ -381,6 +590,7 @@ function handleFiles(e) {
       // Build albums (no nav here)
       groupTracksByAlbum(true, folderCovers);
       migrateHabitsToStableIds(app.state.tracks);
+      persistTrackMetadataCache(cacheEntries);
       stopLoadingDebugTracker(loadDebug, 'Debug: metadata import complete');
 
       renderMainMenu('forward');
@@ -393,15 +603,15 @@ function handleFiles(e) {
   // Show loading screen
   goTo(goToLoadingScreen);
 
-  console.log("Audio files:", audioFiles);
-  console.log("Cue files:", cueFiles);
-  console.log("Image files:", imageFiles);
+  debugLog('Audio files:', audioFiles);
+  debugLog('Cue files:', cueFiles);
+  debugLog('Image files:', imageFiles);
 
   let processed = 0;
 
   // Helper to parse CUE files
   function parseCue(text, audioFiles, fallbackFile = null) {
-    console.log("Parsing CUE file:", fallbackFile ? fallbackFile.name : "No FLAC fallback");
+    debugLog('Parsing CUE file:', fallbackFile ? fallbackFile.name : 'No FLAC fallback');
 
     const albumMatch = text.match(/^\s*TITLE\s+"([^"]+)"/m);
     const albumTitle = albumMatch ? albumMatch[1] : 'Unidentified Album';
@@ -415,162 +625,163 @@ function handleFiles(e) {
     const year = dateMatch ? dateMatch[1] : undefined;
 
     const fileBlocks = [...text.matchAll(/FILE\s+"([^"]+)"\s+\w+\s+([\s\S]*?)(?=FILE\s+"|$)/gi)];
-    const cueTracks = [];
+    const parsedCueTracks = [];
 
     fileBlocks.forEach(([, fileName, block]) => {
-      const file = (audioFiles || []).find(f => f.name === fileName) || fallbackFile || null;
-
+      const fileCandidates = audioFileLookups.byName.get((fileName || '').toLowerCase()) || [];
+      const file = fileCandidates[0] || fallbackFile || null;
       const trackBlocks = [...block.matchAll(/TRACK\s+(\d+)\s+AUDIO([\s\S]*?)(?=TRACK\s+\d+\s+AUDIO|$)/gi)];
+
       trackBlocks.forEach(([, numStr, tBlock]) => {
-        const tn = parseInt(numStr, 10);
+        const trackNumber = parseInt(numStr, 10);
         const titleMatch = tBlock.match(/TITLE\s+"([^"]+)"/i);
         const performerTrack = tBlock.match(/PERFORMER\s+"([^"]+)"/i);
 
-        cueTracks.push({
+        parsedCueTracks.push({
           file,
-          title: titleMatch ? titleMatch[1] : (file ? file.name : 'Unknown Track'),
+          fileName: file ? file.name : fileName,
+          relativePath: normalizePath(file ? file.webkitRelativePath || '' : ''),
+          size: file ? file.size : 0,
+          lastModified: file ? file.lastModified : 0,
+          title: titleMatch ? titleMatch[1] : (file ? file.name.replace(/\.(mp3|flac)$/i, '') : 'Unknown Track'),
           artist: performerTrack ? performerTrack[1] : albumArtist,
           album: albumTitle,
-          trackNumber: Number.isFinite(tn) ? tn : cueTracks.length + 1,
-          ...(genre ? { genre } : {}),
-          ...(year ? { year } : {}),
-          ...(file ? {
-            fileName: file.name,
-            relativePath: normalizePath(file ? file.webkitRelativePath || '' : ''),
-            size: file.size,
-            lastModified: file.lastModified
-          } : {})
+          genre: genre || 'Unknown Genre',
+          year,
+          trackNumber
         });
       });
     });
 
-    console.log("Parsed cue tracks:", cueTracks);
-    return cueTracks;
+    debugLog('Parsed cue tracks:', parsedCueTracks);
+    return parsedCueTracks;
   }
 
   // Process CUE files first
   let cueTracks = [];
-  if (cueFiles.length && audioFiles.length) {
-    cueFiles.forEach(cueFile => {
-      const debugKey = beginLoadingDebug(loadDebug, cueFile, 'cue');
-      const reader = new FileReader();
-      reader.onload = function(ev) {
-        const cueText = ev.target.result;
-        const fileMatch = cueText.match(/FILE\s+"([^"]+\.flac)"/i);
-        let flacFile = null;
-        if (fileMatch) {
-          flacFile = audioFiles.find(f => f.name === fileMatch[1]);
-        }
-        if (flacFile) {
-          cueTracks = cueTracks.concat(parseCue(cueText, audioFiles, flacFile));
-        }
-        endLoadingDebug(loadDebug, debugKey, 'OK');
-        if (++processed === cueFiles.length) {
-          processAudioFiles();
-        }
-      };
-      reader.onerror = function() {
-        endLoadingDebug(loadDebug, debugKey, 'ERR');
-        if (++processed === cueFiles.length) {
-          processAudioFiles();
-        }
-      };
-      reader.readAsText(cueFile);
-    });
-  } else {
+  if (cueFiles.length === 0) {
     processAudioFiles();
+    return;
   }
 
+  cueFiles.forEach(cueFile => {
+    const cueReader = new FileReader();
+    cueReader.onload = function(ev) {
+      const cueText = ev.target.result;
+      const cueBaseName = cueFile.name.replace(/\.cue$/i, '');
+      const fallbackCandidates = audioFileLookups.byName.get(cueBaseName.toLowerCase()) || [];
+      const fallbackFile = fallbackCandidates.find(file => /\.flac$/i.test(file.name)) || fallbackCandidates[0] || null;
+      cueTracks = cueTracks.concat(parseCue(cueText, audioFiles, fallbackFile));
+      endLoadingDebug(loadDebug, cueFile.name, 'CUE');
+      if (++processed === cueFiles.length) {
+        processAudioFiles();
+      }
+    };
+    cueReader.onerror = function() {
+      endLoadingDebug(loadDebug, cueFile.name, 'CUEERR');
+      if (++processed === cueFiles.length) {
+        processAudioFiles();
+      }
+    };
+    beginLoadingDebug(loadDebug, cueFile, 'cue');
+    cueReader.readAsText(cueFile);
+  });
+
   // Process audio files
-  function processAudioFiles() {
-    console.log("Processing audio files...");
-    let total = audioFiles.length;
+  async function processAudioFiles() {
+    debugLog('Processing audio files...');
+    const total = audioFiles.length;
     let done = 0;
     const stateTracks = app.state.tracks;
+    const loadedSignatures = new Set(stateTracks.map(track => makeLoadedTrackSignature(track)));
+    const metadataCacheMap = await metadataCacheMapPromise;
+    const cacheWrites = [];
+    let finalized = false;
+
+    const finalizeAudioLoad = async () => {
+      if (finalized || done !== total) return;
+      finalized = true;
+
+      cueTracks.forEach(ct => {
+        pushUniqueTrack(stateTracks, ct, loadedSignatures);
+      });
+
+      await persistTrackMetadataCache(cacheWrites);
+      stopLoadingDebugTracker(loadDebug, 'Debug: audio import complete');
+      groupTracksByAlbum(false, folderCovers);
+      migrateHabitsToStableIds(app.state.tracks);
+    };
 
     if (total === 0) {
-      console.log("No audio files, only cue tracks:", cueTracks);
       cueTracks.forEach(ct => {
-        if (!stateTracks.some(t =>
-          t.file.name === ct.file.name &&
-          t.file.size === ct.file.size
-        )) {
-          stateTracks.push(ct);
-        }
+        pushUniqueTrack(stateTracks, ct, loadedSignatures);
       });
       stopLoadingDebugTracker(loadDebug, 'Debug: cue-only import complete');
       groupTracksByAlbum(false, folderCovers);
+      migrateHabitsToStableIds(app.state.tracks);
       return;
     }
 
     audioFiles.forEach(file => {
       const debugKey = beginLoadingDebug(loadDebug, file, 'audio');
+      const cacheKey = makeTrackMetadataCacheKey(file);
+      const cachedMetadata = metadataCacheMap.get(cacheKey);
+
+      if (cachedMetadata) {
+        pushUniqueTrack(stateTracks, buildTrackFromCachedMetadata(file, cachedMetadata), loadedSignatures);
+        endLoadingDebug(loadDebug, debugKey, 'CACHE');
+        done++;
+        updateLoadingCounter(done, total);
+        finalizeAudioLoad();
+        return;
+      }
+
       window.jsmediatags.read(file, {
         onSuccess: tag => {
           const { title, artist, album, genre, track } = tag.tags;
           const trackNumber = parseTrackNumber(track);
-          console.log("Read tags for:", file.name, tag.tags);
-          if (!stateTracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
-            stateTracks.push({
-              file,
-              fileName: file.name,
-              relativePath: normalizePath(file ? file.webkitRelativePath || '' : ''),
-              size: file.size,
-              lastModified: file.lastModified,
-              title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
-              artist: artist || 'Unknown Artist',
-              album: album || 'Unidentified Album',
-              genre: genre || 'Unknown Genre',
-              trackNumber
-            });
-          }
+          debugLog('Read tags for:', file.name, tag.tags);
+
+          const trackData = {
+            file,
+            fileName: file.name,
+            relativePath: normalizePath(file.webkitRelativePath || ''),
+            size: file.size,
+            lastModified: file.lastModified,
+            title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
+            artist: artist || 'Unknown Artist',
+            album: album || 'Unidentified Album',
+            genre: genre || 'Unknown Genre',
+            trackNumber
+          };
+
+          pushUniqueTrack(stateTracks, trackData, loadedSignatures);
+          cacheWrites.push(createTrackMetadataCacheEntry(file, trackData));
           endLoadingDebug(loadDebug, debugKey, 'OK');
           done++;
           updateLoadingCounter(done, total);
-          if (done === total) {
-            cueTracks.forEach(ct => {
-              if (!stateTracks.some(t =>
-                t.file.name === ct.file.name &&
-                t.file.size === ct.file.size
-              )) {
-                stateTracks.push(ct);
-              }
-            });
-            stopLoadingDebugTracker(loadDebug, 'Debug: audio import complete');
-            groupTracksByAlbum(false, folderCovers);
-            migrateHabitsToStableIds(app.state.tracks);
-          }
+          finalizeAudioLoad();
         },
         onError: () => {
-          console.log("Error reading tags for:", file.name);
-          if (!stateTracks.some(t => t.file.name === file.name && t.file.size === file.size)) {
-            stateTracks.push({
-              file,
-              fileName: file.name,
-              relativePath: normalizePath(file.webkitRelativePath || ''),
-              size: file.size,
-              lastModified: file.lastModified,
-              title: file.name.replace(/\.(mp3|flac)$/i, ''),
-              artist: 'Unknown Artist',
-              album: 'Unidentified Album'
-            });
-          }
+          debugLog('Error reading tags for:', file.name);
+
+          const trackData = {
+            file,
+            fileName: file.name,
+            relativePath: normalizePath(file.webkitRelativePath || ''),
+            size: file.size,
+            lastModified: file.lastModified,
+            title: file.name.replace(/\.(mp3|flac)$/i, ''),
+            artist: 'Unknown Artist',
+            album: 'Unidentified Album'
+          };
+
+          pushUniqueTrack(stateTracks, trackData, loadedSignatures);
+          cacheWrites.push(createTrackMetadataCacheEntry(file, trackData));
           endLoadingDebug(loadDebug, debugKey, 'ERR');
           done++;
           updateLoadingCounter(done, total);
-          if (done === total) {
-            cueTracks.forEach(ct => {
-              if (!stateTracks.some(t =>
-                t.file.name === ct.file.name &&
-                t.file.size === ct.file.size
-              )) {
-                stateTracks.push(ct);
-              }
-            });
-            stopLoadingDebugTracker(loadDebug, 'Debug: audio import complete');
-            groupTracksByAlbum(false, folderCovers);
-            migrateHabitsToStableIds(app.state.tracks);
-          }
+          finalizeAudioLoad();
         }
       });
     });
@@ -592,7 +803,7 @@ function makeAlbumKey(track) {
 }
 
 function groupTracksByAlbum(skipPrompt = false, folderCovers = {}) {
-  console.log("Grouping tracks by album...");
+  debugLog('Grouping tracks by album...');
 
   const allTracks = app.state.tracks;
 
@@ -631,7 +842,8 @@ function groupTracksByAlbum(skipPrompt = false, folderCovers = {}) {
     });
   });
 
-  console.log("Albums grouped:", allAlbums);
+  refreshDerivedData();
+  debugLog('Albums grouped:', allAlbums);
 
   if (!skipPrompt) {
     goTo(renderSaveMetadataPrompt);

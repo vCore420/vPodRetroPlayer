@@ -22,6 +22,11 @@ function renderAllSongsMenu(direction = 'forward') {
   let currentSortOrder = sortOrder;
   let sortedTracks = allTracks.slice();
 
+  function getAllSongsQueueSignature() {
+    const searchValue = (document.getElementById('songSearchInput')?.value || '').trim().toLowerCase();
+    return `all-songs:${currentSortOrder}:${searchValue}`;
+  }
+
   function sortTracks(order) {
     currentSortOrder = order;
     localStorage.setItem('allSongsSortOrder', order);
@@ -49,7 +54,7 @@ function renderAllSongsMenu(direction = 'forward') {
 
   renderScreen(
     `<div class="album-list all-songs-layout">
-        <div class="album-list-left all-songs-pane" id="allSongsListContainer">
+        <div class="album-list-left all-songs-pane" id="allSongsListContainer" data-scroll-container="true">
           <div class="all-songs-pane-header">
             <div class="all-songs-toolbar">
               <span class="all-songs-title">All Songs</span>
@@ -101,11 +106,13 @@ function renderAllSongsMenu(direction = 'forward') {
       `;
       div.onclick = () => {
         app.state.currentMenuIndex = idx;
-        playTrackFromAlbum(track, filteredTracks);
+        playTrackFromAlbum(track, filteredTracks, { queueSignature: getAllSongsQueueSignature() });
         window.updateHighlightedSong();
       };
       songsList.appendChild(div);
     });
+
+    songsList.dataset.itemCount = String(filteredTracks.length);
 
     window.updateHighlightedSong = () =>
       masterHighlight({
@@ -118,10 +125,7 @@ function renderAllSongsMenu(direction = 'forward') {
     // initial highlight
     if (filteredTracks.length) {
       window.updateHighlightedSong();
-      const items = songsList.querySelectorAll('.menu-list-song');
-      if (items[app.state.currentMenuIndex]) {
-        items[app.state.currentMenuIndex].scrollIntoView({ block: 'nearest' });
-      }
+      setActiveIndexedItem(songsList, '.menu-list-song', app.state.currentMenuIndex, { scrollIntoView: true });
     }
   }
 

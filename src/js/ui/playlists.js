@@ -16,9 +16,9 @@ function renderPlaylistsMenu(direction = 'forward') {
         <span style="font-size:1.2em;font-weight:bold;display:block;margin:0 auto;">Playlists</span>
       </div>
       <ul class="menu-list" id="playlistsList" style="margin-top:18px;">
-        <li data-liked="true" class="liked-playlist-row"><i class="fa-solid fa-heart"></i> Liked Songs</li>
+        <li data-liked="true" data-idx="0" class="liked-playlist-row"><i class="fa-solid fa-heart"></i> Liked Songs</li>
         ${allPlaylists.length === 0 ? '' : allPlaylists.map((pl, idx) =>
-          `<li data-idx="${idx}">${pl.name}</li>`
+          `<li data-idx="${idx + 1}">${pl.name}</li>`
         ).join('')}
       </ul>
       <div id="playlistNameModal" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;z-index:10000;">
@@ -43,7 +43,7 @@ function renderPlaylistsMenu(direction = 'forward') {
 
   // User playlists click
   allPlaylists.forEach((pl, idx) => {
-    const li = document.querySelector(`#playlistsList li[data-idx="${idx}"]`);
+    const li = document.querySelector(`#playlistsList li[data-idx="${idx + 1}"]`);
     if (!li) return;
     li.onclick = () => {
       app.state.currentMenuIndex = idx + 1; // keep highlight aligned
@@ -113,10 +113,7 @@ function showPlaylistNameModal() {
 
 function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0) {
   const allAlbums = app.state.albums;
-  const albumKeys = Object.keys(allAlbums).sort((a, b) =>
-    (allAlbums[a].title || '').localeCompare(allAlbums[b].title || '') ||
-    (allAlbums[a].artist || '').localeCompare(allAlbums[b].artist || '')
-  );
+  const albumKeys = app.state.derivedData.sortedAlbumKeys || [];
 
   renderScreen(`
     <div class="album-carousel-container">
@@ -144,12 +141,14 @@ function renderAlbumSelectionForPlaylist(direction = 'forward', selectedIdx = 0)
 
   const carousel = document.getElementById('albumCarousel');
   carousel.innerHTML = '';
+  carousel.dataset.itemCount = String(albumKeys.length);
   albumKeys.forEach((albumKey, idx) => {
     const albumObj = allAlbums[albumKey];
     const cover = albumObj.cover || 'src/img/default-cover.png';
 
     const div = document.createElement('div');
     div.className = 'carousel-album';
+    div.dataset.idx = String(idx);
 
     div.innerHTML = `
       <div class="carousel-cover-reflect">
@@ -226,7 +225,7 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
 
   renderScreen(
     `<div class="album-list">
-      <div class="album-list-left" id="playlistSongsSelectContainer" data-playlist-select="true">
+      <div class="album-list-left" id="playlistSongsSelectContainer" data-playlist-select="true" data-scroll-container="true">
         <div id="playlistSongsSelectList"></div>
       </div>
       <div class="album-list-right">
@@ -259,6 +258,7 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
 
     const div = document.createElement('div');
     div.className = 'menu-list-song';
+    div.dataset.idx = String(idx);
     div.innerHTML = `
       ${nowPlayingLabel}
       <span style="padding-left:6px;">
@@ -288,10 +288,11 @@ function renderSongSelectionForPlaylist(direction = 'forward', albumKey, albumId
     songsList.appendChild(div);
   });
 
+  songsList.dataset.itemCount = String(albumObj.songs.length);
+
   const items = songsList.querySelectorAll('.menu-list-song');
   if (items.length) {
-    items[app.state.currentMenuIndex].classList.add('active');
-    items[app.state.currentMenuIndex].scrollIntoView({ block: 'nearest' });
+    setActiveIndexedItem(songsList, '.menu-list-song', app.state.currentMenuIndex, { scrollIntoView: true });
   }
 }
 
@@ -395,11 +396,8 @@ function rebuildPlaylistSongsList({ listEl, tracksToShow, currentTrackId, isEdit
     window.updateHighlightedSong();
   }
 
-  const items = listEl.querySelectorAll('.menu-list-song');
-  if (items[app.state.currentMenuIndex]) {
-    items[app.state.currentMenuIndex].classList.add('active');
-    items[app.state.currentMenuIndex].scrollIntoView({ block: 'nearest' });
-  }
+  listEl.dataset.itemCount = String(tracksToShow.length);
+  setActiveIndexedItem(listEl, '.menu-list-song', app.state.currentMenuIndex, { scrollIntoView: true });
 }
 
 function renderPlaylistSongsMenu(direction = 'forward', playlistIdx, selectedIdx = 0) {
@@ -606,12 +604,16 @@ function playPlaylistTrack(playlist, idx) {
       .map(candidateTrack => allTracks.find(track => isSameLoadedTrack(track, candidateTrack)))
       .filter(Boolean);
 
+    const playlistSignature = playlist.name === 'Liked Songs'
+      ? 'playlist:liked'
+      : `playlist:${playlist.name}`;
+
     app.state.currentAlbumSongs = mapped;
     app.state.currentSongIndex = app.state.currentAlbumSongs.findIndex(track =>
       isSameLoadedTrack(track, playlistTrack)
     );
 
-    playTrackFromAlbum(match, app.state.currentAlbumSongs);
+    playTrackFromAlbum(match, app.state.currentAlbumSongs, { queueSignature: playlistSignature });
   } else {
     alert("This song is not loaded.");
   }

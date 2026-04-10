@@ -1529,17 +1529,96 @@ body, html {
   color: #d90429;
   pointer-events: none;
 }
-.np-viz-panel {
-  margin: 6px 8px 0 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: #f6f8ff;
-  box-shadow: 0 1px 4px #0001;
+.visualizer-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 12px 12px 14px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(116, 255, 190, 0.18), transparent 34%),
+    linear-gradient(180deg, #08120b 0%, #071b13 42%, #040706 100%);
+  color: #dffff0;
 }
-.np-viz-panel canvas {
+
+.visualizer-screen__hud {
+  text-align: center;
+  padding: 2px 8px 8px;
+}
+
+.visualizer-screen__eyebrow {
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(205, 255, 224, 0.68);
+}
+
+.visualizer-screen__track {
+  margin-top: 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.visualizer-screen__artist {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: rgba(215, 255, 231, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.visualizer-screen__palette {
+  margin-top: 6px;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(214, 255, 229, 0.78);
+}
+
+.visualizer-screen__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(10, 23, 16, 0.96), rgba(2, 6, 4, 0.98));
+  box-shadow:
+    inset 0 0 0 1px rgba(183, 255, 214, 0.18),
+    inset 0 10px 40px rgba(0, 0, 0, 0.45),
+    0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.visualizer-screen__cover {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 58px;
+  height: 58px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(210, 255, 226, 0.34);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.34);
+  opacity: 0.92;
+  z-index: 2;
+}
+
+.visualizer-screen__canvas {
   width: 100%;
-  height: 48px;
+  height: 100%;
   display: block;
+}
+
+.visualizer-screen__footer {
+  padding-top: 8px;
+  text-align: center;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(208, 255, 225, 0.62);
 }
 .nowplaying-container {
   padding: 14px 10px 0 10px; 

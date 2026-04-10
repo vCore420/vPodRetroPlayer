@@ -28,6 +28,90 @@ function queuesEqual(a = [], b = []) {
   return true;
 }
 
+function syncShuffleButtonState() {
+  const shuffleBtn = document.getElementById('shuffleBtn');
+  if (!shuffleBtn) return;
+
+  shuffleBtn.classList.toggle('shuffle-on', !!app.state.isShuffleOn);
+}
+
+function resetSmartMixPlaybackMemory() {
+  app.state.smartMixPlaybackHistory = [];
+  app.state.smartMixHistoryCursor = -1;
+}
+
+function rememberSmartMixPlayback(track) {
+  if (!track) return;
+
+  const trackId = getTrackId(track);
+  const history = Array.isArray(app.state.smartMixPlaybackHistory)
+    ? app.state.smartMixPlaybackHistory.slice()
+    : [];
+  const cursor = Number.isFinite(app.state.smartMixHistoryCursor)
+    ? app.state.smartMixHistoryCursor
+    : -1;
+
+  const nextHistory = cursor >= 0 && cursor < history.length - 1
+    ? history.slice(0, cursor + 1)
+    : history;
+
+  if (nextHistory[nextHistory.length - 1] !== trackId) {
+    nextHistory.push(trackId);
+  }
+
+  app.state.smartMixPlaybackHistory = nextHistory;
+  app.state.smartMixHistoryCursor = nextHistory.length - 1;
+}
+
+function getSmartMixHistoryEntry(direction) {
+  const history = Array.isArray(app.state.smartMixPlaybackHistory)
+    ? app.state.smartMixPlaybackHistory
+    : [];
+  const currentCursor = Number.isFinite(app.state.smartMixHistoryCursor)
+    ? app.state.smartMixHistoryCursor
+    : (history.length - 1);
+  const targetCursor = currentCursor + direction;
+
+  if (targetCursor < 0 || targetCursor >= history.length) {
+    return null;
+  }
+
+  const trackId = history[targetCursor];
+  const queue = app.state.smartMixQueue || app.state.currentAlbumSongs || [];
+  const track = queue.find(item => getTrackId(item) === trackId) ||
+    (app.state.tracks || []).find(item => getTrackId(item) === trackId);
+
+  if (!track) return null;
+
+  return {
+    track,
+    queue,
+    cursor: targetCursor
+  };
+}
+
+function resolveQueueSignature(track, queue, opts = {}) {
+  if (typeof opts.queueSignature === 'string' && opts.queueSignature) {
+    return opts.queueSignature;
+  }
+
+  if (opts.smartMix) return 'smart-mix';
+
+  if (opts.preserveQueueSignature && typeof app.state.queueSignature === 'string') {
+    return app.state.queueSignature;
+  }
+
+  if (queue && app.state.currentAlbumSongs && queuesEqual(app.state.currentAlbumSongs, queue)) {
+    return app.state.queueSignature || null;
+  }
+
+  if (track) {
+    return `track:${getTrackId(track)}`;
+  }
+
+  return null;
+}
+
 function resolveTrackFile(track) {
   if (track?.file instanceof Blob) return track.file;
   const id = track ? getTrackId(track) : null;
@@ -194,6 +278,7 @@ async function playTrackFromAlbum(track, albumSongs, opts = {}) {
     app.state.smartMixHistory = null;
     app.state.smartMixTrackMeta = null;
     app.state.smartMixSessionNote = null;
+    resetSmartMixPlaybackMemory();
   } else if (isSmartMix) {
     app.state.smartMixActive = true;
     app.state.smartMixQueue = app.state.smartMixQueue || albumSongs || [];
@@ -206,12 +291,28 @@ async function playTrackFromAlbum(track, albumSongs, opts = {}) {
 
   const state = app.state;
   const incomingQueue = albumSongs || [track];
+  const incomingQueueSignature = resolveQueueSignature(track, incomingQueue, opts);
+  const currentQueueSignature = state.queueSignature || null;
   const sameQueue = state.currentAlbumSongs && queuesEqual(state.currentAlbumSongs, incomingQueue);
+  const sameSource = incomingQueueSignature && currentQueueSignature
+    ? incomingQueueSignature === currentQueueSignature
+    : sameQueue;
 
-  if (!sameQueue) {
+  if (!sameSource) {
+    audioPlayer.pause();
+    clearPendingPlaybackRetry();
+    state.currentAlbumSongs = [];
+    state.currentSongIndex = -1;
+    state.queueSignature = incomingQueueSignature;
     state.isShuffleOn = false;
     state.originalAlbumSongs = null;
     state.originalSongIndex = -1;
+    syncShuffleButtonState();
+  } else if (!sameQueue) {
+    state.isShuffleOn = false;
+    state.originalAlbumSongs = null;
+    state.originalSongIndex = -1;
+    syncShuffleButtonState();
   }
 
   const file = resolveTrackFile(track);
@@ -224,12 +325,21 @@ async function playTrackFromAlbum(track, albumSongs, opts = {}) {
   }
 
   state.currentAlbumSongs = incomingQueue;
+  state.queueSignature = incomingQueueSignature;
   const trackId = getTrackId(track);
   state.currentSongIndex = state.currentAlbumSongs.findIndex(t => getTrackId(t) === trackId);
   if (state.currentSongIndex < 0) state.currentSongIndex = 0;
   state.currentTrack = track;
   state.currentMenuIndex = state.currentSongIndex;
   state.halfPlayedMark = null;
+
+  if (isSmartMix) {
+    if (Number.isFinite(opts.smartMixHistoryCursor)) {
+      state.smartMixHistoryCursor = opts.smartMixHistoryCursor;
+    } else {
+      rememberSmartMixPlayback(track);
+    }
+  }
 
   if (typeof showHotBarMessage === 'function' && track) {
     const artist = track.artist || '';
@@ -260,6 +370,7 @@ async function playTrackFromAlbum(track, albumSongs, opts = {}) {
   setScrollingSong(state.currentMenuIndex);
 
   if (window.updateMediaSessionMetadata) window.updateMediaSessionMetadata();
+  if (window.refreshNowPlayingVisualizerMeta) window.refreshNowPlayingVisualizerMeta();
 
   const activeScreen = document.querySelector('.screen-content.screen-active');
   if (activeScreen && activeScreen.querySelector('.nowplaying-container')) {
@@ -317,6 +428,7 @@ audioPlayer.addEventListener('ended', async () => {
 
   app.state.currentTrack = null;
   app.state.currentSongIndex = -1;
+  if (window.refreshNowPlayingVisualizerMeta) window.refreshNowPlayingVisualizerMeta();
 
   const ps = document.getElementById('hotBarPlayState');
   if (ps) ps.innerHTML = '';
