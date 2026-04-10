@@ -390,18 +390,35 @@ function pushUniqueTrack(stateTracks, track, signatures) {
   return true;
 }
 
-function makeTrackMetadataCacheKey(file) {
-  const relativePath = normalizePath(file.webkitRelativePath || '').toLowerCase();
+function makeTrackMetadataBaseKey(source = {}) {
+  const relativePath = normalizePath(
+    source.relativePath || source.webkitRelativePath || source.file?.webkitRelativePath || ''
+  ).toLowerCase();
+  const fileName = (source.fileName || source.name || source.file?.name || '').toLowerCase();
+  const size = Number(source.size ?? source.file?.size ?? 0) || 0;
   const prefix = relativePath
     ? `rel:${relativePath}`
-    : `file:${(file.name || '').toLowerCase()}`;
+    : `file:${fileName}`;
 
-  return `${prefix}|${file.size}|${file.lastModified}`;
+  return `${prefix}|${size}`;
+}
+
+function makeTrackMetadataCacheKey(file) {
+  const baseKey = makeTrackMetadataBaseKey(file);
+  const lastModified = Number(file.lastModified || 0) || 0;
+  return `${baseKey}|${lastModified}`;
 }
 
 function createTrackMetadataCacheEntry(file, metadata = {}) {
   return {
     cacheKey: makeTrackMetadataCacheKey(file),
+    baseKey: makeTrackMetadataBaseKey({
+      ...metadata,
+      file,
+      fileName: metadata.fileName || file.name,
+      relativePath: metadata.relativePath || file.webkitRelativePath || '',
+      size: metadata.size || file.size
+    }),
     fileName: metadata.fileName || file.name,
     relativePath: normalizePath(metadata.relativePath || file.webkitRelativePath || ''),
     size: Number(metadata.size || file.size || 0),
@@ -471,6 +488,9 @@ async function loadTrackMetadataCacheMap() {
       const cacheMap = new Map();
       (request.result || []).forEach(entry => {
         cacheMap.set(entry.cacheKey, entry);
+        if (entry.baseKey && !cacheMap.has(entry.baseKey)) {
+          cacheMap.set(entry.baseKey, entry);
+        }
       });
       resolve(cacheMap);
     };
@@ -739,7 +759,8 @@ function handleFiles(e) {
     audioFiles.forEach(file => {
       const debugKey = beginLoadingDebug(loadDebug, file, 'audio');
       const cacheKey = makeTrackMetadataCacheKey(file);
-      const cachedMetadata = metadataCacheMap.get(cacheKey);
+      const baseKey = makeTrackMetadataBaseKey(file);
+      const cachedMetadata = metadataCacheMap.get(cacheKey) || metadataCacheMap.get(baseKey);
 
       if (cachedMetadata) {
         pushUniqueTrack(stateTracks, buildTrackFromCachedMetadata(file, cachedMetadata), loadedSignatures);
