@@ -83,6 +83,27 @@ function stopLoadingDebugTracker(loadDebug, finalMessage = '') {
   updateLoadingDebug(finalMessage);
 }
 
+function flushImportTimings(label, timings) {
+  if (!isDebugLoggingEnabled() || !timings) return;
+
+  const totalMs = Number(timings.totalMs || 0);
+  const breakdown = Object.fromEntries(
+    Object.entries(timings)
+      .filter(([key]) => key !== 'totalMs')
+      .map(([key, value]) => [key, Math.round(Number(value || 0))])
+  );
+
+  const summary = {
+    label,
+    totalMs: Math.round(totalMs),
+    breakdown,
+    message: `Load ${Math.round(totalMs / 1000)}s | match ${Math.round((breakdown.matchLoopMs || 0) / 1000)}s | albums ${Math.round((breakdown.groupAlbumsMs || 0) / 1000)}s | habits ${Math.round((breakdown.migrateHabitsMs || 0) / 1000)}s`
+  };
+
+  window.lastImportTimings = summary;
+  debugLog(`[import-timings] ${label}`, summary);
+}
+
 function beginLoadingDebug(loadDebug, file, phase) {
   if (!LOAD_DEBUG_ENABLED || !loadDebug) return null;
 
@@ -564,6 +585,7 @@ function handleFiles(e) {
   debugLog('Handling files:', e.target.files);
   const loadDebug = createLoadingDebugTracker();
   const metadataCacheSessionPromise = createTrackMetadataCacheSession();
+  const importStartTime = performance.now();
 
   // Reset all global state
   app.state.tracks = [];
@@ -593,7 +615,9 @@ function handleFiles(e) {
   const audioFiles = files.filter(f => f.name.match(/\.(mp3|flac)$/i));
   const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
   const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
+  const filePartitionEndTime = performance.now();
   const audioFileLookups = buildAudioFileLookupMaps(audioFiles);
+  const lookupBuildEndTime = performance.now();
 
   if (!audioFiles.length && !cueFiles.length && !metaFile) {
     stopLoadingDebugTracker(loadDebug, 'Debug: unsupported selection');
@@ -613,12 +637,26 @@ function handleFiles(e) {
       folderCovers[folder] = url;
     }
   });
+  const folderCoverBuildEndTime = performance.now();
 
   if (metaFile) {
     stopLoadingDebugTracker(loadDebug, 'Debug: metadata import mode');
     const reader = new FileReader();
     reader.onload = async function(ev) {
+      const metadataTimings = {
+        filePartitionMs: filePartitionEndTime - importStartTime,
+        lookupBuildMs: lookupBuildEndTime - filePartitionEndTime,
+        folderCoverBuildMs: folderCoverBuildEndTime - lookupBuildEndTime,
+        jsonParseMs: 0,
+        matchLoopMs: 0,
+        groupAlbumsMs: 0,
+        migrateHabitsMs: 0,
+        finalUiMs: 0,
+        totalMs: 0
+      };
+      const parseStartTime = performance.now();
       const meta = JSON.parse(ev.target.result);
+      metadataTimings.jsonParseMs = performance.now() - parseStartTime;
 
       app.state.tracks = [];
       const stateTracks = app.state.tracks;
@@ -628,6 +666,7 @@ function handleFiles(e) {
       const loadedSignatures = new Set();
       const shouldYieldDuringMetadataImport = /android/i.test(navigator.userAgent || '');
       const metadataImportYieldEvery = 200;
+      const matchLoopStartTime = performance.now();
 
       for (let index = 0; index < total; index++) {
         const metaTrack = meta.tracks[index];
@@ -660,9 +699,12 @@ function handleFiles(e) {
         }
       }
 
+      metadataTimings.matchLoopMs = performance.now() - matchLoopStartTime;
       updateLoadingCounter(loaded, total);
 
       if (stateTracks.length === 0) {
+        metadataTimings.totalMs = performance.now() - importStartTime;
+        flushImportTimings('metadata-import-no-matches', metadataTimings);
         stopLoadingDebugTracker(loadDebug, 'Debug: metadata import found no matches');
         alert("No matching audio files found for metadata. Please upload your music files along with tracks-meta.json.");
         renderMainMenu('forward');
@@ -671,12 +713,25 @@ function handleFiles(e) {
       }
 
       // Build albums (no nav here)
+      const groupAlbumsStartTime = performance.now();
       groupTracksByAlbum(true, folderCovers);
+      metadataTimings.groupAlbumsMs = performance.now() - groupAlbumsStartTime;
+
+      const migrateHabitsStartTime = performance.now();
       migrateHabitsToStableIds(app.state.tracks);
+      metadataTimings.migrateHabitsMs = performance.now() - migrateHabitsStartTime;
+
+      const finalUiStartTime = performance.now();
       stopLoadingDebugTracker(loadDebug, 'Debug: metadata import complete');
 
       renderMainMenu('forward');
       app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
+      metadataTimings.finalUiMs = performance.now() - finalUiStartTime;
+      metadataTimings.totalMs = performance.now() - importStartTime;
+      flushImportTimings('metadata-import', metadataTimings);
+      if (isDebugLoggingEnabled() && typeof showHotBarMessage === 'function' && window.lastImportTimings?.message) {
+        showHotBarMessage(window.lastImportTimings.message, 7000);
+      }
     };
     reader.readAsText(metaFile);
     return;
@@ -895,9 +950,9 @@ function groupTracksByAlbum(skipPrompt = false, folderCovers = {}) {
     track.albumKey    = albumKey; // store on track for lookups
 
     if (!allAlbums[albumKey]) {
-      const trackFolder = (track.folderPath || track.relativePath)
-        ? getFolderPathFromRelativePath(track.folderPath || track.relativePath || '')
-        : (track.file ? getFolderPath(track.file) : '');
+      const trackFolder = (track.file ? getFolderPath(track.file) : '') ||
+        track.folderPath ||
+        (track.relativePath ? getFolderPathFromRelativePath(track.relativePath) : '');
       const coverUrl = folderCovers[trackFolder] || track.cover || 'src/img/default-cover.png';
 
       allAlbums[albumKey] = {
