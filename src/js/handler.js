@@ -118,6 +118,103 @@ function readBlobAsText(blob) {
   });
 }
 
+function yieldToUi() {
+  return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+async function hydrateMetadataTracksInBackground(tracks, audioFiles, folderCovers, importToken) {
+  if (!Array.isArray(tracks) || !tracks.length || !Array.isArray(audioFiles) || !audioFiles.length) {
+    return;
+  }
+
+  const byRelativePath = new Map();
+  const byName = new Map();
+  const fileBatchSize = 120;
+  const trackBatchSize = 120;
+
+  for (let start = 0; start < audioFiles.length; start += fileBatchSize) {
+    if (app.state.importHydrationToken !== importToken) return;
+
+    const batch = audioFiles.slice(start, start + fileBatchSize);
+    batch.forEach(file => {
+      const relativePath = normalizePath(file.webkitRelativePath || '');
+      const relativePathKey = relativePath.toLowerCase();
+      const fileName = (file.name || '').toLowerCase();
+      const entry = {
+        file,
+        relativePath,
+        relativePathKey,
+        folderPath: getFolderPathFromRelativePath(relativePath),
+        size: Number(file.size || 0),
+        lastModified: Number(file.lastModified || 0)
+      };
+
+      if (relativePathKey) {
+        byRelativePath.set(relativePathKey, entry);
+      }
+
+      if (!byName.has(fileName)) {
+        byName.set(fileName, []);
+      }
+      byName.get(fileName).push(entry);
+    });
+
+    await yieldToUi();
+  }
+
+  let hydratedAny = false;
+
+  for (let start = 0; start < tracks.length; start += trackBatchSize) {
+    if (app.state.importHydrationToken !== importToken) return;
+
+    const batch = tracks.slice(start, start + trackBatchSize);
+    batch.forEach(track => {
+      if (track?.file instanceof Blob) return;
+
+      const relativePath = normalizePath(track.relativePath || '');
+      const relativePathKey = relativePath.toLowerCase();
+      const fileName = (track.fileName || '').toLowerCase();
+      const size = Number(track.size || 0);
+
+      let resolved = relativePathKey ? byRelativePath.get(relativePathKey) : null;
+      if (!resolved && fileName) {
+        const candidates = byName.get(fileName) || [];
+        if (candidates.length === 1) {
+          resolved = candidates[0];
+        } else if (candidates.length > 1 && size) {
+          resolved = candidates.find(entry => entry.size === size) || null;
+        }
+      }
+
+      if (!resolved) return;
+
+      hydratedAny = true;
+      track.file = resolved.file;
+      track.relativePath = relativePath || resolved.relativePath;
+      track.folderPath = resolved.folderPath || getFolderPathFromRelativePath(track.relativePath || '');
+      if (!track.size) track.size = resolved.size;
+      if (!track.lastModified) track.lastModified = resolved.lastModified;
+
+      const normalizedRelativePath = normalizePath(track.relativePath || '').toLowerCase();
+      track.signature = normalizedRelativePath
+        ? `rel:${normalizedRelativePath}`
+        : `file:${(track.fileName || '').toLowerCase()}|${track.size || ''}`;
+    });
+
+    await yieldToUi();
+  }
+
+  if (!hydratedAny || app.state.importHydrationToken !== importToken) return;
+
+  app.state.trackIdCache = new WeakMap();
+  groupTracksByAlbum(true, folderCovers);
+  migrateHabitsToStableIds(app.state.tracks);
+
+  if (typeof showHotBarMessage === 'function') {
+    showHotBarMessage('Library details restored', 2200);
+  }
+}
+
 function beginLoadingDebug(loadDebug, file, phase) {
   if (!LOAD_DEBUG_ENABLED || !loadDebug) return null;
 
@@ -654,6 +751,8 @@ function handleFiles(e) {
   const loadDebug = createLoadingDebugTracker();
   const metadataCacheSessionPromise = createTrackMetadataCacheSession();
   const importStartTime = performance.now();
+  const importHydrationToken = Number(app.state.importHydrationToken || 0) + 1;
+  app.state.importHydrationToken = importHydrationToken;
 
   // Reset all global state
   app.state.tracks = [];
@@ -824,6 +923,8 @@ function handleFiles(e) {
       if (isDebugLoggingEnabled() && typeof showHotBarMessage === 'function' && window.lastImportTimings?.message) {
         showHotBarMessage(window.lastImportTimings.message, 7000);
       }
+
+      hydrateMetadataTracksInBackground(stateTracks, audioFiles, folderCovers, importHydrationToken);
     })();
     return;
   }
