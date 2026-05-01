@@ -4,7 +4,7 @@ const LOAD_DEBUG_ENABLED = false;
 const LOAD_DEBUG_WATCHDOG_MS = 5000;
 const TRACK_METADATA_CACHE_DB = 'vretro-player-cache';
 const TRACK_METADATA_CACHE_STORE = 'trackMetadata';
-const TRACK_METADATA_CACHE_VERSION = 1;
+const TRACK_METADATA_CACHE_VERSION = 2;
 
 let trackMetadataDbPromise = null;
 
@@ -403,15 +403,8 @@ function makeTrackMetadataBaseKey(source = {}) {
   return `${prefix}|${size}`;
 }
 
-function makeTrackMetadataCacheKey(file) {
-  const baseKey = makeTrackMetadataBaseKey(file);
-  const lastModified = Number(file.lastModified || 0) || 0;
-  return `${baseKey}|${lastModified}`;
-}
-
 function createTrackMetadataCacheEntry(file, metadata = {}) {
   return {
-    cacheKey: makeTrackMetadataCacheKey(file),
     baseKey: makeTrackMetadataBaseKey({
       ...metadata,
       file,
@@ -463,9 +456,10 @@ function openTrackMetadataDb() {
 
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(TRACK_METADATA_CACHE_STORE)) {
-        db.createObjectStore(TRACK_METADATA_CACHE_STORE, { keyPath: 'cacheKey' });
+      if (db.objectStoreNames.contains(TRACK_METADATA_CACHE_STORE)) {
+        db.deleteObjectStore(TRACK_METADATA_CACHE_STORE);
       }
+      db.createObjectStore(TRACK_METADATA_CACHE_STORE, { keyPath: 'baseKey' });
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -475,27 +469,41 @@ function openTrackMetadataDb() {
   return trackMetadataDbPromise;
 }
 
-async function loadTrackMetadataCacheMap() {
+async function createTrackMetadataCacheSession() {
   const db = await openTrackMetadataDb();
-  if (!db) return new Map();
+  return {
+    db,
+    entries: new Map()
+  };
+}
+
+async function getTrackMetadataCacheEntry(file, cacheSession) {
+  const baseKey = makeTrackMetadataBaseKey(file);
+  if (!baseKey) return null;
+
+  if (cacheSession?.entries.has(baseKey)) {
+    return cacheSession.entries.get(baseKey);
+  }
+
+  if (!cacheSession?.db) {
+    return null;
+  }
 
   return new Promise(resolve => {
-    const tx = db.transaction(TRACK_METADATA_CACHE_STORE, 'readonly');
+    const tx = cacheSession.db.transaction(TRACK_METADATA_CACHE_STORE, 'readonly');
     const store = tx.objectStore(TRACK_METADATA_CACHE_STORE);
-    const request = store.getAll();
+    const request = store.get(baseKey);
 
     request.onsuccess = () => {
-      const cacheMap = new Map();
-      (request.result || []).forEach(entry => {
-        cacheMap.set(entry.cacheKey, entry);
-        if (entry.baseKey && !cacheMap.has(entry.baseKey)) {
-          cacheMap.set(entry.baseKey, entry);
-        }
-      });
-      resolve(cacheMap);
+      const entry = request.result || null;
+      cacheSession.entries.set(baseKey, entry);
+      resolve(entry);
     };
 
-    request.onerror = () => resolve(new Map());
+    request.onerror = () => {
+      cacheSession.entries.set(baseKey, null);
+      resolve(null);
+    };
   });
 }
 
@@ -507,7 +515,7 @@ async function persistTrackMetadataCache(entries = []) {
 
   const uniqueEntries = new Map();
   entries.forEach(entry => {
-    if (entry?.cacheKey) uniqueEntries.set(entry.cacheKey, entry);
+    if (entry?.baseKey) uniqueEntries.set(entry.baseKey, entry);
   });
 
   if (!uniqueEntries.size) return;
@@ -529,7 +537,7 @@ async function persistTrackMetadataCache(entries = []) {
 function handleFiles(e) {
   debugLog('Handling files:', e.target.files);
   const loadDebug = createLoadingDebugTracker();
-  const metadataCacheMapPromise = loadTrackMetadataCacheMap();
+  const metadataCacheSessionPromise = createTrackMetadataCacheSession();
 
   // Reset all global state
   app.state.tracks = [];
@@ -728,7 +736,7 @@ function handleFiles(e) {
     let done = 0;
     const stateTracks = app.state.tracks;
     const loadedSignatures = new Set(stateTracks.map(track => makeLoadedTrackSignature(track)));
-    const metadataCacheMap = await metadataCacheMapPromise;
+    const metadataCacheSession = await metadataCacheSessionPromise;
     const cacheWrites = [];
     let finalized = false;
 
@@ -756,11 +764,9 @@ function handleFiles(e) {
       return;
     }
 
-    audioFiles.forEach(file => {
+    audioFiles.forEach(async file => {
       const debugKey = beginLoadingDebug(loadDebug, file, 'audio');
-      const cacheKey = makeTrackMetadataCacheKey(file);
-      const baseKey = makeTrackMetadataBaseKey(file);
-      const cachedMetadata = metadataCacheMap.get(cacheKey) || metadataCacheMap.get(baseKey);
+      const cachedMetadata = await getTrackMetadataCacheEntry(file, metadataCacheSession);
 
       if (cachedMetadata) {
         pushUniqueTrack(stateTracks, buildTrackFromCachedMetadata(file, cachedMetadata), loadedSignatures);
