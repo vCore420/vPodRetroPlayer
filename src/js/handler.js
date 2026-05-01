@@ -98,7 +98,7 @@ function flushImportTimings(label, timings) {
     label,
     totalMs: Math.round(totalMs),
     breakdown,
-    message: `T${Math.round(totalMs / 1000)} R${Math.round((breakdown.fileReadMs || 0) / 1000)} P${Math.round((breakdown.jsonParseMs || 0) / 1000)} M${Math.round((breakdown.matchLoopMs || 0) / 1000)} A${Math.round((breakdown.groupAlbumsMs || 0) / 1000)} H${Math.round((breakdown.migrateHabitsMs || 0) / 1000)}`
+    message: `T${Math.round(totalMs / 1000)} R${Math.round((breakdown.fileReadMs || 0) / 1000)} C${breakdown.metadataCacheHitMs ? 1 : 0}`
   };
 
   window.lastImportTimings = summary;
@@ -711,6 +711,7 @@ function handleFiles(e) {
         filePartitionMs: filePartitionEndTime - importStartTime,
         lookupBuildMs: lookupBuildEndTime - filePartitionEndTime,
         folderCoverBuildMs: folderCoverBuildEndTime - lookupBuildEndTime,
+        metadataCacheHitMs: 0,
         fileReadMs: 0,
         jsonParseMs: 0,
         matchLoopMs: 0,
@@ -723,6 +724,7 @@ function handleFiles(e) {
       const cachedMetaEntry = await getMetadataFileCacheEntry(metaFile, metadataCacheSession);
 
       if (cachedMetaEntry?.meta?.tracks?.length) {
+        metadataTimings.metadataCacheHitMs = 1;
         meta = cachedMetaEntry.meta;
       } else {
         const fileReadStartTime = performance.now();
@@ -743,7 +745,7 @@ function handleFiles(e) {
         const parseStartTime = performance.now();
         meta = JSON.parse(metaText);
         metadataTimings.jsonParseMs = performance.now() - parseStartTime;
-        persistMetadataFileCacheEntry(metaFile, meta, metadataCacheSession);
+        await persistMetadataFileCacheEntry(metaFile, meta, metadataCacheSession);
       }
 
       app.state.tracks = [];
