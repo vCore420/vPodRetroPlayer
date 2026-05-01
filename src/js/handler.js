@@ -377,17 +377,20 @@ function parseTrackNumber(raw) {
 }
 
 function buildAudioFileLookupMaps(files = []) {
+  const isAndroid = /android/i.test(navigator.userAgent || '');
   const byRelativePath = new Map();
   const byName = new Map();
   const byNameAndSize = new Map();
 
   files.forEach(file => {
-    const relativePath = normalizePath(file.webkitRelativePath || '');
     const lowerName = (file.name || '').toLowerCase();
     const size = Number(file.size || 0);
 
-    if (relativePath) {
-      byRelativePath.set(relativePath.toLowerCase(), file);
+    if (!isAndroid) {
+      const relativePath = normalizePath(file.webkitRelativePath || '');
+      if (relativePath) {
+        byRelativePath.set(relativePath.toLowerCase(), file);
+      }
     }
 
     if (lowerName && Number.isFinite(size)) {
