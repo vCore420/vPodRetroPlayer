@@ -593,7 +593,7 @@ function handleFiles(e) {
   if (metaFile) {
     stopLoadingDebugTracker(loadDebug, 'Debug: metadata import mode');
     const reader = new FileReader();
-    reader.onload = function(ev) {
+    reader.onload = async function(ev) {
       const meta = JSON.parse(ev.target.result);
 
       app.state.tracks = [];
@@ -602,8 +602,11 @@ function handleFiles(e) {
       const total = meta.tracks.length || 0;
       let loaded = 0;
       const loadedSignatures = new Set();
+      const shouldYieldDuringMetadataImport = /android/i.test(navigator.userAgent || '');
+      const metadataImportYieldEvery = 200;
 
-      meta.tracks.forEach(metaTrack => {
+      for (let index = 0; index < total; index++) {
+        const metaTrack = meta.tracks[index];
         const file = findAudioFileForMetadata(metaTrack, audioFileLookups);
         if (file) {
           const track = {
@@ -616,9 +619,16 @@ function handleFiles(e) {
           };
           pushUniqueTrack(stateTracks, track, loadedSignatures);
         }
+
         loaded++;
-        updateLoadingCounter(loaded, total);
-      });
+
+        if (shouldYieldDuringMetadataImport && loaded % metadataImportYieldEvery === 0) {
+          updateLoadingCounter(loaded, total);
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+
+      updateLoadingCounter(loaded, total);
 
       if (stateTracks.length === 0) {
         stopLoadingDebugTracker(loadDebug, 'Debug: metadata import found no matches');
