@@ -122,18 +122,24 @@ function yieldToUi() {
   return new Promise(resolve => setTimeout(resolve, 0));
 }
 
-async function hydrateMetadataTracksInBackground(tracks, audioFiles, folderCovers, importToken) {
+async function hydrateMetadataTracksInBackground(tracks, audioFiles, folderCovers, importToken, onProgress = null) {
   if (!Array.isArray(tracks) || !tracks.length || !Array.isArray(audioFiles) || !audioFiles.length) {
-    return;
+    return false;
   }
 
   const byRelativePath = new Map();
   const byName = new Map();
   const fileBatchSize = 120;
   const trackBatchSize = 120;
+  const totalUnits = audioFiles.length + tracks.length;
+  let completedUnits = 0;
+
+  if (typeof onProgress === 'function') {
+    onProgress(completedUnits, totalUnits);
+  }
 
   for (let start = 0; start < audioFiles.length; start += fileBatchSize) {
-    if (app.state.importHydrationToken !== importToken) return;
+    if (app.state.importHydrationToken !== importToken) return false;
 
     const batch = audioFiles.slice(start, start + fileBatchSize);
     batch.forEach(file => {
@@ -159,13 +165,18 @@ async function hydrateMetadataTracksInBackground(tracks, audioFiles, folderCover
       byName.get(fileName).push(entry);
     });
 
+    completedUnits += batch.length;
+    if (typeof onProgress === 'function') {
+      onProgress(completedUnits, totalUnits);
+    }
+
     await yieldToUi();
   }
 
   let hydratedAny = false;
 
   for (let start = 0; start < tracks.length; start += trackBatchSize) {
-    if (app.state.importHydrationToken !== importToken) return;
+    if (app.state.importHydrationToken !== importToken) return false;
 
     const batch = tracks.slice(start, start + trackBatchSize);
     batch.forEach(track => {
@@ -201,18 +212,15 @@ async function hydrateMetadataTracksInBackground(tracks, audioFiles, folderCover
         : `file:${(track.fileName || '').toLowerCase()}|${track.size || ''}`;
     });
 
+    completedUnits += batch.length;
+    if (typeof onProgress === 'function') {
+      onProgress(completedUnits, totalUnits);
+    }
+
     await yieldToUi();
   }
 
-  if (!hydratedAny || app.state.importHydrationToken !== importToken) return;
-
-  app.state.trackIdCache = new WeakMap();
-  groupTracksByAlbum(true, folderCovers);
-  migrateHabitsToStableIds(app.state.tracks);
-
-  if (typeof showHotBarMessage === 'function') {
-    showHotBarMessage('Library details restored', 2200);
-  }
+  return hydratedAny;
 }
 
 function beginLoadingDebug(loadDebug, file, phase) {
@@ -808,6 +816,7 @@ function handleFiles(e) {
   const folderCoverBuildEndTime = performance.now();
 
   if (metaFile) {
+    goTo(goToLoadingScreen);
     stopLoadingDebugTracker(loadDebug, 'Debug: metadata import mode');
     (async () => {
       const metadataCacheSession = await metadataCacheSessionPromise;
@@ -903,21 +912,34 @@ function handleFiles(e) {
         return;
       }
 
-      // Build albums (no nav here)
+      renderLoadingScreen('Restoring artwork and song data...', 0, total + audioFiles.length);
+      const hydrationStartTime = performance.now();
+      const hydratedAny = await hydrateMetadataTracksInBackground(
+        stateTracks,
+        audioFiles,
+        folderCovers,
+        importHydrationToken,
+        (completed, hydrationTotal) => updateLoadingCounter(completed, hydrationTotal)
+      );
+
       const groupAlbumsStartTime = performance.now();
+      app.state.trackIdCache = new WeakMap();
       groupTracksByAlbum(true, folderCovers);
       metadataTimings.groupAlbumsMs = performance.now() - groupAlbumsStartTime;
 
       const migrateHabitsStartTime = performance.now();
       migrateHabitsToStableIds(app.state.tracks);
       metadataTimings.migrateHabitsMs = performance.now() - migrateHabitsStartTime;
+      if (hydratedAny) {
+        metadataTimings.finalUiMs += performance.now() - hydrationStartTime;
+      }
 
       const finalUiStartTime = performance.now();
       stopLoadingDebugTracker(loadDebug, 'Debug: metadata import complete');
 
       renderMainMenu('forward');
       app.state.navStack = [{ fn: renderMainMenu, args: ['forward'] }];
-      metadataTimings.finalUiMs = performance.now() - finalUiStartTime;
+      metadataTimings.finalUiMs += performance.now() - finalUiStartTime;
       metadataTimings.totalMs = performance.now() - importStartTime;
       flushImportTimings('metadata-import', metadataTimings);
       if (isDebugLoggingEnabled() && typeof showHotBarMessage === 'function' && window.lastImportTimings?.message) {
