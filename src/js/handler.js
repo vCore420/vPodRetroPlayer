@@ -198,8 +198,11 @@ function migrateHabitsToStableIds(tracks = []) {
   const byTriple = new Map();
   const byFileTriple = new Map();
   const byFileOnly = new Map();
+  const existingTrackIds = new Set();
 
   tracks.forEach(track => {
+    existingTrackIds.add(getTrackId(track));
+
     const titleKey = stripExt(track.title || track.fileName || '');
     const artistKey = norm(track.artist || 'unknown_artist');
     const albumKey = norm(track.album || 'unknown_album');
@@ -224,8 +227,7 @@ function migrateHabitsToStableIds(tracks = []) {
   let skipped = 0;
 
   Object.keys(habits).forEach(oldId => {
-    const existingTrack = tracks.find(track => getTrackId(track) === oldId);
-    if (existingTrack) {
+    if (existingTrackIds.has(oldId)) {
       habits[oldId] = normalizeHabit(habits[oldId]);
       return;
     }
@@ -599,7 +601,6 @@ function handleFiles(e) {
 
       const total = meta.tracks.length || 0;
       let loaded = 0;
-      const cacheEntries = [];
       const loadedSignatures = new Set();
 
       meta.tracks.forEach(metaTrack => {
@@ -613,9 +614,7 @@ function handleFiles(e) {
             size: metaTrack.size || file.size,
             lastModified: metaTrack.lastModified || file.lastModified
           };
-          if (pushUniqueTrack(stateTracks, track, loadedSignatures)) {
-            cacheEntries.push(createTrackMetadataCacheEntry(file, track));
-          }
+          pushUniqueTrack(stateTracks, track, loadedSignatures);
         }
         loaded++;
         updateLoadingCounter(loaded, total);
@@ -632,7 +631,6 @@ function handleFiles(e) {
       // Build albums (no nav here)
       groupTracksByAlbum(true, folderCovers);
       migrateHabitsToStableIds(app.state.tracks);
-      persistTrackMetadataCache(cacheEntries);
       stopLoadingDebugTracker(loadDebug, 'Debug: metadata import complete');
 
       renderMainMenu('forward');
