@@ -384,17 +384,17 @@ function buildAudioFileLookupMaps(files = []) {
 
   files.forEach(file => {
     const lowerName = (file.name || '').toLowerCase();
-    const size = Number(file.size || 0);
 
     if (!isAndroid) {
       const relativePath = normalizePath(file.webkitRelativePath || '');
       if (relativePath) {
         byRelativePath.set(relativePath.toLowerCase(), file);
       }
-    }
 
-    if (lowerName && Number.isFinite(size)) {
-      byNameAndSize.set(`${lowerName}|${size}`, file);
+      const size = Number(file.size || 0);
+      if (lowerName && Number.isFinite(size)) {
+        byNameAndSize.set(`${lowerName}|${size}`, file);
+      }
     }
 
     if (!byName.has(lowerName)) {
@@ -421,9 +421,10 @@ function findAudioFileForMetadata(metaTrack, lookupMaps) {
 
   const candidates = lookupMaps.byName.get(lowerName) || [];
   if (!candidates.length) return null;
+  if (candidates.length === 1) return candidates[0];
 
   if (Number.isFinite(metaTrack.size)) {
-    const sizeMatch = candidates.find(file => file.size === metaTrack.size);
+    const sizeMatch = candidates.find(file => Number(file.size || 0) === metaTrack.size);
     if (sizeMatch) return sizeMatch;
   }
 
