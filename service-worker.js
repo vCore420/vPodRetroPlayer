@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vmusic-cache-2.9.99';
+const CACHE_NAME = 'vmusic-cache-2.9.991';
 const APP_SHELL = [
   './',
   'index.html',
