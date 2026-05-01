@@ -658,6 +658,7 @@ function handleFiles(e) {
   // Reset all global state
   app.state.tracks = [];
   app.state.albums = {};
+  app.state.importAudioFiles = [];
   resetDerivedData();
   app.state.currentTrack = null;
   app.state.currentAlbumSongs = [];
@@ -684,7 +685,7 @@ function handleFiles(e) {
   const imageFiles = files.filter(f => f.name.match(/\.(jpg|jpeg)$/i));
   const cueFiles = files.filter(f => f.name.match(/\.cue$/i));
   const filePartitionEndTime = performance.now();
-  const audioFileLookups = buildAudioFileLookupMaps(audioFiles);
+  const audioFileLookups = metaFile ? null : buildAudioFileLookupMaps(audioFiles);
   const lookupBuildEndTime = performance.now();
 
   if (!audioFiles.length && !cueFiles.length && !metaFile) {
@@ -711,6 +712,7 @@ function handleFiles(e) {
     stopLoadingDebugTracker(loadDebug, 'Debug: metadata import mode');
     (async () => {
       const metadataCacheSession = await metadataCacheSessionPromise;
+      app.state.importAudioFiles = audioFiles;
       const metadataTimings = {
         filePartitionMs: filePartitionEndTime - importStartTime,
         lookupBuildMs: lookupBuildEndTime - filePartitionEndTime,
@@ -764,26 +766,22 @@ function handleFiles(e) {
 
       for (let index = 0; index < total; index++) {
         const metaTrack = meta.tracks[index];
-        const file = findAudioFileForMetadata(metaTrack, audioFileLookups);
-        if (file) {
-          const relativePath = normalizePath(metaTrack.relativePath || file.webkitRelativePath || '');
-          const lowerRelativePath = relativePath.toLowerCase();
-          const fileName = metaTrack.fileName || file.name;
-          const size = metaTrack.size || file.size;
-          const track = {
-            ...metaTrack,
-            file,
-            fileName,
-            relativePath,
-            folderPath: getFolderPathFromRelativePath(relativePath),
-            size,
-            lastModified: metaTrack.lastModified || file.lastModified
-          };
-          track.signature = lowerRelativePath
-            ? `rel:${lowerRelativePath}`
-            : `file:${fileName.toLowerCase()}|${size}`;
-          pushUniqueTrack(stateTracks, track, loadedSignatures);
-        }
+        const relativePath = normalizePath(metaTrack.relativePath || '');
+        const lowerRelativePath = relativePath.toLowerCase();
+        const fileName = metaTrack.fileName || '';
+        const size = Number(metaTrack.size || 0) || 0;
+        const track = {
+          ...metaTrack,
+          fileName,
+          relativePath,
+          folderPath: getFolderPathFromRelativePath(relativePath),
+          size,
+          lastModified: Number(metaTrack.lastModified || 0) || 0
+        };
+        track.signature = lowerRelativePath
+          ? `rel:${lowerRelativePath}`
+          : `file:${fileName.toLowerCase()}|${size}`;
+        pushUniqueTrack(stateTracks, track, loadedSignatures);
 
         loaded++;
 
@@ -836,6 +834,8 @@ function handleFiles(e) {
   debugLog('Audio files:', audioFiles);
   debugLog('Cue files:', cueFiles);
   debugLog('Image files:', imageFiles);
+
+  app.state.importAudioFiles = audioFiles;
 
   let processed = 0;
 

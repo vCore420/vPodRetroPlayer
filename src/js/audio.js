@@ -120,7 +120,33 @@ function resolveTrackFile(track) {
   const match = (app.state.tracks || []).find(
     t => getTrackId(t) === id && t.file instanceof Blob
   );
-  return match ? match.file : null;
+  if (match) return match.file;
+
+  const importedFiles = Array.isArray(app.state.importAudioFiles)
+    ? app.state.importAudioFiles
+    : [];
+
+  if (!importedFiles.length || !track) return null;
+
+  const targetRelativePath = (track.relativePath || '').toLowerCase();
+  const targetFileName = (track.fileName || '').toLowerCase();
+  const targetSize = Number(track.size || 0);
+
+  const resolved = importedFiles.find(file => {
+    const candidateRelativePath = (file.webkitRelativePath || '').toLowerCase();
+    if (targetRelativePath && candidateRelativePath === targetRelativePath) return true;
+
+    if ((file.name || '').toLowerCase() !== targetFileName) return false;
+    if (!targetSize) return true;
+
+    return Number(file.size || 0) === targetSize;
+  }) || null;
+
+  if (resolved) {
+    track.file = resolved;
+  }
+
+  return resolved;
 }
 
 const PLAYBACK_RETRY_WINDOW_MS = 15000;
