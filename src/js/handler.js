@@ -104,6 +104,19 @@ function flushImportTimings(label, timings) {
   debugLog(`[import-timings] ${label}`, summary);
 }
 
+function readBlobAsText(blob) {
+  if (blob && typeof blob.text === 'function') {
+    return blob.text();
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Failed to read file as text'));
+    reader.readAsText(blob);
+  });
+}
+
 function beginLoadingDebug(loadDebug, file, phase) {
   if (!LOAD_DEBUG_ENABLED || !loadDebug) return null;
 
@@ -641,12 +654,12 @@ function handleFiles(e) {
 
   if (metaFile) {
     stopLoadingDebugTracker(loadDebug, 'Debug: metadata import mode');
-    const reader = new FileReader();
-    reader.onload = async function(ev) {
+    (async () => {
       const metadataTimings = {
         filePartitionMs: filePartitionEndTime - importStartTime,
         lookupBuildMs: lookupBuildEndTime - filePartitionEndTime,
         folderCoverBuildMs: folderCoverBuildEndTime - lookupBuildEndTime,
+        fileReadMs: 0,
         jsonParseMs: 0,
         matchLoopMs: 0,
         groupAlbumsMs: 0,
@@ -654,8 +667,23 @@ function handleFiles(e) {
         finalUiMs: 0,
         totalMs: 0
       };
+      const fileReadStartTime = performance.now();
+      let metaText;
+
+      try {
+        metaText = await readBlobAsText(metaFile);
+      } catch (error) {
+        metadataTimings.totalMs = performance.now() - importStartTime;
+        flushImportTimings('metadata-import-read-error', metadataTimings);
+        stopLoadingDebugTracker(loadDebug, 'Debug: metadata import read failed');
+        console.warn('Failed to read tracks-meta.json', error);
+        alert('Failed to read tracks-meta.json. Please try importing again.');
+        return;
+      }
+
+      metadataTimings.fileReadMs = performance.now() - fileReadStartTime;
       const parseStartTime = performance.now();
-      const meta = JSON.parse(ev.target.result);
+      const meta = JSON.parse(metaText);
       metadataTimings.jsonParseMs = performance.now() - parseStartTime;
 
       app.state.tracks = [];
@@ -732,8 +760,7 @@ function handleFiles(e) {
       if (isDebugLoggingEnabled() && typeof showHotBarMessage === 'function' && window.lastImportTimings?.message) {
         showHotBarMessage(window.lastImportTimings.message, 7000);
       }
-    };
-    reader.readAsText(metaFile);
+    })();
     return;
   }
   
