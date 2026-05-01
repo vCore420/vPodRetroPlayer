@@ -4,7 +4,8 @@ const LOAD_DEBUG_ENABLED = false;
 const LOAD_DEBUG_WATCHDOG_MS = 5000;
 const TRACK_METADATA_CACHE_DB = 'vretro-player-cache';
 const TRACK_METADATA_CACHE_STORE = 'trackMetadata';
-const TRACK_METADATA_CACHE_VERSION = 2;
+const TRACK_METADATA_FILE_CACHE_STORE = 'trackMetadataFiles';
+const TRACK_METADATA_CACHE_VERSION = 3;
 
 let trackMetadataDbPromise = null;
 
@@ -97,7 +98,7 @@ function flushImportTimings(label, timings) {
     label,
     totalMs: Math.round(totalMs),
     breakdown,
-    message: `Load ${Math.round(totalMs / 1000)}s | match ${Math.round((breakdown.matchLoopMs || 0) / 1000)}s | albums ${Math.round((breakdown.groupAlbumsMs || 0) / 1000)}s | habits ${Math.round((breakdown.migrateHabitsMs || 0) / 1000)}s`
+    message: `T${Math.round(totalMs / 1000)} R${Math.round((breakdown.fileReadMs || 0) / 1000)} P${Math.round((breakdown.jsonParseMs || 0) / 1000)} M${Math.round((breakdown.matchLoopMs || 0) / 1000)} A${Math.round((breakdown.groupAlbumsMs || 0) / 1000)} H${Math.round((breakdown.migrateHabitsMs || 0) / 1000)}`
   };
 
   window.lastImportTimings = summary;
@@ -486,6 +487,18 @@ function createTrackMetadataCacheEntry(file, metadata = {}) {
   };
 }
 
+function makeMetadataFileCacheKey(file) {
+  if (!file) return '';
+
+  const relativePath = normalizePath(file.webkitRelativePath || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  const size = Number(file.size || 0);
+  const lastModified = Number(file.lastModified || 0);
+  const pathPart = relativePath || name;
+
+  return `meta:${pathPart}|${size}|${lastModified}`;
+}
+
 function buildTrackFromCachedMetadata(file, metadata = {}) {
   const cached = createTrackMetadataCacheEntry(file, metadata);
   return {
@@ -516,10 +529,12 @@ function openTrackMetadataDb() {
 
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (db.objectStoreNames.contains(TRACK_METADATA_CACHE_STORE)) {
-        db.deleteObjectStore(TRACK_METADATA_CACHE_STORE);
+      if (!db.objectStoreNames.contains(TRACK_METADATA_CACHE_STORE)) {
+        db.createObjectStore(TRACK_METADATA_CACHE_STORE, { keyPath: 'baseKey' });
       }
-      db.createObjectStore(TRACK_METADATA_CACHE_STORE, { keyPath: 'baseKey' });
+      if (!db.objectStoreNames.contains(TRACK_METADATA_FILE_CACHE_STORE)) {
+        db.createObjectStore(TRACK_METADATA_FILE_CACHE_STORE, { keyPath: 'cacheKey' });
+      }
     };
 
     request.onsuccess = () => resolve(request.result);
@@ -564,6 +579,42 @@ async function getTrackMetadataCacheEntry(file, cacheSession) {
       cacheSession.entries.set(baseKey, null);
       resolve(null);
     };
+  });
+}
+
+async function getMetadataFileCacheEntry(file, cacheSession) {
+  const cacheKey = makeMetadataFileCacheKey(file);
+  if (!cacheKey || !cacheSession?.db) return null;
+
+  return new Promise(resolve => {
+    const tx = cacheSession.db.transaction(TRACK_METADATA_FILE_CACHE_STORE, 'readonly');
+    const store = tx.objectStore(TRACK_METADATA_FILE_CACHE_STORE);
+    const request = store.get(cacheKey);
+
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => resolve(null);
+  });
+}
+
+async function persistMetadataFileCacheEntry(file, meta, cacheSession) {
+  const cacheKey = makeMetadataFileCacheKey(file);
+  const db = cacheSession?.db || await openTrackMetadataDb();
+  if (!cacheKey || !db || !meta?.tracks?.length) return;
+
+  return new Promise(resolve => {
+    const tx = db.transaction(TRACK_METADATA_FILE_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(TRACK_METADATA_FILE_CACHE_STORE);
+    store.put({
+      cacheKey,
+      name: file.name || 'tracks-meta.json',
+      size: Number(file.size || 0),
+      lastModified: Number(file.lastModified || 0),
+      meta
+    });
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+    tx.onabort = () => resolve();
   });
 }
 
@@ -655,6 +706,7 @@ function handleFiles(e) {
   if (metaFile) {
     stopLoadingDebugTracker(loadDebug, 'Debug: metadata import mode');
     (async () => {
+      const metadataCacheSession = await metadataCacheSessionPromise;
       const metadataTimings = {
         filePartitionMs: filePartitionEndTime - importStartTime,
         lookupBuildMs: lookupBuildEndTime - filePartitionEndTime,
@@ -667,24 +719,32 @@ function handleFiles(e) {
         finalUiMs: 0,
         totalMs: 0
       };
-      const fileReadStartTime = performance.now();
-      let metaText;
+      let meta;
+      const cachedMetaEntry = await getMetadataFileCacheEntry(metaFile, metadataCacheSession);
 
-      try {
-        metaText = await readBlobAsText(metaFile);
-      } catch (error) {
-        metadataTimings.totalMs = performance.now() - importStartTime;
-        flushImportTimings('metadata-import-read-error', metadataTimings);
-        stopLoadingDebugTracker(loadDebug, 'Debug: metadata import read failed');
-        console.warn('Failed to read tracks-meta.json', error);
-        alert('Failed to read tracks-meta.json. Please try importing again.');
-        return;
+      if (cachedMetaEntry?.meta?.tracks?.length) {
+        meta = cachedMetaEntry.meta;
+      } else {
+        const fileReadStartTime = performance.now();
+        let metaText;
+
+        try {
+          metaText = await readBlobAsText(metaFile);
+        } catch (error) {
+          metadataTimings.totalMs = performance.now() - importStartTime;
+          flushImportTimings('metadata-import-read-error', metadataTimings);
+          stopLoadingDebugTracker(loadDebug, 'Debug: metadata import read failed');
+          console.warn('Failed to read tracks-meta.json', error);
+          alert('Failed to read tracks-meta.json. Please try importing again.');
+          return;
+        }
+
+        metadataTimings.fileReadMs = performance.now() - fileReadStartTime;
+        const parseStartTime = performance.now();
+        meta = JSON.parse(metaText);
+        metadataTimings.jsonParseMs = performance.now() - parseStartTime;
+        persistMetadataFileCacheEntry(metaFile, meta, metadataCacheSession);
       }
-
-      metadataTimings.fileReadMs = performance.now() - fileReadStartTime;
-      const parseStartTime = performance.now();
-      const meta = JSON.parse(metaText);
-      metadataTimings.jsonParseMs = performance.now() - parseStartTime;
 
       app.state.tracks = [];
       const stateTracks = app.state.tracks;
