@@ -118,6 +118,10 @@ function readBlobAsText(blob) {
   });
 }
 
+function yieldToUi() {
+  return new Promise(resolve => setTimeout(resolve, 0));
+}
+
 async function hydrateMetadataTracksInBackground(tracks, audioFiles, folderCovers, importToken, onProgress = null) {
   if (!Array.isArray(tracks) || !tracks.length || !Array.isArray(audioFiles) || !audioFiles.length) {
     return false;
@@ -125,6 +129,7 @@ async function hydrateMetadataTracksInBackground(tracks, audioFiles, folderCover
 
   const byRelativePath = new Map();
   const byName = new Map();
+  const batchSize = 300;
   const totalUnits = audioFiles.length + tracks.length;
   let completedUnits = 0;
 
@@ -132,76 +137,86 @@ async function hydrateMetadataTracksInBackground(tracks, audioFiles, folderCover
     onProgress(completedUnits, totalUnits);
   }
 
-  if (app.state.importHydrationToken !== importToken) return false;
+  for (let start = 0; start < audioFiles.length; start += batchSize) {
+    if (app.state.importHydrationToken !== importToken) return false;
 
-  audioFiles.forEach(file => {
-    const relativePath = normalizePath(file.webkitRelativePath || '');
-    const relativePathKey = relativePath.toLowerCase();
-    const fileName = (file.name || '').toLowerCase();
-    const entry = {
-      file,
-      relativePath,
-      relativePathKey,
-      folderPath: getFolderPathFromRelativePath(relativePath),
-      size: Number(file.size || 0),
-      lastModified: Number(file.lastModified || 0)
-    };
+    const batch = audioFiles.slice(start, start + batchSize);
+    batch.forEach(file => {
+      const relativePath = normalizePath(file.webkitRelativePath || '');
+      const relativePathKey = relativePath.toLowerCase();
+      const fileName = (file.name || '').toLowerCase();
+      const entry = {
+        file,
+        relativePath,
+        relativePathKey,
+        folderPath: getFolderPathFromRelativePath(relativePath),
+        size: Number(file.size || 0),
+        lastModified: Number(file.lastModified || 0)
+      };
 
-    if (relativePathKey) {
-      byRelativePath.set(relativePathKey, entry);
+      if (relativePathKey) {
+        byRelativePath.set(relativePathKey, entry);
+      }
+
+      if (!byName.has(fileName)) {
+        byName.set(fileName, []);
+      }
+      byName.get(fileName).push(entry);
+    });
+
+    completedUnits += batch.length;
+    if (typeof onProgress === 'function') {
+      onProgress(completedUnits, totalUnits);
     }
 
-    if (!byName.has(fileName)) {
-      byName.set(fileName, []);
-    }
-    byName.get(fileName).push(entry);
-  });
-
-  completedUnits += audioFiles.length;
-  if (typeof onProgress === 'function') {
-    onProgress(completedUnits, totalUnits);
+    await yieldToUi();
   }
 
   let hydratedAny = false;
 
-  if (app.state.importHydrationToken !== importToken) return false;
+  for (let start = 0; start < tracks.length; start += batchSize) {
+    if (app.state.importHydrationToken !== importToken) return false;
 
-  tracks.forEach(track => {
-    if (track?.file instanceof Blob) return;
+    const batch = tracks.slice(start, start + batchSize);
+    batch.forEach(track => {
+      if (track?.file instanceof Blob) return;
 
-    const relativePath = normalizePath(track.relativePath || '');
-    const relativePathKey = relativePath.toLowerCase();
-    const fileName = (track.fileName || '').toLowerCase();
-    const size = Number(track.size || 0);
+      const relativePath = normalizePath(track.relativePath || '');
+      const relativePathKey = relativePath.toLowerCase();
+      const fileName = (track.fileName || '').toLowerCase();
+      const size = Number(track.size || 0);
 
-    let resolved = relativePathKey ? byRelativePath.get(relativePathKey) : null;
-    if (!resolved && fileName) {
-      const candidates = byName.get(fileName) || [];
-      if (candidates.length === 1) {
-        resolved = candidates[0];
-      } else if (candidates.length > 1 && size) {
-        resolved = candidates.find(entry => entry.size === size) || null;
+      let resolved = relativePathKey ? byRelativePath.get(relativePathKey) : null;
+      if (!resolved && fileName) {
+        const candidates = byName.get(fileName) || [];
+        if (candidates.length === 1) {
+          resolved = candidates[0];
+        } else if (candidates.length > 1 && size) {
+          resolved = candidates.find(entry => entry.size === size) || null;
+        }
       }
+
+      if (!resolved) return;
+
+      hydratedAny = true;
+      track.file = resolved.file;
+      track.relativePath = relativePath || resolved.relativePath;
+      track.folderPath = resolved.folderPath || getFolderPathFromRelativePath(track.relativePath || '');
+      if (!track.size) track.size = resolved.size;
+      if (!track.lastModified) track.lastModified = resolved.lastModified;
+
+      const normalizedRelativePath = normalizePath(track.relativePath || '').toLowerCase();
+      track.signature = normalizedRelativePath
+        ? `rel:${normalizedRelativePath}`
+        : `file:${(track.fileName || '').toLowerCase()}|${track.size || ''}`;
+    });
+
+    completedUnits += batch.length;
+    if (typeof onProgress === 'function') {
+      onProgress(completedUnits, totalUnits);
     }
 
-    if (!resolved) return;
-
-    hydratedAny = true;
-    track.file = resolved.file;
-    track.relativePath = relativePath || resolved.relativePath;
-    track.folderPath = resolved.folderPath || getFolderPathFromRelativePath(track.relativePath || '');
-    if (!track.size) track.size = resolved.size;
-    if (!track.lastModified) track.lastModified = resolved.lastModified;
-
-    const normalizedRelativePath = normalizePath(track.relativePath || '').toLowerCase();
-    track.signature = normalizedRelativePath
-      ? `rel:${normalizedRelativePath}`
-      : `file:${(track.fileName || '').toLowerCase()}|${track.size || ''}`;
-  });
-
-  completedUnits += tracks.length;
-  if (typeof onProgress === 'function') {
-    onProgress(completedUnits, totalUnits);
+    await yieldToUi();
   }
 
   return hydratedAny;
@@ -850,6 +865,7 @@ function handleFiles(e) {
       const stateTracks = app.state.tracks;
 
       const total = meta.tracks.length || 0;
+      const batchSize = 300;
       let loaded = 0;
       const loadedSignatures = new Set();
       const matchLoopStartTime = performance.now();
@@ -874,6 +890,11 @@ function handleFiles(e) {
         pushUniqueTrack(stateTracks, track, loadedSignatures);
 
         loaded++;
+
+        if (loaded % batchSize === 0) {
+          updateLoadingCounter(loaded, total);
+          await yieldToUi();
+        }
       }
 
       metadataTimings.matchLoopMs = performance.now() - matchLoopStartTime;
