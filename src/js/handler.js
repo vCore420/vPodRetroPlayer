@@ -98,7 +98,7 @@ function flushImportTimings(label, timings) {
     label,
     totalMs: Math.round(totalMs),
     breakdown,
-    message: `T${Math.round(totalMs / 1000)} R${Math.round((breakdown.fileReadMs || 0) / 1000)} C${breakdown.metadataCacheHitMs ? 1 : 0}`
+    message: `T${Math.round(totalMs / 1000)} F${Math.round((breakdown.filePartitionMs || 0) / 1000)} L${Math.round((breakdown.lookupBuildMs || 0) / 1000)} C${Math.round((breakdown.folderCoverBuildMs || 0) / 1000)}`
   };
 
   window.lastImportTimings = summary;
