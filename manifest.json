@@ -6,6 +6,8 @@
   "background_color": "#e0e0e0",
   "theme_color": "#e0e0e0",
   "description": "A retro ipod-style music player.",
+  "orientation": "portrait",
+  "categories": ["music", "entertainment"],
   "icons": [
     {
       "src": "src/img/icon-192.png",
