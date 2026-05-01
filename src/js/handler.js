@@ -327,6 +327,13 @@ function normalizePath(p = '') {
 }
 window.normalizePath = normalizePath;
 
+function getFolderPathFromRelativePath(relativePath = '') {
+  if (!relativePath) return '';
+  const parts = relativePath.split('/');
+  parts.pop();
+  return parts.join('/');
+}
+
 function parseTrackNumber(raw) {
   if (raw == null) return null;
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
@@ -337,13 +344,19 @@ function parseTrackNumber(raw) {
 function buildAudioFileLookupMaps(files = []) {
   const byRelativePath = new Map();
   const byName = new Map();
+  const byNameAndSize = new Map();
 
   files.forEach(file => {
     const relativePath = normalizePath(file.webkitRelativePath || '');
     const lowerName = (file.name || '').toLowerCase();
+    const size = Number(file.size || 0);
 
     if (relativePath) {
       byRelativePath.set(relativePath.toLowerCase(), file);
+    }
+
+    if (lowerName && Number.isFinite(size)) {
+      byNameAndSize.set(`${lowerName}|${size}`, file);
     }
 
     if (!byName.has(lowerName)) {
@@ -352,7 +365,7 @@ function buildAudioFileLookupMaps(files = []) {
     byName.get(lowerName).push(file);
   });
 
-  return { byRelativePath, byName };
+  return { byRelativePath, byName, byNameAndSize };
 }
 
 function findAudioFileForMetadata(metaTrack, lookupMaps) {
@@ -361,7 +374,14 @@ function findAudioFileForMetadata(metaTrack, lookupMaps) {
     return lookupMaps.byRelativePath.get(relativePath);
   }
 
-  const candidates = lookupMaps.byName.get((metaTrack.fileName || '').toLowerCase()) || [];
+  const lowerName = (metaTrack.fileName || '').toLowerCase();
+
+  if (Number.isFinite(metaTrack.size)) {
+    const exactMatch = lookupMaps.byNameAndSize.get(`${lowerName}|${metaTrack.size}`);
+    if (exactMatch) return exactMatch;
+  }
+
+  const candidates = lookupMaps.byName.get(lowerName) || [];
   if (!candidates.length) return null;
 
   if (Number.isFinite(metaTrack.size)) {
@@ -373,6 +393,10 @@ function findAudioFileForMetadata(metaTrack, lookupMaps) {
 }
 
 function makeLoadedTrackSignature(source = {}) {
+  if (typeof source.signature === 'string' && source.signature) {
+    return source.signature;
+  }
+
   const relativePath = normalizePath(
     source.relativePath || source.webkitRelativePath || source.file?.webkitRelativePath || ''
   ).toLowerCase();
@@ -609,14 +633,22 @@ function handleFiles(e) {
         const metaTrack = meta.tracks[index];
         const file = findAudioFileForMetadata(metaTrack, audioFileLookups);
         if (file) {
+          const relativePath = normalizePath(metaTrack.relativePath || file.webkitRelativePath || '');
+          const lowerRelativePath = relativePath.toLowerCase();
+          const fileName = metaTrack.fileName || file.name;
+          const size = metaTrack.size || file.size;
           const track = {
             ...metaTrack,
             file,
-            fileName: metaTrack.fileName || file.name,
-            relativePath: normalizePath(metaTrack.relativePath || file.webkitRelativePath || ''),
-            size: metaTrack.size || file.size,
+            fileName,
+            relativePath,
+            folderPath: getFolderPathFromRelativePath(relativePath),
+            size,
             lastModified: metaTrack.lastModified || file.lastModified
           };
+          track.signature = lowerRelativePath
+            ? `rel:${lowerRelativePath}`
+            : `file:${fileName.toLowerCase()}|${size}`;
           pushUniqueTrack(stateTracks, track, loadedSignatures);
         }
 
@@ -839,10 +871,7 @@ function handleFiles(e) {
 
 function getFolderPath(file) {
   const rel = normalizePath(file.webkitRelativePath || '');
-  if (!rel) return '';
-  const parts = rel.split('/');
-  parts.pop();
-  return parts.join('/');
+  return getFolderPathFromRelativePath(rel);
 }
 
 function makeAlbumKey(track) {
@@ -866,7 +895,9 @@ function groupTracksByAlbum(skipPrompt = false, folderCovers = {}) {
     track.albumKey    = albumKey; // store on track for lookups
 
     if (!allAlbums[albumKey]) {
-      const trackFolder = track.file ? getFolderPath(track.file) : '';
+      const trackFolder = (track.folderPath || track.relativePath)
+        ? getFolderPathFromRelativePath(track.folderPath || track.relativePath || '')
+        : (track.file ? getFolderPath(track.file) : '');
       const coverUrl = folderCovers[trackFolder] || track.cover || 'src/img/default-cover.png';
 
       allAlbums[albumKey] = {
