@@ -587,6 +587,69 @@ function makeTrackMetadataBaseKey(source = {}) {
   return `${prefix}|${size}`;
 }
 
+// Best-effort local fallback for whichever of artist/album tag-reading left
+// blank: guess from the folder structure the file lives in (the common
+// ".../Artist/Album/Track.ext" layout). This never overwrites real tag
+// data, only fills gaps, and is intentionally conservative - generic-
+// looking folder names are skipped rather than guessed, so a track can
+// still be flagged for MusicBrainz lookup / manual identification instead
+// of being confidently wrong.
+function inferMetadataFromFolderPath(relativePath) {
+  const segments = (relativePath || '')
+    .split('/')
+    .map(part => part.trim())
+    .filter(Boolean);
+
+  segments.pop(); // drop the filename itself
+
+  const isUsableFolderName = name => {
+    if (!name) return false;
+    if (/^(music|songs|tracks|audio|downloads?|new folder|untitled)$/i.test(name)) return false;
+    if (/^(cd|disc|disk)\s*\d+$/i.test(name)) return false;
+    return true;
+  };
+
+  const album = segments.length >= 1 && isUsableFolderName(segments[segments.length - 1])
+    ? segments[segments.length - 1]
+    : null;
+  const artist = segments.length >= 2 && isUsableFolderName(segments[segments.length - 2])
+    ? segments[segments.length - 2]
+    : null;
+
+  return { artist, album };
+}
+
+// Fills in title/artist/album/genre from tag data first, falling back to a
+// folder-name guess for whatever tags left blank, and finally to the
+// existing generic placeholders. Flags the track as needing identification
+// only once BOTH tag reading and the folder guess have come up empty for
+// artist AND album - i.e. genuinely unidentified, not just missing one
+// field - so the Identify Track/Album/Artist tools (and their Settings
+// summary list) have something meaningful to point at.
+function finalizeScannedTrackMetadata(file, tagData = {}) {
+  const relativePath = normalizePath(file.webkitRelativePath || '');
+  const folderGuess = inferMetadataFromFolderPath(relativePath);
+
+  const title = tagData.title || file.name.replace(/\.(mp3|flac)$/i, '');
+  const artist = tagData.artist || folderGuess.artist || 'Unknown Artist';
+  const album = tagData.album || folderGuess.album || 'Unidentified Album';
+  const genre = tagData.genre || 'Unknown Genre';
+
+  return {
+    file,
+    fileName: file.name,
+    relativePath,
+    size: file.size,
+    lastModified: file.lastModified,
+    title,
+    artist,
+    album,
+    genre,
+    trackNumber: tagData.trackNumber,
+    needsIdentification: artist === 'Unknown Artist' && album === 'Unidentified Album'
+  };
+}
+
 function createTrackMetadataCacheEntry(file, metadata = {}) {
   return {
     baseKey: makeTrackMetadataBaseKey({
@@ -606,7 +669,16 @@ function createTrackMetadataCacheEntry(file, metadata = {}) {
     genre: metadata.genre || 'Unknown Genre',
     year: metadata.year,
     trackNumber: parseTrackNumber(metadata.trackNumber),
-    duration: Number(metadata.duration || 0) || undefined
+    duration: Number(metadata.duration || 0) || undefined,
+    // Set once a track has been through the Identify Track/Album/Artist
+    // tools (manual entry or a confirmed MusicBrainz match). Lets a future
+    // rescan know this track's metadata was deliberately chosen, not just
+    // read/guessed, so it should keep it rather than re-deriving it.
+    needsIdentification: !!metadata.needsIdentification,
+    metadataManuallyFixed: !!metadata.metadataManuallyFixed,
+    musicBrainzRecordingId: metadata.musicBrainzRecordingId || null,
+    musicBrainzReleaseGroupId: metadata.musicBrainzReleaseGroupId || null,
+    musicBrainzArtistId: metadata.musicBrainzArtistId || null
   };
 }
 
@@ -636,7 +708,12 @@ function buildTrackFromCachedMetadata(file, metadata = {}) {
     genre: cached.genre,
     year: cached.year,
     trackNumber: cached.trackNumber,
-    duration: cached.duration
+    duration: cached.duration,
+    needsIdentification: cached.needsIdentification,
+    metadataManuallyFixed: cached.metadataManuallyFixed,
+    musicBrainzRecordingId: cached.musicBrainzRecordingId,
+    musicBrainzReleaseGroupId: cached.musicBrainzReleaseGroupId,
+    musicBrainzArtistId: cached.musicBrainzArtistId
   };
 }
 
@@ -854,6 +931,69 @@ async function persistTrackDuration(track, duration) {
 }
 window.persistTrackDuration = persistTrackDuration;
 
+// Generic cache-entry updater for the Identify Track/Album/Artist tools.
+// Unlike persistTrackDuration (one numeric field), this writes back any of
+// the descriptive fields plus the manual-override/MusicBrainz bookkeeping,
+// so a corrected track keeps its fix across future rescans instead of the
+// scanner re-deriving (and overwriting) it from tags/folder guessing again.
+async function persistTrackMetadataOverride(track) {
+  if (!track) return;
+
+  const baseKey = makeTrackMetadataBaseKey(track);
+  if (!baseKey) return;
+
+  const db = await openTrackMetadataDb();
+  if (!db) return;
+
+  return new Promise(resolve => {
+    const tx = db.transaction(TRACK_METADATA_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(TRACK_METADATA_CACHE_STORE);
+    const getRequest = store.get(baseKey);
+
+    getRequest.onsuccess = () => {
+      const existing = getRequest.result || {
+        baseKey,
+        fileName: track.fileName || track.file?.name || '',
+        relativePath: normalizePath(track.relativePath || track.file?.webkitRelativePath || ''),
+        size: Number(track.size || track.file?.size || 0),
+        lastModified: Number(track.lastModified || track.file?.lastModified || 0)
+      };
+
+      store.put({
+        ...existing,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        genre: track.genre || existing.genre || 'Unknown Genre',
+        year: track.year,
+        trackNumber: track.trackNumber,
+        duration: existing.duration,
+        needsIdentification: !!track.needsIdentification,
+        metadataManuallyFixed: true,
+        musicBrainzRecordingId: track.musicBrainzRecordingId || null,
+        musicBrainzReleaseGroupId: track.musicBrainzReleaseGroupId || null,
+        musicBrainzArtistId: track.musicBrainzArtistId || null
+      });
+    };
+    getRequest.onerror = () => resolve();
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+    tx.onabort = () => resolve();
+  });
+}
+window.persistTrackMetadataOverride = persistTrackMetadataOverride;
+
+// Lets anything outside the loader (namely the Identify Track/Album/Artist
+// tools) safely re-run album grouping after editing a track's artist/album
+// in place, reusing the same folder-cover map the original load built
+// instead of needing to know where that lives.
+function regroupLibrary() {
+  if (typeof groupTracksByAlbum !== 'function') return;
+  groupTracksByAlbum(true, app.state.folderCovers || {});
+}
+window.regroupLibrary = regroupLibrary;
+
 function handleFiles(e) {
   debugLog('Handling files:', e.target.files);
   const loadDebug = createLoadingDebugTracker();
@@ -914,6 +1054,10 @@ function handleFiles(e) {
     }
   });
   const folderCoverBuildEndTime = performance.now();
+  // Stashed so anything that needs to re-run groupTracksByAlbum later (e.g.
+  // after a manual metadata fix from the Identify Track/Album/Artist tools)
+  // doesn't have to rebuild this map from scratch.
+  app.state.folderCovers = folderCovers;
 
   if (metaFile) {
     goTo(goToLoadingScreen);
@@ -1128,7 +1272,13 @@ function handleFiles(e) {
           // just CUE ones) by the tracks-meta.json reimport and background
           // file-hydration paths, which would collide regular tracks' habit
           // IDs with each other were getTrackId to read it.
-          cueTrackKey: `cue:${(cueRelativePath || fileName || '').toLowerCase()}#${trackNumber}`
+          cueTrackKey: `cue:${(cueRelativePath || fileName || '').toLowerCase()}#${trackNumber}`,
+          // Same bar as the raw scan path: only flag as needing
+          // identification when there's essentially nothing to go on -
+          // no real per-track title, and the album fell back to the
+          // generic placeholder too (a CUE sheet almost always has at
+          // least an album TITLE line, so this should be rare).
+          needsIdentification: !titleMatch && !performerTrack && albumTitle === 'Unidentified Album'
         });
       });
     });
@@ -1240,18 +1390,7 @@ function handleFiles(e) {
         const trackNumber = parseTrackNumber(track);
         debugLog('Read tags for:', file.name, result.tag.tags);
 
-        const trackData = {
-          file,
-          fileName: file.name,
-          relativePath: normalizePath(file.webkitRelativePath || ''),
-          size: file.size,
-          lastModified: file.lastModified,
-          title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
-          artist: artist || 'Unknown Artist',
-          album: album || 'Unidentified Album',
-          genre: genre || 'Unknown Genre',
-          trackNumber
-        };
+        const trackData = finalizeScannedTrackMetadata(file, { title, artist, album, genre, trackNumber });
 
         pushUniqueTrack(stateTracks, trackData, loadedSignatures);
         cacheWrites.push(createTrackMetadataCacheEntry(file, trackData));
@@ -1259,16 +1398,7 @@ function handleFiles(e) {
       } else {
         debugLog('Error reading tags for:', file.name);
 
-        const trackData = {
-          file,
-          fileName: file.name,
-          relativePath: normalizePath(file.webkitRelativePath || ''),
-          size: file.size,
-          lastModified: file.lastModified,
-          title: file.name.replace(/\.(mp3|flac)$/i, ''),
-          artist: 'Unknown Artist',
-          album: 'Unidentified Album'
-        };
+        const trackData = finalizeScannedTrackMetadata(file, {});
 
         pushUniqueTrack(stateTracks, trackData, loadedSignatures);
         cacheWrites.push(createTrackMetadataCacheEntry(file, trackData));
@@ -1382,7 +1512,16 @@ function exportMetadata() {
       // Round-trip the dedicated cross-session identity key used by
       // getTrackId (habits/playlists/Smart Mix). Kept separate from
       // `signature` above on purpose - see the note in parseCue.
-      cueTrackKey: t.cueTrackKey || undefined
+      cueTrackKey: t.cueTrackKey || undefined,
+      // Identify Track/Album/Artist bookkeeping - keeps a manual fix (or the
+      // "still needs identification" flag) intact through an export/import
+      // round trip instead of it resetting to whatever tags/folder guessing
+      // would produce on the next full rescan.
+      needsIdentification: !!t.needsIdentification || undefined,
+      metadataManuallyFixed: !!t.metadataManuallyFixed || undefined,
+      musicBrainzRecordingId: t.musicBrainzRecordingId || undefined,
+      musicBrainzReleaseGroupId: t.musicBrainzReleaseGroupId || undefined,
+      musicBrainzArtistId: t.musicBrainzArtistId || undefined
     }))
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

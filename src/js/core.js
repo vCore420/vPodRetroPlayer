@@ -86,6 +86,7 @@ const app = {
     albums: {},
     importAudioFiles: [],
     importHydrationToken: 0,
+    folderCovers: {},
     playlists: readLocalJson('playlists', []),
     navStack: [],
     currentTrack: null,
