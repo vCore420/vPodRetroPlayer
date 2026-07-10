@@ -47,6 +47,21 @@ function attachNowPlayingButtonListeners() {
   const resetBtn = document.getElementById('resetTrackRatingsBtn');
   const queueBtn = document.getElementById('queueBtn');
   const addBtn = document.getElementById('addToPlaylistBtn');
+  const identifyBtn = document.getElementById('identifyTrackBtn');
+
+  if (identifyBtn) {
+    identifyBtn.onclick = () => {
+      const track = app.state.currentTrack;
+      if (!track) return;
+      if (typeof openIdentifyModal === 'function') {
+        openIdentifyModal({
+          kind: 'track',
+          track,
+          onApplied: () => renderNowPlayingScreen()
+        });
+      }
+    };
+  }
 
   if (likeBtn) {
     likeBtn.onclick = () => {
@@ -165,7 +180,10 @@ function renderNowPlayingScreen(direction = 'forward') {
   renderScreen(
     `<div class="nowplaying-container">
       <div id="resetTrackRatings" style="display:flex;align-items:center;justify-content:space-between;margin:0 12px 0 0;">
-        <span></span>
+        <button id="identifyTrackBtn" title="Identify Track"
+          style="background:none;border:none;color:#b0b0b0;font-size:1.1em;cursor:pointer;padding:2px 0;margin-left:12px;">
+          <i class="fa-solid fa-bars"></i>
+        </button>
         <button id="resetTrackRatingsBtn" title="Reset all stats for this song"
           style="background:none;border:none;color:#b0b0b0;font-size:1.1em;cursor:pointer;padding:2px 0;">
           <i class="fa-solid fa-rotate-right"></i>
