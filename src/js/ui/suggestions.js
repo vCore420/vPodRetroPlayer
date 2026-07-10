@@ -458,6 +458,17 @@ function getTrackId(track) {
   const cachedId = app.state.trackIdCache.get(track);
   if (cachedId) return cachedId;
 
+  // CUE-derived tracks can legitimately share one physical file (a single
+  // continuous FLAC split into several virtual tracks). Their relativePath
+  // alone isn't unique in that case, so honor the loader's own per-track
+  // signature (see parseCue in handler.js) before falling back to path-based
+  // identity - otherwise every track split from one file would collapse
+  // into a single ID for habits/playlists/Smart Mix purposes.
+  if (typeof track.signature === 'string' && track.signature) {
+    app.state.trackIdCache.set(track, track.signature);
+    return track.signature;
+  }
+
   const rawRel = (track.file && track.file.webkitRelativePath) || track.relativePath || '';
   const rel = (typeof normalizePath === 'function') ? normalizePath(rawRel) : rawRel;
   const name = (track.file && track.file.name) || track.fileName || '';

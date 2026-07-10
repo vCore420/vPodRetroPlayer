@@ -654,10 +654,35 @@ function openTrackMetadataDb() {
 
 async function createTrackMetadataCacheSession() {
   const db = await openTrackMetadataDb();
-  return {
-    db,
-    entries: new Map()
-  };
+  const entries = new Map();
+
+  // Bulk-load the entire metadata store in one transaction instead of doing
+  // a separate IndexedDB round-trip per file. For a library of 1000+ tracks
+  // this turns 1000+ tiny async transactions (which add up fast, especially
+  // on slower Android WebView storage) into a single read.
+  let preloaded = false;
+  if (db) {
+    try {
+      await new Promise(resolve => {
+        const tx = db.transaction(TRACK_METADATA_CACHE_STORE, 'readonly');
+        const store = tx.objectStore(TRACK_METADATA_CACHE_STORE);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+          (request.result || []).forEach(entry => {
+            if (entry && entry.baseKey) entries.set(entry.baseKey, entry);
+          });
+          resolve();
+        };
+        request.onerror = () => resolve();
+      });
+      preloaded = true;
+    } catch (error) {
+      console.warn('Failed to bulk-preload track metadata cache', error);
+    }
+  }
+
+  return { db, entries, preloaded };
 }
 
 async function getTrackMetadataCacheEntry(file, cacheSession) {
@@ -666,6 +691,13 @@ async function getTrackMetadataCacheEntry(file, cacheSession) {
 
   if (cacheSession?.entries.has(baseKey)) {
     return cacheSession.entries.get(baseKey);
+  }
+
+  // The whole store was already preloaded into `entries` above, so a miss
+  // here means there's genuinely no cached entry - no need to fall through
+  // to a per-key IndexedDB request.
+  if (cacheSession?.preloaded) {
+    return null;
   }
 
   if (!cacheSession?.db) {
@@ -884,9 +916,12 @@ function handleFiles(e) {
           size,
           lastModified: Number(metaTrack.lastModified || 0) || 0
         };
-        track.signature = lowerRelativePath
-          ? `rel:${lowerRelativePath}`
-          : `file:${fileName.toLowerCase()}|${size}`;
+        // Preserve a CUE-derived track's own unique signature if it exported
+        // one (see parseCue) - otherwise multiple tracks sharing one physical
+        // file would all fall back to the same rel:<path> key and collapse
+        // down to a single track on re-import.
+        track.signature = metaTrack.signature ||
+          (lowerRelativePath ? `rel:${lowerRelativePath}` : `file:${fileName.toLowerCase()}|${size}`);
         pushUniqueTrack(stateTracks, track, loadedSignatures);
 
         loaded++;
@@ -960,6 +995,12 @@ function handleFiles(e) {
 
   let processed = 0;
 
+  // Audio files that a CUE sheet has claimed (e.g. one FLAC split into many
+  // virtual tracks). These must be excluded from the standalone tag-reading
+  // pass below, otherwise the whole-file tag read wins the loadedSignatures
+  // race and silently swallows every per-track CUE entry (same relativePath).
+  const cueReferencedFiles = new Set();
+
   // Helper to parse CUE files
   function parseCue(text, audioFiles, fallbackFile = null) {
     debugLog('Parsing CUE file:', fallbackFile ? fallbackFile.name : 'No FLAC fallback');
@@ -983,6 +1024,13 @@ function handleFiles(e) {
       const file = fileCandidates[0] || fallbackFile || null;
       const trackBlocks = [...block.matchAll(/TRACK\s+(\d+)\s+AUDIO([\s\S]*?)(?=TRACK\s+\d+\s+AUDIO|$)/gi)];
 
+      // Only claim the file (excluding it from standalone tag reading) if the
+      // CUE sheet actually produced track entries for it. A malformed/empty
+      // FILE block shouldn't cause the underlying audio file to disappear.
+      if (file && trackBlocks.length) cueReferencedFiles.add(file);
+
+      const cueRelativePath = normalizePath(file ? file.webkitRelativePath || '' : '');
+
       trackBlocks.forEach(([, numStr, tBlock]) => {
         const trackNumber = parseInt(numStr, 10);
         const titleMatch = tBlock.match(/TITLE\s+"([^"]+)"/i);
@@ -991,7 +1039,7 @@ function handleFiles(e) {
         parsedCueTracks.push({
           file,
           fileName: file ? file.name : fileName,
-          relativePath: normalizePath(file ? file.webkitRelativePath || '' : ''),
+          relativePath: cueRelativePath,
           size: file ? file.size : 0,
           lastModified: file ? file.lastModified : 0,
           title: titleMatch ? titleMatch[1] : (file ? file.name.replace(/\.(mp3|flac)$/i, '') : 'Unknown Track'),
@@ -999,7 +1047,13 @@ function handleFiles(e) {
           album: albumTitle,
           genre: genre || 'Unknown Genre',
           year,
-          trackNumber
+          trackNumber,
+          // Explicit, unique signature: two CUE tracks can legitimately share
+          // one physical file (a single continuous FLAC split by the CUE
+          // sheet), which would otherwise share the same relativePath and
+          // collide in the loadedSignatures dedup check, silently dropping
+          // every track after the first.
+          signature: `cue:${(cueRelativePath || fileName || '').toLowerCase()}#${trackNumber}`
         });
       });
     });
@@ -1041,18 +1095,24 @@ function handleFiles(e) {
   // Process audio files
   async function processAudioFiles() {
     debugLog('Processing audio files...');
-    const total = audioFiles.length;
+
+    // Files fully described by a CUE sheet are skipped here entirely: reading
+    // their tags again would (a) waste time on a file whose track-level data
+    // already comes from the CUE text, and (b) previously caused the raw
+    // whole-file entry to collide (same relativePath signature) with, and
+    // silently discard, all of its per-track CUE entries.
+    const filesToProcess = cueReferencedFiles.size
+      ? audioFiles.filter(file => !cueReferencedFiles.has(file))
+      : audioFiles;
+
+    const total = filesToProcess.length;
     let done = 0;
     const stateTracks = app.state.tracks;
     const loadedSignatures = new Set(stateTracks.map(track => makeLoadedTrackSignature(track)));
     const metadataCacheSession = await metadataCacheSessionPromise;
     const cacheWrites = [];
-    let finalized = false;
 
     const finalizeAudioLoad = async () => {
-      if (finalized || done !== total) return;
-      finalized = true;
-
       cueTracks.forEach(ct => {
         pushUniqueTrack(stateTracks, ct, loadedSignatures);
       });
@@ -1064,16 +1124,29 @@ function handleFiles(e) {
     };
 
     if (total === 0) {
-      cueTracks.forEach(ct => {
-        pushUniqueTrack(stateTracks, ct, loadedSignatures);
-      });
-      stopLoadingDebugTracker(loadDebug, 'Debug: cue-only import complete');
-      groupTracksByAlbum(false, folderCovers);
-      migrateHabitsToStableIds(app.state.tracks);
+      await finalizeAudioLoad();
       return;
     }
 
-    audioFiles.forEach(async file => {
+    updateLoadingCounter(0, total);
+
+    // jsmediatags is callback-based; wrap a single read in a Promise so it can
+    // be awaited inside a bounded worker instead of firing unbounded in
+    // parallel (the old `audioFiles.forEach(async file => ...)` kicked off
+    // every file's tag read - and, for cache misses, every underlying
+    // FileReader/ArrayBuffer read - all at once. For 1000+ files that causes
+    // heavy I/O/GC contention, which is the main reason large-library imports
+    // were slow, especially on lower-powered Android tablets).
+    function readTagsAsync(file) {
+      return new Promise(resolve => {
+        window.jsmediatags.read(file, {
+          onSuccess: tag => resolve({ ok: true, tag }),
+          onError: error => resolve({ ok: false, error })
+        });
+      });
+    }
+
+    async function processOneFile(file) {
       const debugKey = beginLoadingDebug(loadDebug, file, 'audio');
       const cachedMetadata = await getTrackMetadataCacheEntry(file, metadataCacheSession);
 
@@ -1082,59 +1155,71 @@ function handleFiles(e) {
         endLoadingDebug(loadDebug, debugKey, 'CACHE');
         done++;
         updateLoadingCounter(done, total);
-        finalizeAudioLoad();
         return;
       }
 
-      window.jsmediatags.read(file, {
-        onSuccess: tag => {
-          const { title, artist, album, genre, track } = tag.tags;
-          const trackNumber = parseTrackNumber(track);
-          debugLog('Read tags for:', file.name, tag.tags);
+      const result = await readTagsAsync(file);
 
-          const trackData = {
-            file,
-            fileName: file.name,
-            relativePath: normalizePath(file.webkitRelativePath || ''),
-            size: file.size,
-            lastModified: file.lastModified,
-            title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
-            artist: artist || 'Unknown Artist',
-            album: album || 'Unidentified Album',
-            genre: genre || 'Unknown Genre',
-            trackNumber
-          };
+      if (result.ok) {
+        const { title, artist, album, genre, track } = result.tag.tags;
+        const trackNumber = parseTrackNumber(track);
+        debugLog('Read tags for:', file.name, result.tag.tags);
 
-          pushUniqueTrack(stateTracks, trackData, loadedSignatures);
-          cacheWrites.push(createTrackMetadataCacheEntry(file, trackData));
-          endLoadingDebug(loadDebug, debugKey, 'OK');
-          done++;
-          updateLoadingCounter(done, total);
-          finalizeAudioLoad();
-        },
-        onError: () => {
-          debugLog('Error reading tags for:', file.name);
+        const trackData = {
+          file,
+          fileName: file.name,
+          relativePath: normalizePath(file.webkitRelativePath || ''),
+          size: file.size,
+          lastModified: file.lastModified,
+          title: title || file.name.replace(/\.(mp3|flac)$/i, ''),
+          artist: artist || 'Unknown Artist',
+          album: album || 'Unidentified Album',
+          genre: genre || 'Unknown Genre',
+          trackNumber
+        };
 
-          const trackData = {
-            file,
-            fileName: file.name,
-            relativePath: normalizePath(file.webkitRelativePath || ''),
-            size: file.size,
-            lastModified: file.lastModified,
-            title: file.name.replace(/\.(mp3|flac)$/i, ''),
-            artist: 'Unknown Artist',
-            album: 'Unidentified Album'
-          };
+        pushUniqueTrack(stateTracks, trackData, loadedSignatures);
+        cacheWrites.push(createTrackMetadataCacheEntry(file, trackData));
+        endLoadingDebug(loadDebug, debugKey, 'OK');
+      } else {
+        debugLog('Error reading tags for:', file.name);
 
-          pushUniqueTrack(stateTracks, trackData, loadedSignatures);
-          cacheWrites.push(createTrackMetadataCacheEntry(file, trackData));
-          endLoadingDebug(loadDebug, debugKey, 'ERR');
-          done++;
-          updateLoadingCounter(done, total);
-          finalizeAudioLoad();
-        }
-      });
-    });
+        const trackData = {
+          file,
+          fileName: file.name,
+          relativePath: normalizePath(file.webkitRelativePath || ''),
+          size: file.size,
+          lastModified: file.lastModified,
+          title: file.name.replace(/\.(mp3|flac)$/i, ''),
+          artist: 'Unknown Artist',
+          album: 'Unidentified Album'
+        };
+
+        pushUniqueTrack(stateTracks, trackData, loadedSignatures);
+        cacheWrites.push(createTrackMetadataCacheEntry(file, trackData));
+        endLoadingDebug(loadDebug, debugKey, 'ERR');
+      }
+
+      done++;
+      updateLoadingCounter(done, total);
+    }
+
+    // Bounded worker pool: a handful of files are read concurrently instead
+    // of all at once, and a fresh file starts as soon as a slot frees up.
+    // This keeps the UI responsive (each worker naturally yields at its
+    // `await` points) while avoiding the thrashing of unbounded parallelism.
+    const concurrency = Math.max(4, Math.min(8, (navigator.hardwareConcurrency || 4) * 2));
+    let cursor = 0;
+
+    async function worker() {
+      while (cursor < total) {
+        const file = filesToProcess[cursor++];
+        await processOneFile(file);
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(concurrency, total) }, worker));
+    await finalizeAudioLoad();
   }
 }
 
@@ -1213,7 +1298,11 @@ function exportMetadata() {
       genre: t.genre,
       year: t.year,
       trackNumber: t.trackNumber,
-      duration: t.duration
+      duration: t.duration,
+      // Round-trip the dedup signature (only meaningfully set for CUE-derived
+      // tracks) so re-importing tracks-meta.json can't collapse multiple
+      // tracks that share one physical file back down to just one.
+      signature: t.signature || undefined
     }))
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
