@@ -460,13 +460,21 @@ function getTrackId(track) {
 
   // CUE-derived tracks can legitimately share one physical file (a single
   // continuous FLAC split into several virtual tracks). Their relativePath
-  // alone isn't unique in that case, so honor the loader's own per-track
-  // signature (see parseCue in handler.js) before falling back to path-based
-  // identity - otherwise every track split from one file would collapse
-  // into a single ID for habits/playlists/Smart Mix purposes.
-  if (typeof track.signature === 'string' && track.signature) {
-    app.state.trackIdCache.set(track, track.signature);
-    return track.signature;
+  // alone isn't unique in that case, so honor the loader's dedicated
+  // cross-session identity key (see parseCue in handler.js) before falling
+  // back to path-based identity - otherwise every track split from one file
+  // would collapse into a single ID for habits/playlists/Smart Mix purposes.
+  //
+  // NOTE: this deliberately checks `cueTrackKey`, NOT `signature`. `signature`
+  // is a different, loader-internal field that the tracks-meta.json reimport
+  // and background file-hydration paths set on EVERY track (not just CUE
+  // ones) to a generic `rel:<path>` value for their own session-scoped dedup
+  // bookkeeping. Reading it here previously changed the ID of every ordinary
+  // re-imported track, breaking matches against already-saved habits data
+  // (Liked Songs, play counts, etc. all appeared to reset/empty out).
+  if (typeof track.cueTrackKey === 'string' && track.cueTrackKey) {
+    app.state.trackIdCache.set(track, track.cueTrackKey);
+    return track.cueTrackKey;
   }
 
   const rawRel = (track.file && track.file.webkitRelativePath) || track.relativePath || '';

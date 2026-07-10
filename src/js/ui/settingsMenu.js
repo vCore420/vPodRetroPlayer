@@ -569,7 +569,7 @@ function renderUserStatsMenu(direction = 'forward') {
   const playlists = app.state.playlists || [];
   const trackById = new Map(tracks.map(track => [getTrackId(track), track]));
 
-  const totals = Object.values(habits).reduce((acc, habit) => {
+  const totals = Object.entries(habits).reduce((acc, [id, habit]) => {
     acc.weeklyPlays += Number(habit.weeklyPlays || 0);
     acc.weeklySkips += Number(habit.weeklySkips || 0);
     acc.weeklyLikes += Number(habit.weeklyLikes || 0);
@@ -580,7 +580,7 @@ function renderUserStatsMenu(direction = 'forward') {
     acc.lifetimeLikes += Number(habit.likeCount || 0);
     acc.lifetimeDislikes += Number(habit.dislikeCount || 0);
 
-    const track = trackById.get(habit.trackId || '') || null;
+    const track = trackById.get(id) || null;
     const duration = track && Number.isFinite(track.duration) ? Number(track.duration) : 0;
     acc.weeklySeconds += Number(habit.weeklyPlays || 0) * duration;
     acc.lifetimeSeconds += Number(habit.lifetimePlays || 0) * duration;

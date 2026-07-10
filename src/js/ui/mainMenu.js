@@ -5,7 +5,10 @@ function isRecapWindow() {
   if (typeof maybeResetWeeklyStats === 'function') maybeResetWeeklyStats();
 
   const now = new Date();
-  return now.getDay() === 1;
+  if (now.getDay() !== 1) return false;
+
+  const hour = now.getHours();
+  return hour >= 8 && hour < 20;
 }
 
 function getMainMenuItems() {
