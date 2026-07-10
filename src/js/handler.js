@@ -337,6 +337,7 @@ function migrateHabitsToStableIds(tracks = []) {
   const byTriple = new Map();
   const byFileTriple = new Map();
   const byFileOnly = new Map();
+  const byRelativePath = new Map();
   const existingTrackIds = new Set();
 
   tracks.forEach(track => {
@@ -360,6 +361,9 @@ function migrateHabitsToStableIds(tracks = []) {
         byFileOnly.set(fileKey, null);
       }
     }
+
+    const relKey = norm((track.file && track.file.webkitRelativePath) || track.relativePath || '');
+    if (relKey && !byRelativePath.has(relKey)) byRelativePath.set(relKey, track);
   });
 
   let moved = 0;
@@ -371,27 +375,38 @@ function migrateHabitsToStableIds(tracks = []) {
       return;
     }
 
-    const parts = oldId.split('|');
-    const titlePart = stripExt(parts[0] || '');
-    const artistPart = norm(parts[1] || '');
-    const albumPart = norm(parts[2] || '');
-
     let target = null;
 
-    const tripleKey = `${titlePart}|${artistPart}|${albumPart}`;
-    if (byTriple.has(tripleKey)) {
-      target = byTriple.get(tripleKey);
+    // Reconcile entries accidentally written under the loader's internal
+    // `rel:<path>` bookkeeping key - a short-lived getTrackId regression
+    // affected every ordinary track re-imported via tracks-meta.json, not
+    // just CUE ones, so this can't be assumed to only ever apply to a
+    // handful of tracks. Path-based match is unambiguous, so try it first.
+    if (oldId.startsWith('rel:')) {
+      target = byRelativePath.get(oldId.slice(4)) || null;
     }
 
     if (!target) {
-      const fileTripleKey = `${titlePart}|${artistPart}|${albumPart}`;
-      if (byFileTriple.has(fileTripleKey)) {
-        target = byFileTriple.get(fileTripleKey);
-      }
-    }
+      const parts = oldId.split('|');
+      const titlePart = stripExt(parts[0] || '');
+      const artistPart = norm(parts[1] || '');
+      const albumPart = norm(parts[2] || '');
 
-    if (!target && byFileOnly.has(titlePart) && byFileOnly.get(titlePart)) {
-      target = byFileOnly.get(titlePart);
+      const tripleKey = `${titlePart}|${artistPart}|${albumPart}`;
+      if (byTriple.has(tripleKey)) {
+        target = byTriple.get(tripleKey);
+      }
+
+      if (!target) {
+        const fileTripleKey = `${titlePart}|${artistPart}|${albumPart}`;
+        if (byFileTriple.has(fileTripleKey)) {
+          target = byFileTriple.get(fileTripleKey);
+        }
+      }
+
+      if (!target && byFileOnly.has(titlePart) && byFileOnly.get(titlePart)) {
+        target = byFileOnly.get(titlePart);
+      }
     }
 
     if (!target) {
@@ -785,6 +800,60 @@ async function persistTrackMetadataCache(entries = []) {
   });
 }
 
+// Duration isn't known at scan time (jsmediatags reads tags, not audio), so
+// it's captured lazily the first time a track actually plays and merged into
+// its existing cache entry. This is what "Listening time" in User Stats and
+// the playtime-gated theme unlocks in Settings rely on - without persisting
+// it here, duration (and everything built on it) would reset to 0 every time
+// the library is reloaded/rescanned.
+async function persistTrackDuration(track, duration) {
+  if (!track || !Number.isFinite(duration) || duration <= 0) return;
+
+  const baseKey = makeTrackMetadataBaseKey(track);
+  if (!baseKey) return;
+
+  const db = await openTrackMetadataDb();
+  if (!db) return;
+
+  return new Promise(resolve => {
+    const tx = db.transaction(TRACK_METADATA_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(TRACK_METADATA_CACHE_STORE);
+    const getRequest = store.get(baseKey);
+
+    getRequest.onsuccess = () => {
+      const roundedDuration = Math.round(duration * 100) / 100;
+      const existing = getRequest.result;
+
+      if (existing) {
+        if (Number(existing.duration || 0) === roundedDuration) return;
+        store.put({ ...existing, duration: roundedDuration });
+        return;
+      }
+
+      store.put({
+        baseKey,
+        fileName: track.fileName || track.file?.name || '',
+        relativePath: normalizePath(track.relativePath || track.file?.webkitRelativePath || ''),
+        size: Number(track.size || track.file?.size || 0),
+        lastModified: Number(track.lastModified || track.file?.lastModified || 0),
+        title: track.title || (track.file?.name || '').replace(/\.(mp3|flac)$/i, ''),
+        artist: track.artist || 'Unknown Artist',
+        album: track.album || 'Unidentified Album',
+        genre: track.genre || 'Unknown Genre',
+        year: track.year,
+        trackNumber: track.trackNumber,
+        duration: roundedDuration
+      });
+    };
+    getRequest.onerror = () => resolve();
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => resolve();
+    tx.onabort = () => resolve();
+  });
+}
+window.persistTrackDuration = persistTrackDuration;
+
 function handleFiles(e) {
   debugLog('Handling files:', e.target.files);
   const loadDebug = createLoadingDebugTracker();
@@ -1048,12 +1117,18 @@ function handleFiles(e) {
           genre: genre || 'Unknown Genre',
           year,
           trackNumber,
-          // Explicit, unique signature: two CUE tracks can legitimately share
-          // one physical file (a single continuous FLAC split by the CUE
-          // sheet), which would otherwise share the same relativePath and
-          // collide in the loadedSignatures dedup check, silently dropping
-          // every track after the first.
-          signature: `cue:${(cueRelativePath || fileName || '').toLowerCase()}#${trackNumber}`
+          // `signature`: used by the loader's own internal, session-scoped
+          // dedup check (pushUniqueTrack) so sibling CUE tracks sharing one
+          // physical file don't collide with each other during THIS scan.
+          signature: `cue:${(cueRelativePath || fileName || '').toLowerCase()}#${trackNumber}`,
+          // `cueTrackKey`: a SEPARATE, dedicated field for cross-session
+          // habit/playlist/stats identity (see getTrackId in suggestions.js).
+          // Deliberately not reusing `signature` for this - `signature` gets
+          // overwritten to a generic `rel:<path>` value on every track (not
+          // just CUE ones) by the tracks-meta.json reimport and background
+          // file-hydration paths, which would collide regular tracks' habit
+          // IDs with each other were getTrackId to read it.
+          cueTrackKey: `cue:${(cueRelativePath || fileName || '').toLowerCase()}#${trackNumber}`
         });
       });
     });
@@ -1299,10 +1374,15 @@ function exportMetadata() {
       year: t.year,
       trackNumber: t.trackNumber,
       duration: t.duration,
-      // Round-trip the dedup signature (only meaningfully set for CUE-derived
-      // tracks) so re-importing tracks-meta.json can't collapse multiple
-      // tracks that share one physical file back down to just one.
-      signature: t.signature || undefined
+      // Round-trip the loader's own internal dedup signature (only
+      // meaningfully set for CUE-derived tracks) so re-importing
+      // tracks-meta.json can't collapse multiple tracks that share one
+      // physical file back down to just one during THIS load.
+      signature: t.signature || undefined,
+      // Round-trip the dedicated cross-session identity key used by
+      // getTrackId (habits/playlists/Smart Mix). Kept separate from
+      // `signature` above on purpose - see the note in parseCue.
+      cueTrackKey: t.cueTrackKey || undefined
     }))
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

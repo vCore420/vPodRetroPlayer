@@ -16,6 +16,21 @@ audioPlayer.addEventListener('timeupdate', () => {
 
 audioPlayer.addEventListener('loadedmetadata', updateNowPlayingProgress);
 
+// Duration is never known at library-scan time (tag reading doesn't decode
+// audio), so capture it here, the first time it's actually available, and
+// stash it on the track object + persist it to the metadata cache. This is
+// what powers "Listening time" in User Stats and the playtime-gated theme
+// unlocks in Settings - previously nothing ever set track.duration, so both
+// silently read 0 forever.
+audioPlayer.addEventListener('loadedmetadata', () => {
+  const track = app.state.currentTrack;
+  const dur = audioPlayer.duration;
+  if (track && Number.isFinite(dur) && dur > 0 && !(Number.isFinite(track.duration) && track.duration > 0)) {
+    track.duration = dur;
+    if (window.persistTrackDuration) window.persistTrackDuration(track, dur);
+  }
+});
+
 // Track the active audio object URL so we can revoke it
 let currentAudioObjectUrl = null;
 
