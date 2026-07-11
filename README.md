@@ -80,6 +80,7 @@ Music/                         # Root music folder
 - **Equalizer**: Presets (Flat, Bass Boost, Rock, Pop, Jazz, Classical, etc.).
 - **Settings**: EQ, Date/Time format (12/24h, DD/MM or MM/DD), vPod colour/theme, User Stats, About.
 - **Themes/Colours**: Classic colours plus rare unlockable themes (plays/likes/dislikes/unique/time). Dev flag `DEV_UNLOCK_RARES` to bypass for testing.
+- **Identify Track/Album/Artist**: Last-resort metadata lookup for anything tag reading and folder-name guessing couldn't figure out. Search MusicBrainz (an open, free music database) by title/artist/album, or paste in a known MusicBrainz ID directly - similar to how Jellyfin/Plex-style metadata matching works. Accessible via the small button in the top-left of Now Playing (current track only) or Settings → Identify Music (review everything flagged as unidentified, or look up any album/artist by name). Entirely opt-in; nothing is looked up automatically.
 - **Games**: Brick Paddle, Snake, Flappy Dot, 2048 Mini, Number Guess—disk controlled.
 - **Reset UI**: Top-right reset button clears UI/nav and stops audio (keeps your loaded library).
 
@@ -97,6 +98,8 @@ Music/                         # Root music folder
 
 - `index.html` – App shell  
 - `src/js/` – Core logic, UI screens, audio, navigation, handlers  
+- `src/js/identify.js` – MusicBrainz client + apply logic for Identify Track/Album/Artist  
+- `src/js/ui/identifyMenu.js` – UI for Identify Track/Album/Artist (Now Playing button + Settings screen)  
 - `src/css/styles.css` – Styles  
 - `src/img/` – Icons, default cover, logo  
 - `service-worker.js` – PWA caching  
@@ -120,12 +123,13 @@ Music/                         # Root music folder
 - **Stats didn’t reset**: Weekly reset happens Monday after 08:00; you can wipe stats manually in User Stats.
 - **Service worker stale**: Hard-refresh (Ctrl+F5) or unregister SW in DevTools; bump cache name when deploying.
 - **All else fails clear browser cache to hard reset all site data (this will delete all your user data on the application)
+- **Identify Track/Album/Artist says it can't reach MusicBrainz**: needs an internet connection; also check nothing (an ad blocker, a restrictive network) is blocking requests to musicbrainz.org.
 
 ---
 
 ## Privacy
 
-All data stays local in your browser (localStorage + cache). No uploads or network calls beyond CDN dependencies (font-awesome/jsmediatags).
+All data stays local in your browser (localStorage + IndexedDB cache). No uploads, and no network calls beyond CDN dependencies (font-awesome/jsmediatags) - **with one opt-in exception**: the Identify Track/Album/Artist tools send your search terms (or a pasted ID) to musicbrainz.org to look up metadata. This only happens when you tap Search or Look Up inside those tools; nothing is sent automatically, and no other listening data leaves your device.
 
 Enjoy your music with a retro touch!
 
