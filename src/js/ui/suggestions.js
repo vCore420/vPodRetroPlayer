@@ -1206,6 +1206,80 @@ function clearSmartMixSessionLearning() {
   }
 }
 
+// Splits a genre tag into loose lowercase tokens ("Alternative Rock/Indie"
+// -> {"alternative rock", "indie"}) so two tracks can be considered a
+// "similar sound" match without needing byte-identical genre strings -
+// personal libraries are rarely tagged consistently enough for exact
+// matching to catch most real matches.
+function genreTokens(genreString) {
+  return new Set(
+    String(genreString || '')
+      .toLowerCase()
+      .split(/[/,;&]+/)
+      .map(part => part.trim())
+      .filter(Boolean)
+  );
+}
+
+function genresOverlap(aTokens, bTokens) {
+  if (!aTokens || !bTokens || !aTokens.size || !bTokens.size) return false;
+  for (const token of aTokens) {
+    if (bTokens.has(token)) return true;
+  }
+  return false;
+}
+
+// A lightweight, lifetime "taste profile" - the artists/genres you engage
+// with most across your whole library, not just whatever's seeded from the
+// current track. Without this, a fresh Smart Mix session has almost no
+// personalization to draw on until you've liked/skipped a few things in
+// THIS session - the very first songs it plays are only as good as
+// whichever track happened to be playing when you hit Start. This gives
+// Smart Mix something genuinely "yours" to lean on from the first pick.
+function computeLifetimeTasteProfile(tracks, habits) {
+  // This scans every track, so it's cached briefly rather than recomputed on
+  // every buffer refill/track advance (which happens often during a normal
+  // listening session). A minute of staleness is imperceptible for a
+  // background personalization signal, but avoids a full library scan on
+  // every "next" during Smart Mix.
+  const cache = app.state.smartMixTasteProfileCache;
+  if (cache && Date.now() - cache.computedAt < 60000 && cache.trackCount === tracks.length) {
+    return cache.profile;
+  }
+
+  const norm = s => (s || '').trim().toLowerCase();
+  const artistScores = new Map();
+  const genreScores = new Map();
+
+  tracks.forEach(track => {
+    const habit = syncHabitShape(habits[getTrackId(track)] || {});
+    const engagement = (habit.likeCount || 0) * 3
+      + (habit.lifetimePlays || 0)
+      - (habit.lifetimeSkips || 0) * 0.5
+      - (habit.dislikeCount || 0) * 25;
+
+    if (engagement <= 0) return;
+
+    const artistKey = norm(track.artist);
+    if (artistKey) artistScores.set(artistKey, (artistScores.get(artistKey) || 0) + engagement);
+
+    genreTokens(track.genre).forEach(token => {
+      genreScores.set(token, (genreScores.get(token) || 0) + engagement);
+    });
+  });
+
+  const topArtists = new Set(
+    Array.from(artistScores.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([key]) => key)
+  );
+  const topGenres = new Set(
+    Array.from(genreScores.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([key]) => key)
+  );
+
+  const profile = { topArtists, topGenres };
+  app.state.smartMixTasteProfileCache = { computedAt: Date.now(), trackCount: tracks.length, profile };
+  return profile;
+}
+
 function getSmartMixRecommendations(tracks, options = {}) {
   if (!tracks || !tracks.length) return [];
 
@@ -1240,6 +1314,8 @@ function getSmartMixRecommendations(tracks, options = {}) {
   const seedArtist = norm(seed.artist);
   const seedAlbum = norm(seed.album);
   const seedGenre = norm(seed.genre);
+  const seedGenreTokens = genreTokens(seed.genre);
+  const tasteProfile = computeLifetimeTasteProfile(tracks, habits);
 
   const chapterPlan = buildSmartMixChapterPlan(Number(options.limit || 18), modeConfig);
   const picked = [];
@@ -1282,6 +1358,12 @@ function getSmartMixRecommendations(tracks, options = {}) {
         if (genreKey && seedGenre && genreKey === seedGenre) {
           score += laneConfig.genreWeight * modeConfig.affinityWeight;
           reasons.push('Similar sound');
+        } else if (genresOverlap(seedGenreTokens, genreTokens(track.genre))) {
+          // Partial/fuzzy genre overlap ("Alternative Rock" vs "Rock") -
+          // real libraries are rarely tagged consistently enough for exact
+          // matching alone to catch most genuine matches.
+          score += laneConfig.genreWeight * modeConfig.affinityWeight * 0.7;
+          reasons.push('Similar sound');
         }
 
         if (likedArtists.has(artistKey)) {
@@ -1292,6 +1374,22 @@ function getSmartMixRecommendations(tracks, options = {}) {
         if (likedAlbums.has(albumKey)) {
           score += 2.1 * modeConfig.affinityWeight;
           reasons.push('You liked this album');
+        }
+
+        // Gentle, lifetime-wide pull toward the user's overall favorite
+        // artists/genres - not just whatever the current seed track happens
+        // to be. Smaller than the "liked this artist/album" session signals
+        // above so it never dominates, but it means a brand-new Smart Mix
+        // session (before anything's been liked/skipped yet) still feels
+        // personalized from its very first pick.
+        if (tasteProfile.topArtists.has(artistKey)) {
+          score += laneConfig.artistWeight * 0.42 * modeConfig.affinityWeight;
+          reasons.push('One of your favorite artists');
+        }
+
+        if (genresOverlap(tasteProfile.topGenres, genreTokens(track.genre))) {
+          score += laneConfig.genreWeight * 0.35 * modeConfig.affinityWeight;
+          reasons.push('Fits your usual taste');
         }
 
         if (heardArtists.has(artistKey)) {
@@ -1319,6 +1417,18 @@ function getSmartMixRecommendations(tracks, options = {}) {
         score -= (habit.lifetimeQuickSkips || 0) * laneConfig.quickSkipPenalty;
         score -= (habit.lifetimeDeepSkips || 0) * laneConfig.deepSkipPenalty;
         score -= (habit.lifetimeSkips || 0) * 1.25;
+
+        // Time-decayed "you just heard this" penalty, independent of
+        // whether the track was played inside this Smart Mix session or
+        // through a regular album/playlist - fades out over a day so it
+        // never permanently excludes anything, just avoids near-term
+        // repeats feeling stale.
+        if (habit.lastPlayedAt) {
+          const hoursSincePlayed = (Date.now() - habit.lastPlayedAt) / 3600000;
+          if (hoursSincePlayed < 2) score -= 6;
+          else if (hoursSincePlayed < 8) score -= 3.5;
+          else if (hoursSincePlayed < 24) score -= 1.5;
+        }
 
         if (skipArtists.has(artistKey)) score -= 8.5;
         if ((recentArtistCounts.get(artistKey) || 0) > 0) score -= laneConfig.repeatPenalty;
