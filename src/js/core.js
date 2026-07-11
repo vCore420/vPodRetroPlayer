@@ -96,6 +96,7 @@ const app = {
     queueSignature: null,
     smartMixPlaybackHistory: [],
     smartMixHistoryCursor: -1,
+    smartMixTasteProfileCache: null,
     albumCoverURLs: [],
     isShuffleOn: false,
     originalAlbumSongs: null,

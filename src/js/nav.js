@@ -166,6 +166,9 @@ function attachDiskControlListeners() {
         ? getSmartMixHistoryEntry(1)
         : null;
       if (forwardEntry) {
+        if (audioPlayer.currentTime < (audioPlayer.duration / 2) && window.logTrackSkip && state.currentTrack) {
+          window.logTrackSkip(state.currentTrack);
+        }
         playTrackFromAlbum(forwardEntry.track, forwardEntry.queue, {
           smartMix: true,
           smartMixHistoryCursor: forwardEntry.cursor
