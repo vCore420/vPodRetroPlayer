@@ -151,6 +151,11 @@ function attachNowPlayingButtonListeners() {
       goTo(renderNowPlayingVisualizer);
     };
   }
+
+  const speedBtn = document.getElementById('speedBtn');
+  if (speedBtn) {
+    speedBtn.onclick = () => cyclePlaybackSpeed();
+  }
 }
 
 window.attachNowPlayingButtonListeners = attachNowPlayingButtonListeners;
@@ -228,11 +233,15 @@ function renderNowPlayingScreen(direction = 'forward') {
             style="font-size:1.3em;background:none;border:none;color:#888;cursor:pointer;padding:4px 8px;">
             <i class="fa-solid fa-wave-square"></i>
           </button>
+          <button id="speedBtn" title="Playback Speed (or press the center button)"
+            style="font-size:0.95em;font-weight:bold;background:none;border:1px solid #b0b0b0;border-radius:10px;color:#888;cursor:pointer;padding:2px 8px;min-width:2.6em;">
+            ${formatPlaybackRateLabel(audioPlayer.playbackRate)}
+          </button>
         </div>
       </div>
       <div class="nowplaying-progress">
         <span id="nowplayingElapsed">0:00</span>
-        <div class="nowplaying-bar-bg">
+        <div class="nowplaying-bar-bg" id="nowplayingBarBg">
           <div id="nowplayingBar" class="nowplaying-bar"></div>
         </div>
         <span id="nowplayingRemaining">0:00</span>
@@ -243,6 +252,8 @@ function renderNowPlayingScreen(direction = 'forward') {
 
   updateHotBarTime();
   updateNowPlayingProgress();
+  attachNowPlayingProgressBarInteraction();
+  attachNowPlayingWheelHooks();
 }
 
 function getCurrentCover() {
@@ -255,6 +266,8 @@ function getCurrentCover() {
 }
 
 function updateNowPlayingProgress() {
+  if (app.state.progressBarDragging) return;
+
   const elapsedSpan = document.getElementById('nowplayingElapsed');
   const remainingSpan = document.getElementById('nowplayingRemaining');
   const bar = document.getElementById('nowplayingBar');
@@ -277,55 +290,487 @@ function updateNowPlayingProgress() {
   }
 }
 
+// --- PLAYBACK SPEED ---
+// A real iPod Classic doesn't expose speed control on the Now Playing
+// screen itself (only Podcasts/Audiobooks, buried in Settings), but since
+// this adds real value for spoken-word content and costs nothing for
+// music, it lives right on Now Playing: a small cycling button for touch,
+// and the wheel's center/confirm button does the same thing so it's not a
+// touch-only feature.
+const PLAYBACK_RATE_PRESETS = [1, 1.25, 1.5, 1.75, 2, 0.5, 0.75];
+
+function formatPlaybackRateLabel(rate) {
+  const normalized = Math.round((Number(rate) || 1) * 100) / 100;
+  return `${normalized % 1 === 0 ? normalized.toFixed(0) : normalized}x`;
+}
+
+function cyclePlaybackSpeed() {
+  const current = Math.round((audioPlayer.playbackRate || 1) * 100) / 100;
+  const currentIdx = PLAYBACK_RATE_PRESETS.findIndex(rate => Math.abs(rate - current) < 0.01);
+  const nextRate = PLAYBACK_RATE_PRESETS[(currentIdx + 1 + PLAYBACK_RATE_PRESETS.length) % PLAYBACK_RATE_PRESETS.length];
+
+  audioPlayer.playbackRate = nextRate;
+  app.config.savedPlaybackRate = nextRate;
+  setLocalStorageValue('playbackRate', String(nextRate));
+
+  const speedBtn = document.getElementById('speedBtn');
+  if (speedBtn) speedBtn.textContent = formatPlaybackRateLabel(nextRate);
+
+  if (typeof showHotBarMessage === 'function') showHotBarMessage(`Speed: ${formatPlaybackRateLabel(nextRate)}`, 1400);
+}
+window.cyclePlaybackSpeed = cyclePlaybackSpeed;
+
+// --- PROGRESS BAR SEEK (touch/drag) ---
+
+function seekFromPointerEvent(event, barBg) {
+  const rect = barBg.getBoundingClientRect();
+  if (!rect.width) return;
+  const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+  const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  const duration = audioPlayer.duration || 0;
+  if (!duration) return;
+
+  // Reflect the drag position immediately for a responsive feel; the
+  // actual seek (and text/media-session sync) goes through the shared
+  // seekAudioTo primitive used everywhere else seeking happens.
+  const bar = document.getElementById('nowplayingBar');
+  const elapsedSpan = document.getElementById('nowplayingElapsed');
+  if (bar) bar.style.width = `${ratio * 100}%`;
+  if (elapsedSpan) elapsedSpan.textContent = formatTime(ratio * duration);
+
+  seekAudioTo(ratio * duration);
+}
+
+function attachNowPlayingProgressBarInteraction() {
+  const barBg = document.getElementById('nowplayingBarBg');
+  if (!barBg) return;
+
+  const startDrag = event => {
+    if (!audioPlayer.duration) return;
+    app.state.progressBarDragging = true;
+    seekFromPointerEvent(event, barBg);
+    const moveType = event.type.startsWith('touch') ? 'touchmove' : 'mousemove';
+    const endType = event.type.startsWith('touch') ? 'touchend' : 'mouseup';
+
+    const onMove = moveEvent => {
+      seekFromPointerEvent(moveEvent, barBg);
+      moveEvent.preventDefault();
+    };
+    const onEnd = () => {
+      app.state.progressBarDragging = false;
+      document.removeEventListener(moveType, onMove);
+      document.removeEventListener(endType, onEnd);
+      updateNowPlayingProgress();
+    };
+
+    document.addEventListener(moveType, onMove, { passive: false });
+    document.addEventListener(endType, onEnd, { passive: false });
+    event.preventDefault();
+  };
+
+  barBg.onmousedown = startDrag;
+  barBg.ontouchstart = startDrag;
+}
+
+// --- WHEEL SCRUB (authentic click-wheel behavior: rotate to seek) ---
+
+function attachNowPlayingWheelHooks() {
+  // Real iPod Classics scrub the current track directly with the wheel
+  // while on Now Playing - no separate "enter scrub mode" step needed - so
+  // this is simply always active while this screen is showing. Cleared
+  // automatically by resetCustomScreenControlHooks() on any navigation.
+  window.onNowPlayingScroll = direction => {
+    if (!audioPlayer.duration) return;
+    seekAudioTo(audioPlayer.currentTime + direction * 3);
+  };
+
+  // The wheel has no dedicated "change speed" button, so the confirm/
+  // center button does double duty here, matching how real iPod menus
+  // often repurpose the center button contextually per screen.
+  window.onNowPlayingConfirm = () => {
+    if (!app.state.currentTrack) return;
+    cyclePlaybackSpeed();
+  };
+}
+
 function renderCurrentQueueMenu(direction = 'forward') {
   const queue = app.state.currentAlbumSongs || [];
   const currentTrack = app.state.currentTrack;
   const currentTrackId = currentTrack ? getTrackId(currentTrack) : null;
+  const editMode = !!app.state.queueEditMode && queue.length > 0;
+  const allAlbums = app.state.albums || {};
+  const albumCover = queue.length
+    ? (allAlbums[queue[0]?.albumKey || queue[0]?.album] || {}).cover
+    : null;
 
-  if (!queue.length) {
-    renderScreen(
-      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:0 18px;text-align:center;">
-        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:10px;">
-          No songs in queue
-        </div>
-        <div style="font-size:0.95em;color:#444;">
-          Start playing an album, playlist, or song to see the current play queue here.
-        </div>
-      </div>`,
-      direction
-    );
-    return;
+  renderScreen(
+    `<div class="album-list">
+      <div class="album-list-left" id="songsListContainer" data-scroll-container="true">
+        <div id="songsList"></div>
+      </div>
+      <div class="album-list-right">
+        <img src="${albumCover || 'src/img/default-cover.png'}" class="album-cover" alt="Album Cover">
+        ${!queue.length ? `<div style="margin-top:18px;text-align:center;width:100%;"><span style="font-size:0.9em;color:#444;">Add songs below, or start playing an album/playlist.</span></div>` : ''}
+        ${editMode ? `<div style="margin-top:18px;text-align:center;width:100%;"><span style="font-size:0.9em;color:#0074d9;">Tap a song to move or remove it</span></div>` : ''}
+      </div>
+    </div>`,
+    direction
+  );
+
+  const songsList = document.getElementById('songsList');
+  const songsListContainer = document.getElementById('songsListContainer');
+  if (songsListContainer) {
+    songsListContainer.style.overflowY = 'auto';
+    songsListContainer.onwheel = event => {
+      songsListContainer.scrollTop += event.deltaY;
+      event.preventDefault();
+    };
   }
+
+  const headerRows = [
+    { action: 'add', label: '<i class="fa-solid fa-plus"></i>&nbsp; Add Songs to Queue' }
+  ];
+  if (queue.length) {
+    headerRows.push({
+      action: 'edit-toggle',
+      label: editMode ? '<i class="fa-solid fa-check"></i>&nbsp; Done Editing' : '<i class="fa-solid fa-pen"></i>&nbsp; Edit Queue'
+    });
+  }
+  const headerCount = headerRows.length;
+
+  songsList.innerHTML = '';
+  const fragment = document.createDocumentFragment();
+
+  headerRows.forEach((row, i) => {
+    const div = document.createElement('div');
+    div.className = 'menu-list-song';
+    div.dataset.idx = String(i);
+    div.dataset.action = row.action;
+    div.style.color = '#0074d9';
+    div.innerHTML = `<span style="padding-left:6px;">${row.label}</span>`;
+    fragment.appendChild(div);
+  });
+
+  queue.forEach((track, idx) => {
+    const isNowPlaying = currentTrackId && getTrackId(track) === currentTrackId;
+    const nowPlayingLabel = isNowPlaying
+      ? `<span class="nowplaying-pill"><i class="fa-solid fa-play"></i></span>`
+      : '';
+    const editIcon = editMode ? `<i class="fa-solid fa-sliders" style="color:#0074d9;margin-right:6px;"></i>` : '';
+
+    const div = document.createElement('div');
+    div.className = 'menu-list-song';
+    div.dataset.idx = String(idx + headerCount);
+    div.dataset.trackIdx = String(idx);
+    div.innerHTML = `
+      ${nowPlayingLabel}
+      <span style="padding-left:6px;">${editIcon}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>
+    `;
+    fragment.appendChild(div);
+  });
+
+  songsList.appendChild(fragment);
+  songsList.dataset.itemCount = String(headerCount + queue.length);
+
+  songsList.onclick = event => {
+    const row = event.target.closest('.menu-list-song[data-idx]');
+    if (!row || !songsList.contains(row)) return;
+
+    app.state.currentMenuIndex = Number(row.dataset.idx);
+    if (typeof window.updateHighlightedSong === 'function') window.updateHighlightedSong();
+
+    if (row.dataset.action === 'add') {
+      goTo(renderAddSongsToQueueMenu);
+      return;
+    }
+    if (row.dataset.action === 'edit-toggle') {
+      app.state.queueEditMode = !editMode;
+      renderCurrentQueueMenu('none');
+      return;
+    }
+
+    const trackIdx = Number(row.dataset.trackIdx);
+    const track = queue[trackIdx];
+    if (!track) return;
+
+    if (editMode) {
+      goTo(renderQueueRowActionsMenu, trackIdx);
+      return;
+    }
+
+    app.state.currentSongIndex = trackIdx;
+    playTrackFromAlbum(track, app.state.currentAlbumSongs, {
+      smartMix: app.state.smartMixActive,
+      preserveQueueSignature: true
+    });
+  };
+
+  window.updateHighlightedSong = () => masterHighlight({
+    containerSelector: '#songsList',
+    itemsSelector: '.menu-list-song'
+  });
 
   let currentIdx = app.state.currentSongIndex;
   if (currentTrackId) {
     const matchIdx = queue.findIndex(t => getTrackId(t) === currentTrackId);
     if (matchIdx >= 0) currentIdx = matchIdx;
   }
-
-  renderSongList({
-    songs: queue,
-    albumCover: (app.state.albums[queue[0]?.albumKey || queue[0]?.album] || {}).cover,
-    onSongClick: (track, idx) => {
-      app.state.currentSongIndex = idx;
-      if (app.state.smartMixActive) {
-        playTrackFromAlbum(track, app.state.currentAlbumSongs, { smartMix: true, preserveQueueSignature: true });
-      } else {
-        playTrackFromAlbum(track, app.state.currentAlbumSongs, { preserveQueueSignature: true });
-      }
-    }
-  }, direction);
-
-  app.state.currentMenuIndex = currentIdx >= 0 ? currentIdx : 0;
-  if (typeof window.updateHighlightedSong === 'function') {
-    window.updateHighlightedSong();
-  }
+  app.state.currentMenuIndex = queue.length ? (headerCount + Math.max(0, currentIdx)) : 0;
+  if (typeof window.updateHighlightedSong === 'function') window.updateHighlightedSong();
 
   const list = document.getElementById('songsList');
   if (list && list.children[app.state.currentMenuIndex]) {
     list.children[app.state.currentMenuIndex].scrollIntoView({ block: 'center' });
   }
 }
+
+// Moves the currently-playing pointer along with the array when the queue
+// is reordered/trimmed, so playback state (what "next"/"prev" do) never
+// gets out of sync with what's actually still in the list.
+function resyncCurrentSongIndexAfterQueueEdit(queue) {
+  const currentTrackId = app.state.currentTrack ? getTrackId(app.state.currentTrack) : null;
+  if (!currentTrackId) return;
+  const newIdx = queue.findIndex(t => getTrackId(t) === currentTrackId);
+  if (newIdx >= 0) app.state.currentSongIndex = newIdx;
+}
+
+function moveQueueItem(fromIdx, toIdx) {
+  const queue = app.state.currentAlbumSongs;
+  if (!queue || fromIdx < 0 || fromIdx >= queue.length || toIdx < 0 || toIdx >= queue.length) return;
+
+  const [item] = queue.splice(fromIdx, 1);
+  queue.splice(toIdx, 0, item);
+  resyncCurrentSongIndexAfterQueueEdit(queue);
+
+  if (app.state.smartMixActive) app.state.smartMixQueue = queue;
+}
+window.moveQueueItem = moveQueueItem;
+
+// Returns false (and shows a message) if asked to remove the track that's
+// currently playing - that's what Skip is for, and allowing it here would
+// leave currentSongIndex pointing at nothing.
+function removeQueueItem(idx) {
+  const queue = app.state.currentAlbumSongs;
+  if (!queue || idx < 0 || idx >= queue.length) return false;
+
+  const currentTrackId = app.state.currentTrack ? getTrackId(app.state.currentTrack) : null;
+  if (currentTrackId && getTrackId(queue[idx]) === currentTrackId) {
+    if (typeof showHotBarMessage === 'function') {
+      showHotBarMessage("Can't remove the song that's currently playing", 2200);
+    }
+    return false;
+  }
+
+  queue.splice(idx, 1);
+  resyncCurrentSongIndexAfterQueueEdit(queue);
+
+  if (app.state.smartMixActive) app.state.smartMixQueue = queue;
+  return true;
+}
+window.removeQueueItem = removeQueueItem;
+
+function renderQueueRowActionsMenu(direction = 'forward', trackIdx) {
+  const queue = app.state.currentAlbumSongs || [];
+  const track = queue[trackIdx];
+  if (!track) {
+    goBack();
+    return;
+  }
+
+  const items = [{ label: 'Play Now', action: 'play' }];
+  if (trackIdx > 0) items.push({ label: 'Move Up', action: 'up' });
+  if (trackIdx < queue.length - 1) items.push({ label: 'Move Down', action: 'down' });
+  items.push({ label: 'Remove from Queue', action: 'remove' });
+
+  renderMenuList({
+    title: track.title || 'Track Options',
+    before: `<div style="font-size:0.85em;color:#666;text-align:center;margin:-4px 0 10px;">${track.artist || 'Unknown Artist'}</div>`,
+    items,
+    onItemClick: (idx, item) => {
+      if (item.action === 'play') {
+        app.state.currentSongIndex = trackIdx;
+        playTrackFromAlbum(track, queue, { smartMix: app.state.smartMixActive, preserveQueueSignature: true });
+        goBack();
+      } else if (item.action === 'up') {
+        moveQueueItem(trackIdx, trackIdx - 1);
+        goBack();
+      } else if (item.action === 'down') {
+        moveQueueItem(trackIdx, trackIdx + 1);
+        goBack();
+      } else if (item.action === 'remove') {
+        if (removeQueueItem(trackIdx)) goBack();
+      }
+    },
+    id: 'queueRowActionsList'
+  }, direction);
+
+  masterHighlight({ containerSelector: '#queueRowActionsList', itemsSelector: 'li' });
+}
+window.renderQueueRowActionsMenu = renderQueueRowActionsMenu;
+
+function renderAddSongsToQueueMenu(direction = 'forward') {
+  const allTracks = app.state.tracks || [];
+  window.onAddToQueueDone = null;
+  window.allSongsCurrentList = null;
+
+  if (!allTracks.length) {
+    renderScreen(
+      `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+        <div style="font-size:1.2em;color:#0074d9;font-weight:bold;margin-bottom:12px;">No music loaded</div>
+        <div style="font-size:1em;color:#444;text-align:center;">Please load your music first.</div>
+      </div>`,
+      direction
+    );
+    return;
+  }
+
+  const selected = new Set();
+  const sortedTracks = allTracks.slice().sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+  function commitSelection() {
+    window.onAddToQueueDone = null;
+    if (!selected.size) {
+      goBack();
+      return;
+    }
+
+    const toAdd = allTracks.filter(t => selected.has(t));
+    const hadQueue = (app.state.currentAlbumSongs || []).length > 0;
+
+    if (!hadQueue) {
+      // No active queue to append to - start fresh playback from the
+      // selection. playTrackFromAlbum already handles exiting Smart Mix
+      // cleanly for a manual selection like this.
+      playTrackFromAlbum(toAdd[0], toAdd);
+    } else {
+      if (app.state.smartMixActive) {
+        // Manually building the queue takes over from the auto-DJ, same as
+        // picking any specific track elsewhere in the app already does -
+        // keeps this consistent rather than having Smart Mix silently keep
+        // reshuffling songs you just deliberately queued up.
+        app.state.smartMixActive = false;
+        app.state.smartMixQueue = null;
+        app.state.smartMixHistory = null;
+        app.state.smartMixTrackMeta = null;
+        app.state.smartMixSessionNote = null;
+        if (typeof resetSmartMixPlaybackMemory === 'function') resetSmartMixPlaybackMemory();
+      }
+      app.state.currentAlbumSongs.push(...toAdd);
+    }
+
+    if (typeof showHotBarMessage === 'function') {
+      showHotBarMessage(`Added ${toAdd.length} song${toAdd.length === 1 ? '' : 's'} to queue`, 1800);
+    }
+
+    goBack();
+  }
+
+  renderScreen(
+    `<div class="album-list all-songs-layout">
+      <div class="album-list-left all-songs-pane" id="allSongsListContainer" data-scroll-container="true">
+        <div class="all-songs-pane-header">
+          <div class="all-songs-toolbar">
+            <span class="all-songs-title">Add to Queue</span>
+          </div>
+          <div class="all-songs-search-wrap">
+            <input id="queueAddSearchInput" class="songSearchInput" type="text" placeholder="Search songs...">
+          </div>
+        </div>
+        <div id="allSongsList"></div>
+      </div>
+      <div class="album-list-right" id="allSongsArtContainer">
+        <img id="allSongsArt" src="src/img/default-cover.png" class="album-cover" alt="Album Cover">
+        <div style="margin-top:14px;text-align:center;width:100%;">
+          <span id="queueAddSelectedCount" style="font-size:0.9em;color:#0074d9;">0 selected</span>
+        </div>
+      </div>
+    </div>`,
+    direction
+  );
+
+  function renderList(filteredTracks) {
+    const songsList = document.getElementById('allSongsList');
+    songsList.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'menu-list-song';
+    headerDiv.dataset.idx = '0';
+    headerDiv.dataset.action = 'commit';
+    headerDiv.style.color = '#0074d9';
+    headerDiv.innerHTML = `<span style="padding-left:6px;"><i class="fa-solid fa-check"></i>&nbsp; Add Selected Songs</span>`;
+    fragment.appendChild(headerDiv);
+
+    filteredTracks.forEach((track, idx) => {
+      const selectedIcon = selected.has(track)
+        ? `<i class="fa-solid fa-check" style="color:#0074d9;margin-right:4px;"></i>`
+        : '';
+
+      const div = document.createElement('div');
+      div.className = 'menu-list-song';
+      div.dataset.idx = String(idx + 1);
+      div.dataset.trackIdx = String(idx);
+      div.innerHTML = `<span style="padding-left:6px;">${selectedIcon}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
+      fragment.appendChild(div);
+    });
+
+    songsList.appendChild(fragment);
+    songsList.dataset.itemCount = String(1 + filteredTracks.length);
+
+    songsList.onclick = event => {
+      const row = event.target.closest('.menu-list-song[data-idx]');
+      if (!row) return;
+
+      app.state.currentMenuIndex = Number(row.dataset.idx);
+      if (typeof window.updateHighlightedSong === 'function') window.updateHighlightedSong();
+
+      if (row.dataset.action === 'commit') {
+        commitSelection();
+        return;
+      }
+
+      const trackIdx = Number(row.dataset.trackIdx);
+      const track = filteredTracks[trackIdx];
+      if (!track) return;
+
+      if (selected.has(track)) selected.delete(track);
+      else selected.add(track);
+
+      const selectedIcon = selected.has(track)
+        ? `<i class="fa-solid fa-check" style="color:#0074d9;margin-right:4px;"></i>`
+        : '';
+      row.innerHTML = `<span style="padding-left:6px;">${selectedIcon}${track.title}${track.artist ? ` - ${track.artist}` : ''}</span>`;
+
+      const countLabel = document.getElementById('queueAddSelectedCount');
+      if (countLabel) countLabel.textContent = `${selected.size} selected`;
+    };
+
+    window.updateHighlightedSong = () => masterHighlight({
+      containerSelector: '#allSongsList',
+      itemsSelector: '.menu-list-song'
+    });
+    window.updateHighlightedSong();
+  }
+
+  renderList(sortedTracks);
+
+  document.getElementById('queueAddSearchInput').oninput = e => {
+    const q = (e.target.value || '').toLowerCase();
+    const filtered = sortedTracks.filter(track => {
+      const t = (track.title || '').toLowerCase();
+      const ar = (track.artist || '').toLowerCase();
+      const al = (track.album || '').toLowerCase();
+      return t.includes(q) || ar.includes(q) || al.includes(q);
+    });
+    app.state.currentMenuIndex = 0;
+    renderList(filtered);
+  };
+
+  // Pressing MENU/Back while selecting commits the selection, matching the
+  // existing "creating a playlist" flow's Done-on-back behavior elsewhere.
+  window.onAddToQueueDone = commitSelection;
+}
+window.renderAddSongsToQueueMenu = renderAddSongsToQueueMenu;
 
 window.renderCurrentQueueMenu = renderCurrentQueueMenu;
 
