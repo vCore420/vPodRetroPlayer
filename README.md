@@ -71,11 +71,11 @@ Music/                         # Root music folder
 
 ## Menus & Features
 
-- **Main Menu**: Load Music, Now Playing, Playlists, Artists, Albums, All Songs, Suggested, Settings (+ Weekly Recap on Mondays 8:00–20:00).
+- **Main Menu**: Load Music, Now Playing, Playlists, Artists, Albums, All Songs, Suggested, Settings (+ Weekly Recap, shown all day every Monday).
 - **Playlists**: Add/edit/delete; select albums then pick songs; “Liked Songs” auto-fills from your likes.
 - **Suggested**: Recommends tracks the user may like but havnt played before using play counts, likes/dislikes (weekly & lifetime), recency, and similarity (artist/album/genre).
 - **Smart Mix**: Starts from the current track or top liked/played; live refilling queue; caps repeat artists; respects skips/dislikes; boosts liked/heard artists/albums.
-- **Weekly Recap**: Last week’s plays/skips/likes/dislikes and top tracks; auto-resets weekly (Monday ≥08:00).
+- **Weekly Recap**: Last week’s plays/skips/likes/dislikes and top tracks; auto-resets weekly and is shown all day every Monday.
 - **User Stats**: Lifetime totals, unique counts, most played/liked/skipped/disliked; wipe stats button (does not delete playlists).
 - **Equalizer**: Presets (Flat, Bass Boost, Rock, Pop, Jazz, Classical, etc.).
 - **Settings**: EQ, Date/Time format (12/24h, DD/MM or MM/DD), vPod colour/theme, User Stats, About.
@@ -120,7 +120,7 @@ Music/                         # Root music folder
 - **No music listed**: Ensure you chose “folder” access and files are MP3/FLAC; try another modern browser.
 - **Art missing**: Place `cover.jpg/png` in each album folder.
 - **Playlists say “not loaded”**: Those tracks aren’t in the current loaded library—reload the same library.
-- **Stats didn’t reset**: Weekly reset happens Monday after 08:00; you can wipe stats manually in User Stats.
+- **Stats didn’t reset**: Weekly reset happens as soon as it's Monday (whenever you next open the app that day); you can wipe stats manually in User Stats.
 - **Service worker stale**: Hard-refresh (Ctrl+F5) or unregister SW in DevTools; bump cache name when deploying.
 - **All else fails clear browser cache to hard reset all site data (this will delete all your user data on the application)
 - **Identify Track/Album/Artist says it can't reach MusicBrainz**: needs an internet connection; also check nothing (an ad blocker, a restrictive network) is blocking requests to musicbrainz.org.
