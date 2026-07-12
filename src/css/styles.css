@@ -1450,6 +1450,8 @@ body, html {
   border-radius: 6px;
   overflow: hidden;
   position: relative;
+  touch-action: none;
+  cursor: pointer;
 }
 .nowplaying-bar {
   height: 100%;
