@@ -443,6 +443,8 @@ audioPlayer.addEventListener('play', () => {
   if (icon) icon.className = 'fa-solid fa-pause';
   if (ps) ps.innerHTML = '<i class="fa-solid fa-play"></i>';
 
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
+
   ensureAudioPipelineReady();
   updateMediaSessionMetadata();
   updateNowPlayingProgress();
@@ -460,6 +462,8 @@ audioPlayer.addEventListener('pause', () => {
       ? '<i class="fa-solid fa-pause"></i>'
       : '';
   }
+
+  if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 
   updateNowPlayingProgress();
 });
@@ -551,6 +555,33 @@ const analyserBuffer = new Uint8Array(analyser.frequencyBinCount);
 // Connect the filters in series
 // (was trebleEQ -> destination)
 audioSource.connect(bassEQ).connect(midEQ).connect(trebleEQ).connect(analyser).connect(audioCtx.destination);
+
+// --- BACKGROUND PLAYBACK RESILIENCE ---
+// Because audio is routed through Web Audio nodes here (for the EQ), Chrome
+// can suspend the AudioContext once the tab/PWA has been backgrounded for a
+// while - even mid-track. When that happens the <audio> element itself
+// keeps reporting "playing" (currentTime keeps advancing, the lock-screen
+// notification looks normal) but no sound actually comes out, because the
+// graph attached to it has stopped processing. Previously nothing watched
+// for this: a resume was only attempted once, right as a new track started,
+// so you'd hear a second or two of the next song (the brief window before
+// it got suspended again) and then silence, repeating every track.
+// This watches for it continuously - both reactively (statechange fires
+// as soon as the browser suspends it) and with a periodic safety-net check,
+// since statechange isn't guaranteed to fire promptly on a throttled
+// background tab - and resumes immediately whenever it happens while we're
+// actually trying to play something.
+audioCtx.addEventListener('statechange', () => {
+  if (audioCtx.state === 'suspended' && !audioPlayer.paused) {
+    audioCtx.resume().catch(() => {});
+  }
+});
+
+setInterval(() => {
+  if (!audioPlayer.paused && audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(() => {});
+  }
+}, 2000);
 
 // Expose for visualizer
 function getAnalyser() {
