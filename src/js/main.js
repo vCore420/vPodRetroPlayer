@@ -22,6 +22,7 @@ function startApp() {
   renderMainMenu();
   app.state.navStack = [{ fn: renderMainMenu, args: [] }];
   setEQPreset(savedPreset);
+  audioPlayer.playbackRate = app.config.savedPlaybackRate || 1;
 }
 
 function clearAllAlbumCoverURLs() {
@@ -244,12 +245,26 @@ if ('mediaSession' in navigator) {
   });
 
   navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-    audioPlayer.currentTime = Math.max(audioPlayer.currentTime - (details.seekOffset || 10), 0);
+    seekAudioTo(audioPlayer.currentTime - (details.seekOffset || 10));
   });
 
   navigator.mediaSession.setActionHandler('seekforward', (details) => {
-    audioPlayer.currentTime = Math.min(audioPlayer.currentTime + (details.seekOffset || 10), audioPlayer.duration);
+    seekAudioTo(audioPlayer.currentTime + (details.seekOffset || 10));
   });
+
+  try {
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+      if (details.fastSeek && 'fastSeek' in audioPlayer) {
+        audioPlayer.fastSeek(details.seekTime);
+        return;
+      }
+      seekAudioTo(details.seekTime);
+    });
+  } catch (error) {
+    // Some older browsers throw on unsupported action types rather than
+    // ignoring them - seekbackward/seekforward above still cover seeking.
+    debugLog('seekto media session action not supported', error);
+  }
 }
 
 // -- Service Worker --

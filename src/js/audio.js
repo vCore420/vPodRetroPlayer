@@ -1,5 +1,19 @@
 // --- AUDIO PLAYBACK ---
 
+// Single seek primitive so the media-session seek buttons/OS scrubber, the
+// Now Playing progress bar (touch drag), and the click-wheel scrub-on-Now-
+// Playing behavior all move playback position the exact same way and stay
+// in sync with the UI, instead of three separate places each nudging
+// audioPlayer.currentTime directly.
+function seekAudioTo(seconds) {
+  if (!audioPlayer || !Number.isFinite(seconds)) return;
+  const duration = audioPlayer.duration || 0;
+  const clamped = duration ? Math.max(0, Math.min(seconds, duration)) : Math.max(0, seconds);
+  audioPlayer.currentTime = clamped;
+  if (typeof updateNowPlayingProgress === 'function') updateNowPlayingProgress();
+}
+window.seekAudioTo = seekAudioTo;
+
 audioPlayer.addEventListener('timeupdate', () => {
   updateNowPlayingProgress();
   const tr = app.state.currentTrack;

@@ -3,6 +3,23 @@ const NAV_STACK_MAX = 30;
 let lastConfirmTime = 0;
 const CONFIRM_THROTTLE_MS = 450;
 
+// Several screens (Games, Visualizer, Colour, Now Playing) register custom
+// wheel-scroll/confirm behavior as global hooks rather than using the
+// generic list dispatch below - each is responsible for setting its own,
+// but previously only cleared them on its own specific exit action. Pressing
+// the physical/on-screen MENU button to back out any other way left the
+// hook set, silently breaking wheel input on whatever screen came next.
+// Called on every navigation so that can't happen, regardless of how a
+// screen was left.
+function resetCustomScreenControlHooks() {
+  window.onGameScroll = null;
+  window.onVisualizerScroll = null;
+  window.onColourMenuScroll = null;
+  window.onColourMenuConfirm = null;
+  window.onNowPlayingScroll = null;
+  window.onNowPlayingConfirm = null;
+}
+
 function getSortedAlbumKeys() {
   return app.state.derivedData.sortedAlbumKeys || [];
 }
@@ -18,6 +35,8 @@ function getActiveScreenRoot() {
 }
 
 function goTo(screenFn, ...args) {
+  resetCustomScreenControlHooks();
+
   const stack = app.state.navStack;
   stack.push({ fn: screenFn, args: ['forward', ...args] });
 
@@ -49,6 +68,8 @@ function goTo(screenFn, ...args) {
 }
 
 function goBack() {
+  resetCustomScreenControlHooks();
+
   const stack = app.state.navStack;
   if (stack.length > 1) {
     stack.pop();
@@ -129,6 +150,11 @@ function attachDiskControlListeners() {
     if (typeof window.onPlaylistAlbumMenuDone === 'function') {
       window.onPlaylistAlbumMenuDone();
       window.onPlaylistAlbumMenuDone = null;
+      return;
+    }
+    if (typeof window.onAddToQueueDone === 'function') {
+      window.onAddToQueueDone();
+      window.onAddToQueueDone = null;
       return;
     }
     goBack();
@@ -237,6 +263,11 @@ function attachDiskControlListeners() {
         const rows = Array.from(loadMusicActions.querySelectorAll('li[data-idx], li'));
         const idx = Math.max(0, Math.min(app.state.currentMenuIndex, rows.length - 1));
         rows[idx]?.click();
+        return;
+      }
+
+      if (typeof window.onNowPlayingConfirm === 'function') {
+        window.onNowPlayingConfirm();
         return;
       }
 
@@ -384,6 +415,11 @@ function scrollMenu(direction) {
 
   if (typeof window.onVisualizerScroll === 'function') {
     window.onVisualizerScroll(direction);
+    return;
+  }
+
+  if (typeof window.onNowPlayingScroll === 'function') {
+    window.onNowPlayingScroll(direction);
     return;
   }
 

@@ -97,6 +97,8 @@ const app = {
     smartMixPlaybackHistory: [],
     smartMixHistoryCursor: -1,
     smartMixTasteProfileCache: null,
+    progressBarDragging: false,
+    queueEditMode: false,
     albumCoverURLs: [],
     isShuffleOn: false,
     originalAlbumSongs: null,
@@ -111,6 +113,7 @@ const app = {
   },
   config: {
     savedEqPreset: getLocalStorageValue('eqPreset', 'Flat'),
+    savedPlaybackRate: Number(getLocalStorageValue('playbackRate', '1')) || 1,
     debugLogging: getLocalStorageValue('debugLogging', '0') === '1',
   }
 };
