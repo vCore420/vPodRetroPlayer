@@ -124,6 +124,7 @@ Music/                         # Root music folder
 - **Service worker stale**: Hard-refresh (Ctrl+F5) or unregister SW in DevTools; bump cache name when deploying.
 - **All else fails clear browser cache to hard reset all site data (this will delete all your user data on the application)
 - **Identify Track/Album/Artist says it can't reach MusicBrainz**: needs an internet connection; also check nothing (an ad blocker, a restrictive network) is blocking requests to musicbrainz.org.
+- **Playback stops after a song or two while backgrounded**: the app actively watches for and resumes the audio engine if the browser suspends it in the background, but this is fighting an OS/browser power-saving behavior, not something a PWA can fully guarantee against on every device. If it still happens, check your device's battery-saver/background-restriction settings for the browser app.
 
 ---
 
