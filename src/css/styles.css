@@ -2022,6 +2022,16 @@ body::-webkit-scrollbar,
 
 /* --- Responsive vpod for Mobile --- */
 @media (max-width: 600px) {
+  .nowplaying-actions-left {
+    gap: 8px !important;
+    margin-left: 8px !important;
+  }
+
+  .nowplaying-actions-right {
+    gap: 0 !important;
+    margin-right: 4px !important;
+  }
+
   .ipod-utility-screen {
     padding: 3vw 3vw 3.5vw;
   }
