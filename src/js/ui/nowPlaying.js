@@ -204,37 +204,37 @@ function renderNowPlayingScreen(direction = 'forward') {
           <div class="nowplaying-album">${track ? track.album : ''}</div>
         </div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
+      <div class="nowplaying-actions-row" style="display:flex;flex-wrap:nowrap;justify-content:space-between;align-items:center;width:100%;gap:6px;">
+        <div class="nowplaying-actions-left" style="display:flex;flex-wrap:nowrap;align-items:center;gap:12px;margin-left:16px;">
           <button id="likeBtn" class="like-btn" title="Like"
-            style="font-size:1.6em;color:#888;background:none;border:none;cursor:pointer;margin-left:20px;display:inline-flex;align-items:center;gap:4px;">
+            style="font-size:1.4em;color:#888;background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:4px 0;">
             <i class="fa-solid fa-thumbs-up"></i>
             <span id="likeCountLabel" class="${likeClass}">${likeCount}</span>
           </button>
           <button id="dislikeBtn" class="dislike-btn" title="Dislike"
-            style="font-size:1.6em;color:#888;background:none;border:none;cursor:pointer;margin-left:10px;display:inline-flex;align-items:center;gap:4px;">
+            style="font-size:1.4em;color:#888;background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:4px 0;">
             <i class="fa-solid fa-thumbs-down"></i>
             <span id="dislikeCountLabel" class="${dislikeClass}">${dislikeCount}</span>
           </button>
         </div>
-        <div style="display:flex;align-items:center;gap:4px;margin-top:4px;margin-right:4px;">
+        <div class="nowplaying-actions-right" style="display:flex;flex-wrap:nowrap;align-items:center;gap:2px;margin-right:8px;">
           <button id="addToPlaylistBtn" title="Add to Playlist"
-            style="font-size:1.3em;background:none;border:none;color:#888;cursor:pointer;padding:4px 8px;">
+            style="font-size:1.3em;background:none;border:none;color:#888;cursor:pointer;padding:4px 6px;">
             <i class="fa-solid fa-plus"></i>
           </button>
           <button id="queueBtn" title="View Queue"
-            style="font-size:1.4em;background:none;border:none;color:#888;cursor:pointer;padding:4px 8px;">
+            style="font-size:1.4em;background:none;border:none;color:#888;cursor:pointer;padding:4px 6px;">
             <i class="fa-solid fa-list-ol"></i>
           </button>
-          <button id="shuffleBtn" class="shuffle-btn${app.state.isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle">
+          <button id="shuffleBtn" class="shuffle-btn${app.state.isShuffleOn ? ' shuffle-on' : ''}" title="Shuffle" style="font-size:1.3em;padding:4px 6px;margin:0;">
             <i class="fa-solid fa-shuffle"></i>
           </button>
           <button id="vizToggleBtn" title="Visualizer"
-            style="font-size:1.3em;background:none;border:none;color:#888;cursor:pointer;padding:4px 8px;">
+            style="font-size:1.3em;background:none;border:none;color:#888;cursor:pointer;padding:4px 6px;">
             <i class="fa-solid fa-wave-square"></i>
           </button>
           <button id="speedBtn" title="Playback Speed (or press the center button)"
-            style="font-size:0.95em;font-weight:bold;background:none;border:1px solid #b0b0b0;border-radius:10px;color:#888;cursor:pointer;padding:2px 8px;min-width:2.6em;">
+            style="font-size:0.9em;font-weight:bold;background:none;border:1px solid #b0b0b0;border-radius:10px;color:#888;cursor:pointer;padding:2px 7px;min-width:2.4em;flex-shrink:0;">
             ${formatPlaybackRateLabel(audioPlayer.playbackRate)}
           </button>
         </div>
